@@ -16,7 +16,7 @@ Flow Sinkhorn can be seen as a flow-based interpretation and implementation of S
 
 ---
 
-## 🚀 Quick start (Colab)
+## Python Code
 
 [Notebook **implementing and showcasing of the algorithm**](code/flow-sinkhorn.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gpeyre/flow-sinkhorn/blob/main/code/flow-sinkhorn.ipynb)
 
