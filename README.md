@@ -20,7 +20,7 @@ Flow Sinkhorn can be seen as a flow-based interpretation and implementation of S
 
 An interactive notebook demonstrating the **implementation and showcasing of the algorithm** is available here:
 
-**[Open the notebook in Google Colab](https://colab.research.google.com/github/USERNAME/REPOSITORY/blob/main/code/flow-sinkhorn.ipynb)**
+**[Open the notebook in Google Colab](https://colab.research.google.com/github/gpeyre/flow-sinkhorn/blob/main/code/flow-sinkhorn.ipynb)**
 
 The notebook walks through:
 - the core ideas behind Flow Sinkhorn,
