@@ -1,0 +1,346 @@
+\documentclass[11pt]{article}
+
+% -------------------------------------------------
+% Packages
+% -------------------------------------------------
+\usepackage[a4paper,margin=1.1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{dsfont}
+\usepackage{hyperref}
+\usepackage{microtype}
+
+% Optional: algorithm environment
+\usepackage[ruled,vlined]{algorithm2e}
+
+% -------------------------------------------------
+% Macros (from provided material, lightly trimmed)
+% -------------------------------------------------
+\newcommand{\mc}[1]{\mathcal{#1}}
+\newcommand{\tn}[1]{\textnormal{#1}}
+\newcommand{\ones}{\mathds{1}}
+\newcommand{\Vertex}{V}
+\newcommand{\Cc}{\mathcal{C}}
+\newcommand{\Edge}{E}
+\newcommand{\length}{W}
+\newcommand{\eqdef}{\coloneqq}
+\newcommand{\pa}[1]{\left( #1 \right)}
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\RRPInf}{{\overline{\RR}}}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\Proj}{Proj}
+\DeclareMathOperator{\diverg}{div}
+\DeclareMathOperator{\arsinh}{arsinh}
+\newcommand{\KL}{\mathrm{KL}}
+\newcommand{\KLdiv}[2]{\mathrm{KL}(#1\,|\,#2)}
+\newcommand{\Ll}{\mathcal{L}}
+\newcommand{\z}{z}
+\newcommand{\zC}{\z^C}
+
+% Flow-specific
+\newcommand{\Geod}{D}          % geodesic distance / shortest-path metric
+\newcommand{\Flows}{\mathbb{F}} % sparse flows on edges
+
+% -------------------------------------------------
+% Theorem environments
+% -------------------------------------------------
+\newtheorem{proposition}{Proposition}
+
+% -------------------------------------------------
+% Title
+% -------------------------------------------------
+\title{Flow--Sinkhorn for Graph Wasserstein--1}
+\author{Gabriel Peyr\'e\\CNRS and ENS, Universit\'e PSL\\ \url{gabriel.peyre@ens.fr}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This note presents the \emph{Sinkhorn--flow} algorithm for approximating the Wasserstein--1 distance on a graph.
+We start from the unregularized Beckmann (transshipment) linear program, introduce a lifting with two flow variables so that the constraints split into two simple affine blocks, add an entropic (KL) regularization, and derive the resulting cyclic Kullback--Leibler projections.
+We also provide the dual viewpoint as an alternating block coordinate maximization, and we state an implementation-ready version using stable scaling (and log-domain primitives) to avoid numerical overflow/underflow when the regularization is small.
+Further details, extensions, and theoretical guarantees can be found in the full article
+\emph{Robust Sublinear Convergence Rates for Iterative Bregman Projections} (arXiv: \url{https://arxiv.org/abs/2602.01372}).
+\end{abstract}
+
+% =================================================
+\section{Unregularized $W_1$ on a graph via a flow linear program}
+% =================================================
+
+Let an undirected connected graph be encoded by a vertex set $\Vertex=\{1,\dots,n\}$ and an edge--length matrix
+$\length\in\RRPInf_{+}^{\,n\times n}$ with $\length=\length^{\top}$.
+An entry $\length_{i,j}<\infty$ means that $(i,j)$ is an edge of length $\length_{i,j}$.
+Define the edge set and its size
+\[
+  \Edge \eqdef \bigl\{(i,j)\in\Vertex^2:\length_{i,j}<\infty\bigr\},
+  \qquad p\eqdef|\Edge|.
+\]
+Let $\Geod\in\RR_+^{n\times n}$ denote the shortest-path (geodesic) distance induced by $\length$ (finite since the graph is connected).
+Given two probability vectors $b_1,b_2\in\RR_+^n$ with $\langle b_1,\ones\rangle=\langle b_2,\ones\rangle=1$, the Wasserstein--1 distance associated to $\Geod$ admits a sparse \emph{flow} formulation.
+
+\paragraph{Sparse flows.}
+We consider nonnegative flows supported on $\Edge$,
+\[
+  \Flows \eqdef \bigl\{ f\in\RR_+^{n\times n}:\ \forall (i,j)\notin\Edge,\ f_{i,j}=0 \bigr\},
+\]
+where $f_{i,j}$ represents transported mass \emph{from} $j$ \emph{to} $i$.
+Define the discrete divergence operator
+\begin{equation}
+  \label{eq:divergence}
+  \diverg(f)\eqdef f^{\top}\ones - f\ones \in \RR^n.
+\end{equation}
+
+\paragraph{Beckmann (transshipment) program.}
+The graph Wasserstein--1 distance equals the optimal value of the linear program
+\begin{equation}
+  \label{eq:beckmann}
+  \mathrm{W}_{\Geod}(b_1,b_2)
+  \;=\;
+  \min_{f\in\Flows}\ \Bigl\{ \langle \length,f\rangle \;:\; \diverg(f)=b_1-b_2 \Bigr\}.
+\end{equation}
+Because $f$ is supported on $\Edge$, the effective number of variables is $p$ rather than $n^2$.
+
+% =================================================
+\section{Constraint splitting by lifting to two flows}
+% =================================================
+
+A direct entropic regularization of \eqref{eq:beckmann} leads to constraints that are not as easily projected onto in KL.
+A simple remedy is to duplicate the flow variable and split the constraints into two affine blocks.
+
+\paragraph{Lifted variable.}
+Introduce a pair of flows
+\[
+  x \eqdef (f,g)\in \Flows^2,
+  \qquad d = 2p.
+\]
+Using this lifting, the unregularized objective can be written as
+\begin{equation}
+  \label{eq:lifted_unreg}
+  \mathrm{W}_{\Geod}(b_1,b_2)
+  \;=\;
+  \min_{(f,g)\in\Cc_1\cap\Cc_2}\ \langle \length,f\rangle + \langle \length,g\rangle,
+\end{equation}
+with the two affine constraint sets
+\begin{align}
+  \label{eq:C1C2}
+  \Cc_1 &\eqdef \Bigl\{(f,g)\in\Flows^2:\ -f\ones + g^{\top}\ones = b_1-b_2 \Bigr\}, \\
+  \Cc_2 &\eqdef \Bigl\{(f,g)\in\Flows^2:\ f=g \Bigr\}.
+\end{align}
+At feasibility, $\Cc_2$ forces $f=g$, and $\Cc_1$ then reduces to $\diverg(f)=b_1-b_2$.
+
+% =================================================
+\section{Entropic regularization and Gibbs kernel on edges}
+% =================================================
+
+Fix a reference flow $\z\in\Flows$ with strictly positive values on $\Edge$ (and $\z_{i,j}=0$ off $\Edge$).
+For $\gamma>0$, consider the entropically regularized lifted program
+\begin{equation}
+  \label{eq:entropic_flow}
+  \min_{(f,g)\in\Cc_1\cap\Cc_2}
+  \Bigl\{
+    \langle \length,f\rangle + \langle \length,g\rangle
+    + \gamma\,\KLdiv{f}{\z} + \gamma\,\KLdiv{g}{\z}
+  \Bigr\}.
+\end{equation}
+Here, for a flow $h\in\Flows$,
+\[
+  \KLdiv{h}{\z}
+  \eqdef
+  \sum_{(i,j)\in\Edge}
+  \Bigl(h_{i,j}\log\frac{h_{i,j}}{\z_{i,j}} - h_{i,j} + \z_{i,j}\Bigr).
+\]
+
+\paragraph{Edgewise Gibbs kernel.}
+As usual, it is convenient to absorb the linear cost into a tilted reference (Gibbs kernel).
+Define
+\begin{equation}
+  \label{eq:gibbs_kernel}
+  \zC_{i,j}\eqdef \z_{i,j}\exp\!\Bigl(-\frac{\length_{i,j}}{\gamma}\Bigr)
+  \quad\text{for }(i,j)\in\Edge,
+  \qquad
+  \zC_{i,j}=0\text{ for }(i,j)\notin\Edge.
+\end{equation}
+Then \eqref{eq:entropic_flow} is equivalent (up to an additive constant) to the KL projection problem
+\begin{equation}
+  \label{eq:kl_projection_form}
+  \min_{(f,g)\in\Cc_1\cap\Cc_2}
+  \KLdiv{f}{\zC} + \KLdiv{g}{\zC}.
+\end{equation}
+
+% =================================================
+\section{Cyclic KL projections and dual block maximization}
+% =================================================
+
+\subsection{Primal viewpoint: alternating KL projections}
+
+Starting from a positive initialization, the regularized problem \eqref{eq:kl_projection_form} can be solved by cyclic KL projections:
+\[
+  (f^{(k+\tfrac12)},g^{(k+\tfrac12)}) = \Proj_{\Cc_1}\bigl(f^{(k)},g^{(k)}\bigr),
+  \qquad
+  (f^{(k+1)},g^{(k+1)}) = \Proj_{\Cc_2}\bigl(f^{(k+\tfrac12)},g^{(k+\tfrac12)}\bigr),
+\]
+where $\Proj_{\Cc}$ denotes the minimizer of $\KL(\cdot\,|\,\cdot)$ over $\Cc$.
+
+A key feature of the present splitting is that both projections admit simple closed forms.
+
+\begin{proposition}[Closed-form KL projections for $\Cc_1$ and $\Cc_2$]
+\label{prop:kl_projections}
+Let $(h,h)\in \Flows^2$ with $h_{i,j}>0$ on $\Edge$.
+Then
+\[
+  \Proj_{\Cc_1}(h,h) = \bigl(\diag(s)\,h,\;h\,\diag(s)^{-1}\bigr),
+  \qquad
+  \Proj_{\Cc_2}(f,g)=\bigl(\sqrt{f\odot g},\ \sqrt{f\odot g}\bigr),
+\]
+where $\odot$ denotes the entrywise product and the scaling $s\in\RR_{++}^n$ is given componentwise by
+\begin{equation}
+  \label{eq:s_scaling_phi}
+  s
+  =
+  \phi\!\left(
+    \frac{b_1-b_2}{h\ones},
+    \frac{h^{\top}\ones}{h\ones}
+  \right),
+  \qquad
+  \phi(t,u)\eqdef \frac{\sqrt{t^{2}+4u}-t}{2}.
+\end{equation}
+\end{proposition}
+
+\paragraph{One-flow reduction.}
+Because $\Proj_{\Cc_1}$ maps pairs of equal flows to a pair $(f,g)$ with a simple diagonal left/right scaling, and $\Proj_{\Cc_2}$ then returns a pair of equal flows, it is natural to track a single flow variable:
+\begin{equation}
+  \label{eq:one_flow_iteration}
+  (f^{(k+1)},f^{(k+1)})
+  =
+  \Proj_{\Cc_2}\circ \Proj_{\Cc_1}\bigl(f^{(k)},f^{(k)}\bigr).
+\end{equation}
+
+\subsection{Dual viewpoint: alternating block coordinate maximization}
+
+The same iterations can be seen as alternating maximization of a smooth concave dual objective.
+Introduce a dual variable $u=(u_1,u_2)$ associated to the two affine blocks $(\Cc_1,\Cc_2)$.
+At the level of general entropic programs, the primal minimizer has an exponential form
+\[
+  x(u)_i = \zC_i \exp\!\Bigl(\frac{(A^\top u)_i}{\gamma}\Bigr),
+\]
+and cyclic KL projections correspond exactly to alternating maximization over $u_1$ and $u_2$ (one block per step).
+Specializing to the flow splitting, one convenient parametrization of the resulting one-flow iterate is through a node potential $v^{(k)}\in\RR^n$ and its scaling form
+\[
+  s^{(k)} \eqdef \exp\!\Bigl(\frac{v^{(k)}}{\gamma}\Bigr)\in\RR_{++}^n,
+\]
+so that
+\begin{equation}
+  \label{eq:flow_from_scaling}
+  f^{(k)} = \diag\bigl(s^{(k)}\bigr)\,\zC\,\diag\bigl(1/s^{(k)}\bigr),
+  \qquad
+  f^{(k)}_{i,j}
+  =
+  \zC_{i,j}\exp\!\Bigl(\frac{v_i^{(k)}-v_j^{(k)}}{2\gamma}\Bigr).
+\end{equation}
+
+% =================================================
+\section{Sinkhorn--flow updates and stable implementation}
+% =================================================
+
+\subsection{Scaling-variable update}
+Define
+\[
+  r \eqdef \frac{b_1-b_2}{2}\in\RR^n.
+\]
+Combining \eqref{eq:one_flow_iteration}, Proposition~\ref{prop:kl_projections}, and the parametrization \eqref{eq:flow_from_scaling} yields an explicit update directly on $s^{(k)}$.
+
+\begin{proposition}[Flow--Sinkhorn update in scaling variables]
+\label{prop:s_update}
+For every $k\ge 0$, the scaling update can be written as
+\begin{equation}
+  \label{eq:s_update}
+  s^{(k+1)}
+  =
+  \sqrt{
+    \frac{s^{(k)}}{\zC\, (1/s^{(k)})}
+    \odot
+    \Bigl(
+      \sqrt{\,r^{2}+(\zC s^{(k)})\odot(\zC (1/s^{(k)}))}-r
+    \Bigr)
+  }.
+\end{equation}
+All products and square-roots are entrywise, and matrix-vector products such as $\zC s$ are understood as sparse sums along edges.
+\end{proposition}
+
+\subsection{A stable update in log-domain primitives}
+
+When $\gamma$ is small, exponentials may underflow/overflow if one updates $s^{(k)}$ directly.
+A robust approach is to update $v^{(k)}=\gamma\log s^{(k)}$ using a stable log-sum-exp operator.
+
+Define the log-sum-exp operator (with temperature $\gamma$)
+\begin{equation}
+  \label{eq:lse_def}
+  \Ll_{\gamma}(q)\eqdef \gamma\log\!\sum_{j}\exp(q_j/\gamma),
+  \qquad
+  \text{implemented stably as }\;
+  \Ll_{\gamma}(q-\max q)+\max q.
+\end{equation}
+For each node $i$, define
+\[
+  \alpha_i^\pm(v)\coloneqq \Ll_{\gamma}(-w_{i,\cdot}\pm v/2),
+  \qquad
+  \beta_i \eqdef \frac{b_{1,i}-b_{2,i}}{2}\exp\!\Bigl(-\frac{\alpha_i^+(v)+\alpha_i^-(v)}{2\gamma}\Bigr),
+\]
+where $w_{i,\cdot}$ denotes the vector of incident edge lengths from $i$ (restricted to neighbors, consistent with $\zC$ sparsity),
+and $\arsinh(m)\eqdef \log(\sqrt{1+m^2}+m)$.
+
+\begin{proposition}[Stable node-potential update]
+\label{prop:v_update}
+Let $v^{(k)}=\gamma\log s^{(k)}$. Then one can write $v^{(k+1)}=\Psi(v^{(k)})$ with
+\begin{equation}
+  \label{eq:v_update}
+  \Psi(v)_i
+  =
+  -\frac{1}{2}\,v_i
+  +\frac{1}{2}\bigl(\alpha_i^+(v)-\alpha_i^-(v)\bigr)
+  +\gamma\,\arsinh(\beta_i),
+  \qquad i=1,\dots,n.
+\end{equation}
+\end{proposition}
+
+\subsection{Algorithmic steps (implementation-ready)}
+We summarize the Sinkhorn--flow iteration using the stable update \eqref{eq:v_update}, and recover either $s^{(k)}$ or the flow $f^{(k)}$ when needed.
+
+\begin{algorithm}[h]
+\caption{Sinkhorn--flow for graph $W_1$ (stable form)}
+\label{alg:sinkhorn_flow}
+\DontPrintSemicolon
+\KwIn{
+Graph $(\Vertex,\Edge)$ with lengths $(\length_{i,j})_{(i,j)\in\Edge}$; distributions $b_1,b_2\in\RR_+^n$; reference $\z\in\Flows$; regularization $\gamma>0$; iterations $K$.
+}
+\KwOut{A regularized flow $f^{(K)}\in\Flows$ and (optionally) an estimate of $\mathrm W_{\Geod}(b_1,b_2)$ via $\langle \length,f^{(K)}\rangle$.}
+
+Compute $\zC$ on edges by $\zC_{i,j}\leftarrow \z_{i,j}\exp(-\length_{i,j}/\gamma)$ for $(i,j)\in\Edge$\;
+Set $r\leftarrow (b_1-b_2)/2$\;
+Initialize a potential $v^{(0)}\in\RR^n$ (e.g.\ $v^{(0)}=0$)\;
+
+\For{$k=0,1,\dots,K-1$}{
+  For each node $i$, compute $\alpha_i^+(v^{(k)})$ and $\alpha_i^-(v^{(k)})$ using stable $\Ll_\gamma$ on its neighbors\;
+  For each node $i$, compute $\beta_i$ and update
+  $v_i^{(k+1)} \leftarrow
+  -\tfrac12 v_i^{(k)} + \tfrac12(\alpha_i^+(v^{(k)})-\alpha_i^-(v^{(k)})) + \gamma\,\arsinh(\beta_i)$\;
+}
+Set $s^{(K)} \leftarrow \exp(v^{(K)}/\gamma)$ (entrywise)\;
+Recover the flow on edges by $f^{(K)}\leftarrow \diag(s^{(K)})\,\zC\,\diag(1/s^{(K)})$\;
+\Return $f^{(K)}$\;
+\end{algorithm}
+
+\paragraph{Computational note.}
+All operations involving $\zC$ and the neighborhood vectors $w_{i,\cdot}$ are sparse: for each node $i$, sums only run over neighbors $(i,j)\in\Edge$.
+The update \eqref{eq:v_update} avoids forming extremely small/large exponentials directly and relies on stable log-sum-exp.
+
+% =================================================
+\section*{Acknowledgements}
+% =================================================
+
+This work was supported by the European Research Council (ERC project WOLF) and the French government under the management of Agence Nationale de la Recherche as part of the ``France 2030'' program, reference ANR-23-IACL-0008 (PRAIRIE-PSAI).
+%
+I would like to thank Giulia Luise, Marco Cuturi, and Bernhard Schmitzer for fruitful discussions that led to the development of the Sinkhorn--flow algorithm.
+
+
+\end{document}

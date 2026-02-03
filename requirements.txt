@@ -1,0 +1,15 @@
+# Core dependencies
+numpy>=1.18.0
+scipy>=1.4.0
+
+# Optional dependencies for sparse operations
+sparse>=0.13.0
+
+# Optional dependencies for exact solver
+cvxpy>=1.1.0
+
+# Optional dependencies for examples
+matplotlib>=3.1.0
+networkx>=2.4
+scikit-learn>=0.22.0
+jupyter>=1.0.0
