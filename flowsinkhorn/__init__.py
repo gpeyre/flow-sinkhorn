@@ -10,6 +10,7 @@ Main components
 - sinkhorn: Entropic regularized solvers (NumPy/SciPy, CPU)
 - sinkhorn_torch: GPU-accelerated solvers (PyTorch, optional)
 - exact: Exact linear programming solvers (CVXPY, slower, exact)
+- utils: Utility functions for graph manipulation and visualization
 
 Quick Start
 -----------
@@ -41,6 +42,15 @@ __author__ = "Gabriel Peyré"
 from .sinkhorn import sinkhorn_w1, sinkhorn_w1_sparse
 from .exact import solve_w1_exact, solve_w1_exact_sparse
 
+# Utility functions (always available)
+from .utils import (
+    load_off_file,
+    build_mesh_graph,
+    select_sources_sinks,
+    plot_mesh,
+    plot_mesh_with_flow
+)
+
 # PyTorch implementation (optional, only if torch is available)
 try:
     from .sinkhorn_torch import (
@@ -58,6 +68,11 @@ __all__ = [
     'sinkhorn_w1_sparse',
     'solve_w1_exact',
     'solve_w1_exact_sparse',
+    'load_off_file',
+    'build_mesh_graph',
+    'select_sources_sinks',
+    'plot_mesh',
+    'plot_mesh_with_flow',
 ]
 
 # Add PyTorch functions if available

@@ -173,6 +173,8 @@ Four complete example notebooks are provided:
 
 This example showcases optimal transport on real 3D geometry using the `data/moomoo.off` mesh.
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gpeyre/flow-sinkhorn/blob/main/examples/mesh-transport.ipynb)
+
 #### 3. **2D Grid with Obstacles** (`grid-transport.ipynb`)
 - Creating regular 30×30 square grid graphs
 - Modulating edge costs with Gaussian bumps (obstacles)
@@ -183,6 +185,8 @@ This example showcases optimal transport on real 3D geometry using the `data/moo
 
 This example illustrates **path planning** and **obstacle avoidance** in optimal transport.
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gpeyre/flow-sinkhorn/blob/main/examples/grid-transport.ipynb)
+
 #### 4. **GPU Benchmark** (`gpu-benchmark.ipynb`)
 - GPU/CPU device detection (CUDA, MPS, CPU)
 - PyTorch GPU-accelerated implementation
@@ -192,6 +196,8 @@ This example illustrates **path planning** and **obstacle avoidance** in optimal
 - Speedup measurements (10-100x typical on GPU)
 
 This example validates the PyTorch implementation and demonstrates GPU acceleration benefits.
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gpeyre/flow-sinkhorn/blob/main/examples/gpu-benchmark.ipynb)
 
 **Run the notebooks:**
 
@@ -222,19 +228,38 @@ where:
 - $z_i$ is the source/sink at node $i$ (sum to 0)
 - $\varepsilon > 0$ is the entropic regularization parameter
 
-The algorithm iteratively computes:
+### Iterative Updates
+
+The algorithm iteratively computes the flow from dual potentials $h$:
 
 $$
 f_{i,j} = \exp\left(\frac{-W_{i,j} + h_i - h_j}{\varepsilon}\right)
 $$
 
-with potential updates:
+The potentials are updated using:
 
 $$
 h \leftarrow \frac{h}{2} - \frac{\varepsilon}{2} m
 $$
 
-See the paper for complete details and convergence analysis.
+where the update vector $m$ is computed from auxiliary variables:
+
+$$
+a_i = \sum_j \exp\left(\frac{-W_{i,j} - h_i}{\varepsilon}\right), \quad
+b_i = \sum_j \exp\left(\frac{-W_{i,j} + h_i}{\varepsilon}\right)
+$$
+
+For numerical stability, $m$ is computed differently depending on the node type (with $r = z/2$):
+
+- **Neutral nodes** ($z_i = 0$): $m_i = \frac{1}{2}\left(\log a_i - \log b_i\right)$
+
+- **Source nodes** ($z_i > 0$): $m_i = \log\left(\sqrt{r_i^2 + a_i b_i} + r_i\right) - \log b_i$
+
+- **Sink nodes** ($z_i < 0$): $m_i = -\log\left(\sqrt{r_i^2 + a_i b_i} - r_i\right) + \log a_i$
+
+These formulas ensure numerical stability and enforce the flow conservation constraint $f^\top \mathbf{1} - f \mathbf{1} = z$.
+
+See the paper for complete derivation, convergence analysis, and theoretical guarantees.
 
 ---
 
