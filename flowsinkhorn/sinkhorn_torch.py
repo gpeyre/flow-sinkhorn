@@ -70,6 +70,33 @@ def _lse_torch(Z, u):
     return torch.logsumexp(Z + u[None, :], dim=1)
 
 
+def _segment_logsumexp_from_sorted(values, row_ptr, n):
+    """
+    Row-wise log-sum-exp on sorted COO edge values without densifying.
+
+    Parameters
+    ----------
+    values : torch.Tensor of shape (nnz,)
+        Per-edge values sorted by row index.
+    row_ptr : torch.Tensor of shape (n+1,)
+        CSR-style row pointers.
+    n : int
+        Number of rows.
+
+    Returns
+    -------
+    torch.Tensor of shape (n,)
+        Row-wise log-sum-exp.
+    """
+    out = torch.full((n,), -torch.inf, dtype=values.dtype, device=values.device)
+    for i in range(n):
+        start = int(row_ptr[i].item())
+        end = int(row_ptr[i + 1].item())
+        if end > start:
+            out[i] = torch.logsumexp(values[start:end], dim=0)
+    return out
+
+
 def sinkhorn_w1_torch(W, z, epsilon, niter, device=None, return_numpy=True):
     """
     PyTorch W1-Sinkhorn algorithm with GPU acceleration.
@@ -274,7 +301,7 @@ def sinkhorn_w1_torch_sparse(W_indices, W_values, W_shape, z, epsilon, niter,
 
     n = W_shape[0]
 
-    # Convert to torch sparse tensor
+    # Convert edge list to torch tensors (COO format)
     if isinstance(W_indices, np.ndarray):
         indices_torch = torch.from_numpy(W_indices).long().to(dev)
     else:
@@ -285,22 +312,36 @@ def sinkhorn_w1_torch_sparse(W_indices, W_values, W_shape, z, epsilon, niter,
     else:
         values_torch = W_values.float().to(dev)
 
-    W_sparse = torch.sparse_coo_tensor(indices_torch, values_torch, W_shape,
-                                       dtype=torch.float32, device=dev)
-
     if isinstance(z, np.ndarray):
         z_torch = torch.from_numpy(z).float().to(dev)
     else:
         z_torch = z.float().to(dev)
 
+    # Sort edges by row index once (for fast segmented reductions)
+    row_idx = indices_torch[0]
+    col_idx = indices_torch[1]
+    perm = torch.argsort(row_idx)
+    invperm = torch.empty_like(perm)
+    invperm[perm] = torch.arange(len(perm), device=dev)
+
+    row_sorted = row_idx[perm]
+    col_sorted = col_idx[perm]
+    values_sorted = values_torch[perm]
+
+    # CSR-style pointers for row segments
+    row_counts = torch.bincount(row_sorted, minlength=n)
+    row_ptr = torch.zeros(n + 1, dtype=torch.long, device=dev)
+    row_ptr[1:] = torch.cumsum(row_counts, dim=0)
+
     # Initialize
-    K_values = torch.exp(-values_torch / epsilon)
-    K_sparse = torch.sparse_coo_tensor(indices_torch, K_values, W_shape,
-                                       dtype=torch.float32, device=dev)
+    K_values_sorted = torch.exp(-values_sorted / epsilon)
 
     h = torch.zeros(n, dtype=torch.float32, device=dev)
     r = z_torch / 2
     err = []
+    f_values_sorted = torch.exp(
+        (-values_sorted + h[row_sorted] - h[col_sorted]) / epsilon
+    )
 
     # Identify node types
     I0 = torch.where(z_torch == 0)[0]
@@ -308,15 +349,18 @@ def sinkhorn_w1_torch_sparse(W_indices, W_values, W_shape, z, epsilon, niter,
     In = torch.where(z_torch < 0)[0]
 
     for it in range(niter):
-        # Sparse matrix-vector products
-        a = torch.sparse.mm(K_sparse, torch.exp(-h / epsilon).unsqueeze(1)).squeeze()
-        b = torch.sparse.mm(K_sparse, torch.exp(+h / epsilon).unsqueeze(1)).squeeze()
+        # Sparse matrix-vector products via scatter-add (no dense conversion)
+        a = torch.zeros(n, dtype=torch.float32, device=dev)
+        a.scatter_add_(0, row_sorted, K_values_sorted * torch.exp(-h[col_sorted] / epsilon))
 
-        # For log operations, we need to convert to dense (unavoidable for logsumexp)
-        # This is still faster than full dense operations for sparse graphs
-        W_dense = W_sparse.to_dense()
-        loga = _lse_torch(-W_dense / epsilon, -h / epsilon)
-        logb = _lse_torch(-W_dense / epsilon, +h / epsilon)
+        b = torch.zeros(n, dtype=torch.float32, device=dev)
+        b.scatter_add_(0, row_sorted, K_values_sorted * torch.exp(+h[col_sorted] / epsilon))
+
+        # Row-wise log-sum-exp from sparse edge values (no dense conversion)
+        loga_vals = -values_sorted / epsilon - h[col_sorted] / epsilon
+        logb_vals = -values_sorted / epsilon + h[col_sorted] / epsilon
+        loga = _segment_logsumexp_from_sorted(loga_vals, row_ptr, n)
+        logb = _segment_logsumexp_from_sorted(logb_vals, row_ptr, n)
 
         # Compute update vector m
         m = torch.zeros(n, dtype=torch.float32, device=dev)
@@ -331,14 +375,20 @@ def sinkhorn_w1_torch_sparse(W_indices, W_values, W_shape, z, epsilon, niter,
         h = h / 2 - epsilon / 2 * m
 
         # Compute flow (sparse)
-        f_values = torch.exp((-values_torch + h[indices_torch[0]] - h[indices_torch[1]]) / epsilon)
-        f_sparse = torch.sparse_coo_tensor(indices_torch, f_values, W_shape,
-                                          dtype=torch.float32, device=dev)
+        f_values_sorted = torch.exp(
+            (-values_sorted + h[row_sorted] - h[col_sorted]) / epsilon
+        )
 
-        # Compute error (need dense for sum operations)
-        f_dense = f_sparse.to_dense()
-        e = torch.norm((torch.sum(f_dense, dim=0) - torch.sum(f_dense, dim=1)) - z_torch, p=1)
+        # Compute error from sparse edge lists (no dense conversion)
+        col_sums = torch.zeros(n, dtype=torch.float32, device=dev)
+        col_sums.scatter_add_(0, col_sorted, f_values_sorted)
+        row_sums = torch.zeros(n, dtype=torch.float32, device=dev)
+        row_sums.scatter_add_(0, row_sorted, f_values_sorted)
+        e = torch.norm((col_sums - row_sums) - z_torch, p=1)
         err.append(e.item())
+
+    # Return f values in original edge ordering
+    f_values = f_values_sorted[invperm]
 
     # Return results
     if return_numpy:

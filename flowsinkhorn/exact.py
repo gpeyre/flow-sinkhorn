@@ -11,6 +11,7 @@ Projections on Affine Spaces", arXiv preprint, 2026.
 """
 
 import numpy as np
+import scipy.sparse as sp
 try:
     import cvxpy as cp
     CVXPY_AVAILABLE = True
@@ -138,8 +139,9 @@ def solve_w1_exact_sparse(A, z, edge_costs=None, solver=None, verbose=False):
     """
     Solve the exact W1 problem on a sparse graph using edge-based formulation.
 
-    This function is more memory-efficient for sparse graphs as it only
-    creates flow variables for existing edges rather than all n^2 pairs.
+    This function is memory-efficient for sparse graphs: it creates one
+    non-negative variable per existing directed edge and enforces divergence
+    constraints through an incidence matrix.
 
     Parameters
     ----------
@@ -160,7 +162,7 @@ def solve_w1_exact_sparse(A, z, edge_costs=None, solver=None, verbose=False):
     Returns
     -------
     F : ndarray of shape (n, n)
-        Optimal flow matrix (sparse, only non-zero on edges).
+        Optimal flow matrix (non-zero only on edges).
     objective_value : float
         The optimal objective value.
     status : str
@@ -175,8 +177,8 @@ def solve_w1_exact_sparse(A, z, edge_costs=None, solver=None, verbose=False):
 
     Notes
     -----
-    This formulation is recommended for graphs with O(n) edges rather than
-    O(n^2) edges, such as k-nearest neighbor graphs or grid graphs.
+    This edge-based LP has O(m) variables for m edges, versus O(n^2) for the
+    dense formulation, and is recommended when m << n^2.
 
     Examples
     --------
@@ -191,6 +193,8 @@ def solve_w1_exact_sparse(A, z, edge_costs=None, solver=None, verbose=False):
         raise ImportError("CVXPY is required for exact solver. "
                           "Install it with: pip install cvxpy")
 
+    A = np.asarray(A)
+    z = np.asarray(z).astype(float)
     n = len(z)
 
     # Verify mass conservation
@@ -198,17 +202,48 @@ def solve_w1_exact_sparse(A, z, edge_costs=None, solver=None, verbose=False):
         raise ValueError(f"The source/sink vector z must sum to 0. "
                          f"Current sum: {np.sum(z):.6e}")
 
-    # Use unit costs if not provided
+    if A.shape != (n, n):
+        raise ValueError(f"A must have shape ({n}, {n}), got {A.shape}.")
+
     if edge_costs is None:
-        W = A.copy().astype(float)
-        W[W > 0] = 1.0
+        C = np.ones_like(A, dtype=float)
     else:
-        W = edge_costs.copy()
+        C = np.asarray(edge_costs, dtype=float)
+        if C.shape != (n, n):
+            raise ValueError(f"edge_costs must have shape ({n}, {n}), got {C.shape}.")
 
-    # Set large cost for non-edges
-    W[A == 0] = 1e9
+    rows, cols = np.where(A > 0)
+    m = len(rows)
+    if m == 0:
+        raise ValueError("Graph has no edges (A > 0 is empty).")
 
-    # Call the dense solver (could be optimized for sparse case)
-    # For a truly sparse implementation, one would create variables only
-    # for edges, but this requires more complex constraint formulation
-    return solve_w1_exact(W, z, solver=solver, verbose=verbose)
+    costs = C[rows, cols]
+
+    # Build sparse incidence matrix B such that B @ x = z, where
+    # x_k corresponds to flow F[rows[k], cols[k]] (flow from cols[k] to rows[k]).
+    data = np.concatenate([-np.ones(m), np.ones(m)])
+    r_idx = np.concatenate([rows, cols])
+    c_idx = np.concatenate([np.arange(m), np.arange(m)])
+    B = sp.csr_matrix((data, (r_idx, c_idx)), shape=(n, m))
+
+    x = cp.Variable(m, nonneg=True)
+    objective = cp.Minimize(costs @ x)
+    constraints = [B @ x == z]
+    problem = cp.Problem(objective, constraints)
+
+    try:
+        if solver is not None:
+            problem.solve(solver=solver, verbose=verbose)
+        else:
+            problem.solve(verbose=verbose)
+    except Exception as e:
+        raise RuntimeError(f"Solver failed with error: {str(e)}")
+
+    if problem.status not in ['optimal', 'optimal_inaccurate']:
+        raise ValueError(f"Problem is {problem.status}. "
+                         f"Cannot find optimal solution.")
+
+    F = np.zeros((n, n), dtype=float)
+    F[rows, cols] = np.asarray(x.value).reshape(-1)
+
+    return F, problem.value, problem.status

@@ -14,9 +14,6 @@ Projections on Affine Spaces", arXiv preprint, 2026.
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
 def load_off_file(filename):
@@ -218,6 +215,9 @@ def plot_mesh(vertices, faces, title="3D Mesh", highlight_vertices=None,
     ...                      highlight_vertices={'Sources': [0, 1], 'Sinks': [10, 11]},
     ...                      highlight_colors={'Sources': 'red', 'Sinks': 'blue'})
     """
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot(111, projection='3d')
 
@@ -327,6 +327,9 @@ def plot_mesh_with_flow(vertices, faces, F, z, threshold=1e-6,
     >>> fig, ax = plot_mesh_with_flow(vertices, faces, F, z,
     ...                                threshold=1e-5, flow_color='purple')
     """
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot(111, projection='3d')
 

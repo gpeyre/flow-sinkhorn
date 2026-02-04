@@ -47,7 +47,7 @@ print(f"Optimal cost: {cost:.6f}")
 
 ```bash
 cd examples
-jupyter notebook flow-sinkhorn.ipynb
+jupyter notebook planar-graph.ipynb
 ```
 
 **What it shows:**

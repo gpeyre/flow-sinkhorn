@@ -64,7 +64,7 @@ After installation with `[examples]` or `[all]`:
 
 ```bash
 cd examples
-jupyter notebook flow-sinkhorn.ipynb
+jupyter notebook planar-graph.ipynb
 ```
 
 ## Alternative: Using requirements.txt
