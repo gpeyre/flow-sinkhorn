@@ -23,10 +23,6 @@ GPU-accelerated solver using PyTorch (requires PyTorch):
 - `check_gpu_availability()` - Check available devices
 - `get_device()` - Get best available device
 
-### `utils.py`
-Compatibility layer re-exporting mesh helpers from `toolbox.mesh`.
-Prefer importing from `flowsinkhorn.toolbox`.
-
 ### `toolbox/`
 Notebook-ready helper functions organized by theme:
 - `toolbox.grid` - Grid graph creation, Gaussian obstacle costs, corner source/sink builders, and 2D plotting helpers
