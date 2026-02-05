@@ -31,6 +31,16 @@ Utility functions for graph manipulation and visualization:
 - `plot_mesh()` - Visualize 3D mesh with shaded surface
 - `plot_mesh_with_flow()` - Visualize flow on 3D mesh
 
+### `toolbox/`
+Notebook-ready helper functions organized by theme:
+- `toolbox.grid` - Grid graph creation, Gaussian obstacle costs, corner source/sink builders, and 2D plotting helpers
+- `toolbox.planar` - Planar K-NN graph creation and normalized source/sink generation
+
+Example:
+```python
+from flowsinkhorn.toolbox import create_grid_graph, compute_modulated_costs
+```
+
 ### `__init__.py`
 Package initialization that exports the main functions for convenient access:
 ```python
