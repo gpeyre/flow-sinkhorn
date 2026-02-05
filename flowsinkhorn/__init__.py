@@ -10,7 +10,7 @@ Main components
 - sinkhorn: Entropic regularized solvers (NumPy/SciPy, CPU)
 - sinkhorn_torch: GPU-accelerated solvers (PyTorch, optional)
 - exact: Exact linear programming solvers (CVXPY, slower, exact)
-- utils: Utility functions for graph manipulation and visualization
+- toolbox: Helper utilities for examples (grid, planar, mesh)
 
 Quick Start
 -----------
@@ -43,7 +43,7 @@ from .sinkhorn import sinkhorn_w1, sinkhorn_w1_sparse
 from .exact import solve_w1_exact, solve_w1_exact_sparse
 
 # Utility functions (always available)
-from .utils import (
+from .toolbox import (
     load_off_file,
     build_mesh_graph,
     select_sources_sinks,

@@ -24,17 +24,14 @@ GPU-accelerated solver using PyTorch (requires PyTorch):
 - `get_device()` - Get best available device
 
 ### `utils.py`
-Utility functions for graph manipulation and visualization:
-- `load_off_file()` - Load 3D meshes from OFF format
-- `build_mesh_graph()` - Build graph from mesh edges
-- `select_sources_sinks()` - Select source/sink vertices
-- `plot_mesh()` - Visualize 3D mesh with shaded surface
-- `plot_mesh_with_flow()` - Visualize flow on 3D mesh
+Compatibility layer re-exporting mesh helpers from `toolbox.mesh`.
+Prefer importing from `flowsinkhorn.toolbox`.
 
 ### `toolbox/`
 Notebook-ready helper functions organized by theme:
 - `toolbox.grid` - Grid graph creation, Gaussian obstacle costs, corner source/sink builders, and 2D plotting helpers
 - `toolbox.planar` - Planar K-NN graph creation and normalized source/sink generation
+- `toolbox.mesh` - OFF loading, mesh graph creation, source/sink selection, and 3D plotting helpers
 
 Example:
 ```python

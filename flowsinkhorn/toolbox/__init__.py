@@ -17,6 +17,13 @@ from .planar import (
     create_planar_knn_graph,
     create_source_sink_from_positions,
 )
+from .mesh import (
+    load_off_file,
+    build_mesh_graph,
+    select_sources_sinks,
+    plot_mesh,
+    plot_mesh_with_flow,
+)
 
 __all__ = [
     "create_grid_graph",
@@ -27,4 +34,9 @@ __all__ = [
     "plot_grid_with_flow",
     "create_planar_knn_graph",
     "create_source_sink_from_positions",
+    "load_off_file",
+    "build_mesh_graph",
+    "select_sources_sinks",
+    "plot_mesh",
+    "plot_mesh_with_flow",
 ]
