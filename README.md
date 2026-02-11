@@ -85,8 +85,8 @@ flow-sinkhorn/
 │   └── exact.py           # Exact LP solver (CVXPY)
 ├── examples/              # Example notebooks
 │   ├── planar-graph.ipynb   # K-NN graph example
-│   ├── mesh-transport.ipynb # 3D mesh example
-│   ├── grid-transport.ipynb # 2D grid with obstacles
+│   ├── mesh.ipynb # 3D mesh example
+│   ├── grid.ipynb # 2D grid with obstacles
 │   └── gpu-benchmark.ipynb  # GPU acceleration benchmark
 ├── paper/                 # LaTeX paper
 │   └── flow-sinkhorn.tex
@@ -163,7 +163,7 @@ Four complete example notebooks are provided:
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gpeyre/flow-sinkhorn/blob/main/examples/planar-graph.ipynb)
 
-#### 2. **3D Mesh Example** (`mesh-transport.ipynb`)
+#### 2. **3D Mesh Example** (`mesh.ipynb`)
 - Loading and visualizing 3D meshes (OFF format)
 - Building graph from mesh edges
 - Selecting sources (top vertices) and sinks (bottom vertices)
@@ -173,9 +173,9 @@ Four complete example notebooks are provided:
 
 This example showcases optimal transport on real 3D geometry using the `data/moomoo.off` mesh.
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gpeyre/flow-sinkhorn/blob/main/examples/mesh-transport.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gpeyre/flow-sinkhorn/blob/main/examples/mesh.ipynb)
 
-#### 3. **2D Grid with Obstacles** (`grid-transport.ipynb`)
+#### 3. **2D Grid with Obstacles** (`grid.ipynb`)
 - Creating regular 30×30 square grid graphs
 - Modulating edge costs with Gaussian bumps (obstacles)
 - Corner-to-corner transport (top-left to bottom-right)
@@ -185,7 +185,7 @@ This example showcases optimal transport on real 3D geometry using the `data/moo
 
 This example illustrates **path planning** and **obstacle avoidance** in optimal transport.
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gpeyre/flow-sinkhorn/blob/main/examples/grid-transport.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gpeyre/flow-sinkhorn/blob/main/examples/grid.ipynb)
 
 #### 4. **GPU Benchmark** (`gpu-benchmark.ipynb`)
 - GPU/CPU device detection (CUDA, MPS, CPU)

@@ -5,6 +5,44 @@ Mesh/3D helpers used by mesh-transport examples.
 import numpy as np
 
 
+def _unique_triangle_edges(faces):
+    """Return unique undirected edges from triangle indices."""
+    edge_set = set()
+    for tri in np.asarray(faces, dtype=int):
+        i, j, k = int(tri[0]), int(tri[1]), int(tri[2])
+        edge_set.add(tuple(sorted((i, j))))
+        edge_set.add(tuple(sorted((j, k))))
+        edge_set.add(tuple(sorted((k, i))))
+    return np.asarray(sorted(edge_set), dtype=int)
+
+
+def _edge_line_xyz(vertices, edges):
+    """Convert edge index pairs into Plotly line coordinates with separators."""
+    verts = np.asarray(vertices)
+    x, y, z = [], [], []
+    for i, j in np.asarray(edges, dtype=int):
+        x.extend([verts[i, 0], verts[j, 0], None])
+        y.extend([verts[i, 1], verts[j, 1], None])
+        z.extend([verts[i, 2], verts[j, 2], None])
+    return x, y, z
+
+
+def _orient_faces_outward(vertices, faces):
+    """
+    Orient triangle winding consistently outward from mesh centroid.
+    """
+    verts = np.asarray(vertices, dtype=float)
+    tris = np.asarray(faces, dtype=int).copy()
+    center = verts.mean(axis=0)
+    for idx, tri in enumerate(tris):
+        v0, v1, v2 = verts[tri[0]], verts[tri[1]], verts[tri[2]]
+        n = np.cross(v1 - v0, v2 - v0)
+        face_center = (v0 + v1 + v2) / 3.0
+        if np.dot(n, face_center - center) < 0:
+            tris[idx, 1], tris[idx, 2] = tris[idx, 2], tris[idx, 1]
+    return tris
+
+
 def load_off_file(filename):
     """
     Load a 3D mesh from an OFF file.
@@ -124,6 +162,7 @@ def select_sources_sinks(vertices, k=3, axis=2):
 def plot_mesh(
     vertices,
     faces,
+    z=None,
     title="3D Mesh",
     highlight_vertices=None,
     highlight_colors=None,
@@ -136,6 +175,12 @@ def plot_mesh(
 ):
     """
     Plot mesh surface with optional highlighted vertices.
+
+    Parameters
+    ----------
+    z : ndarray of shape (n,), optional
+        Source/sink vector. If provided and `highlight_vertices` is None,
+        positive entries are shown as sources and negative entries as sinks.
     """
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
@@ -152,6 +197,14 @@ def plot_mesh(
         edgecolors="black" if show_edges else None,
     )
     ax.add_collection3d(poly)
+
+    if highlight_vertices is None and z is not None:
+        highlight_vertices = {}
+        if np.any(z > 0):
+            highlight_vertices["Sources"] = np.where(z > 0)[0]
+        if np.any(z < 0):
+            highlight_vertices["Sinks"] = np.where(z < 0)[0]
+        highlight_colors = {"Sources": "red", "Sinks": "blue"}
 
     if highlight_vertices is not None:
         for label, indices in highlight_vertices.items():
@@ -202,6 +255,219 @@ def plot_mesh(
 
     plt.tight_layout()
     return fig, ax
+
+
+def plot_mesh_interactive(
+    vertices,
+    faces,
+    z=None,
+    title="Interactive Mesh",
+    mesh_color="lightsteelblue",
+    mesh_opacity=1.0,
+    source_color="red",
+    sink_color="blue",
+    marker_size=5,
+    show_edges=True,
+    edge_color="black",
+    edge_width=0.45,
+    orient_faces=True,
+):
+    """
+    Plot an interactive 3D mesh (rotate/zoom/pan) using Plotly.
+
+    Parameters
+    ----------
+    vertices : ndarray of shape (n, 3)
+        Vertex coordinates.
+    faces : ndarray of shape (m, 3)
+        Triangle face indices.
+    z : ndarray of shape (n,), optional
+        Source/sink vector for highlighting (z > 0 sources, z < 0 sinks).
+    title : str, default="Interactive Mesh"
+        Figure title.
+    mesh_color : str, default="lightgray"
+        Mesh color.
+    mesh_opacity : float, default=0.9
+        Mesh opacity.
+    source_color : str, default="red"
+        Source marker color.
+    sink_color : str, default="blue"
+        Sink marker color.
+    marker_size : int, default=5
+        Marker size for source/sink points.
+    show_edges : bool, default=True
+        If True, overlays triangle edges.
+    edge_color : str, default="black"
+        Mesh edge color.
+    edge_width : float, default=0.45
+        Mesh edge line width.
+    orient_faces : bool, default=True
+        Re-orient triangle winding for more coherent lighting.
+
+    Returns
+    -------
+    plotly.graph_objects.Figure
+        Interactive Plotly figure.
+    """
+    try:
+        import plotly.graph_objects as go
+    except ImportError as e:
+        raise ImportError("plotly is required for interactive mesh plotting. Install with: pip install plotly") from e
+
+    verts = np.asarray(vertices)
+    tris = np.asarray(faces, dtype=int)
+    if orient_faces:
+        tris = _orient_faces_outward(verts, tris)
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Mesh3d(
+            x=verts[:, 0],
+            y=verts[:, 1],
+            z=verts[:, 2],
+            i=tris[:, 0],
+            j=tris[:, 1],
+            k=tris[:, 2],
+            color=mesh_color,
+            opacity=mesh_opacity,
+            name="Mesh",
+            showscale=False,
+            flatshading=True,
+            lighting=dict(ambient=0.55, diffuse=0.85, specular=0.35, roughness=0.55, fresnel=0.12),
+            lightposition=dict(x=220, y=200, z=350),
+        )
+    )
+
+    if z is not None:
+        z = np.asarray(z)
+        src = np.where(z > 0)[0]
+        snk = np.where(z < 0)[0]
+
+        if len(src) > 0:
+            fig.add_trace(
+                go.Scatter3d(
+                    x=verts[src, 0],
+                    y=verts[src, 1],
+                    z=verts[src, 2],
+                    mode="markers",
+                    marker=dict(size=marker_size, color=source_color),
+                    name="Sources",
+                )
+            )
+        if len(snk) > 0:
+            fig.add_trace(
+                go.Scatter3d(
+                    x=verts[snk, 0],
+                    y=verts[snk, 1],
+                    z=verts[snk, 2],
+                    mode="markers",
+                    marker=dict(size=marker_size, color=sink_color),
+                    name="Sinks",
+                )
+            )
+
+    if show_edges:
+        mesh_edges = _unique_triangle_edges(tris)
+        x_edges, y_edges, z_edges = _edge_line_xyz(verts, mesh_edges)
+        fig.add_trace(
+            go.Scatter3d(
+                x=x_edges,
+                y=y_edges,
+                z=z_edges,
+                mode="lines",
+                line=dict(color=edge_color, width=edge_width),
+                name="Edges",
+                showlegend=False,
+            )
+        )
+
+    fig.update_layout(
+        title=title,
+        scene=dict(
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False),
+            zaxis=dict(visible=False),
+            aspectmode="data",
+        ),
+        margin=dict(l=0, r=0, b=0, t=40),
+    )
+    return fig
+
+
+def plot_mesh_with_flow_interactive(
+    vertices,
+    faces,
+    flow_matrix,
+    z,
+    threshold=1e-6,
+    title="Interactive Mesh with Flow",
+    flow_color="purple",
+    flow_width_scale=4.0,
+    flow_offset_ratio=0.002,
+    show_edges=True,
+    edge_color="black",
+    edge_width=0.45,
+):
+    """
+    Plot interactive mesh with flow overlay (rotate/zoom/pan) using Plotly.
+    """
+    try:
+        import plotly.graph_objects as go
+    except ImportError as e:
+        raise ImportError("plotly is required for interactive mesh plotting. Install with: pip install plotly") from e
+
+    verts = np.asarray(vertices)
+    tris = np.asarray(faces, dtype=int)
+    F = np.asarray(flow_matrix)
+
+    fig = plot_mesh_interactive(
+        verts,
+        tris,
+        z=z,
+        title=title,
+        show_edges=show_edges,
+        edge_color=edge_color,
+        edge_width=edge_width,
+    )
+
+    flow_edges = []
+    flow_weights = []
+    max_flow = float(np.max(F))
+    if max_flow > 0:
+        for i in range(len(verts)):
+            for j in range(i + 1, len(verts)):
+                w = max(F[i, j], F[j, i])
+                if w > threshold:
+                    flow_edges.append((i, j))
+                    flow_weights.append(float(w))
+
+    if flow_edges:
+        # Same rendering style as mesh edges: one clean line trace.
+        # Slightly offset flow geometry to reduce z-fighting with mesh edges.
+        bbox = verts.max(axis=0) - verts.min(axis=0)
+        diag = float(np.linalg.norm(bbox))
+        offset = flow_offset_ratio * diag
+        center = verts.mean(axis=0)
+        dirs = verts - center
+        norms = np.linalg.norm(dirs, axis=1, keepdims=True)
+        safe_norms = np.where(norms > 0, norms, 1.0)
+        verts_flow = verts + offset * (dirs / safe_norms)
+
+        x_flow, y_flow, z_flow = _edge_line_xyz(verts_flow, flow_edges)
+        fig.add_trace(
+            go.Scatter3d(
+                x=x_flow,
+                y=y_flow,
+                z=z_flow,
+                mode="lines",
+                line=dict(color=flow_color, width=flow_width_scale),
+                opacity=0.95,
+                name="Flow",
+                showlegend=True,
+            )
+        )
+
+    return fig
 
 
 def plot_mesh_with_flow(

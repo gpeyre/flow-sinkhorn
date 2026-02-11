@@ -17,7 +17,7 @@ Main demonstration notebook showcasing:
 - **Regularization study**: Effect of the epsilon parameter
 - **Visualization**: Flow patterns on graphs
 
-### `mesh-transport.ipynb`
+### `mesh.ipynb`
 
 Advanced 3D mesh example demonstrating:
 
@@ -34,7 +34,7 @@ Advanced 3D mesh example demonstrating:
 
 This example uses the `data/moomoo.off` mesh file and showcases optimal transport on real 3D geometry.
 
-### `grid-transport.ipynb`
+### `grid.ipynb`
 
 2D grid with obstacles example demonstrating:
 

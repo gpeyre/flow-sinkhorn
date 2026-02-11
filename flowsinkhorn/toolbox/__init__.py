@@ -22,6 +22,8 @@ from .mesh import (
     build_mesh_graph,
     select_sources_sinks,
     plot_mesh,
+    plot_mesh_interactive,
+    plot_mesh_with_flow_interactive,
     plot_mesh_with_flow,
 )
 
@@ -38,5 +40,7 @@ __all__ = [
     "build_mesh_graph",
     "select_sources_sinks",
     "plot_mesh",
+    "plot_mesh_interactive",
+    "plot_mesh_with_flow_interactive",
     "plot_mesh_with_flow",
 ]

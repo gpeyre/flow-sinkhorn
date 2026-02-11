@@ -60,7 +60,7 @@ jupyter notebook planar-graph.ipynb
 
 ```bash
 cd examples
-jupyter notebook mesh-transport.ipynb
+jupyter notebook mesh.ipynb
 ```
 
 **What it shows:**
