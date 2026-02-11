@@ -167,22 +167,27 @@ def sinkhorn_w1_torch(W, z, epsilon, niter, device=None, return_numpy=True):
     # Get device
     dev = get_device(device)
 
-    # Convert inputs to torch tensors
+    # Convert inputs to torch tensors while preserving floating dtype
     if isinstance(W, np.ndarray):
-        W_torch = torch.from_numpy(W).float().to(dev)
+        W_torch = torch.from_numpy(W).to(dev)
     else:
-        W_torch = W.float().to(dev)
+        W_torch = W.to(dev)
 
     if isinstance(z, np.ndarray):
-        z_torch = torch.from_numpy(z).float().to(dev)
+        z_torch = torch.from_numpy(z).to(dev)
     else:
-        z_torch = z.float().to(dev)
+        z_torch = z.to(dev)
+
+    if not W_torch.dtype.is_floating_point:
+        W_torch = W_torch.to(torch.float32)
+    dtype = W_torch.dtype
+    z_torch = z_torch.to(dtype=dtype)
 
     n = len(z_torch)
 
     # Initialize
     K = torch.exp(-W_torch / epsilon)
-    h = torch.zeros(n, dtype=torch.float32, device=dev)
+    h = torch.zeros(n, dtype=dtype, device=dev)
     r = z_torch / 2
     err = []
 
@@ -201,7 +206,7 @@ def sinkhorn_w1_torch(W, z, epsilon, niter, device=None, return_numpy=True):
         logb = _lse_torch(-W_torch / epsilon, +h / epsilon)
 
         # Compute update vector m
-        m = torch.zeros(n, dtype=torch.float32, device=dev)
+        m = torch.zeros(n, dtype=dtype, device=dev)
         if len(I0) > 0:
             m[I0] = (loga[I0] - logb[I0]) / 2
         if len(Ip) > 0:
@@ -301,21 +306,25 @@ def sinkhorn_w1_torch_sparse(W_indices, W_values, W_shape, z, epsilon, niter,
 
     n = W_shape[0]
 
-    # Convert edge list to torch tensors (COO format)
+    # Convert edge list to torch tensors (COO format), preserving dtype
     if isinstance(W_indices, np.ndarray):
         indices_torch = torch.from_numpy(W_indices).long().to(dev)
     else:
         indices_torch = W_indices.long().to(dev)
 
     if isinstance(W_values, np.ndarray):
-        values_torch = torch.from_numpy(W_values).float().to(dev)
+        values_torch = torch.from_numpy(W_values).to(dev)
     else:
-        values_torch = W_values.float().to(dev)
+        values_torch = W_values.to(dev)
+    if not values_torch.dtype.is_floating_point:
+        values_torch = values_torch.to(torch.float32)
+    dtype = values_torch.dtype
 
     if isinstance(z, np.ndarray):
-        z_torch = torch.from_numpy(z).float().to(dev)
+        z_torch = torch.from_numpy(z).to(dev)
     else:
-        z_torch = z.float().to(dev)
+        z_torch = z.to(dev)
+    z_torch = z_torch.to(dtype=dtype)
 
     # Sort edges by row index once (for fast segmented reductions)
     row_idx = indices_torch[0]
@@ -336,7 +345,7 @@ def sinkhorn_w1_torch_sparse(W_indices, W_values, W_shape, z, epsilon, niter,
     # Initialize
     K_values_sorted = torch.exp(-values_sorted / epsilon)
 
-    h = torch.zeros(n, dtype=torch.float32, device=dev)
+    h = torch.zeros(n, dtype=dtype, device=dev)
     r = z_torch / 2
     err = []
     f_values_sorted = torch.exp(
@@ -350,10 +359,10 @@ def sinkhorn_w1_torch_sparse(W_indices, W_values, W_shape, z, epsilon, niter,
 
     for it in range(niter):
         # Sparse matrix-vector products via scatter-add (no dense conversion)
-        a = torch.zeros(n, dtype=torch.float32, device=dev)
+        a = torch.zeros(n, dtype=dtype, device=dev)
         a.scatter_add_(0, row_sorted, K_values_sorted * torch.exp(-h[col_sorted] / epsilon))
 
-        b = torch.zeros(n, dtype=torch.float32, device=dev)
+        b = torch.zeros(n, dtype=dtype, device=dev)
         b.scatter_add_(0, row_sorted, K_values_sorted * torch.exp(+h[col_sorted] / epsilon))
 
         # Row-wise log-sum-exp from sparse edge values (no dense conversion)
@@ -363,7 +372,7 @@ def sinkhorn_w1_torch_sparse(W_indices, W_values, W_shape, z, epsilon, niter,
         logb = _segment_logsumexp_from_sorted(logb_vals, row_ptr, n)
 
         # Compute update vector m
-        m = torch.zeros(n, dtype=torch.float32, device=dev)
+        m = torch.zeros(n, dtype=dtype, device=dev)
         if len(I0) > 0:
             m[I0] = (loga[I0] - logb[I0]) / 2
         if len(Ip) > 0:
@@ -380,9 +389,9 @@ def sinkhorn_w1_torch_sparse(W_indices, W_values, W_shape, z, epsilon, niter,
         )
 
         # Compute error from sparse edge lists (no dense conversion)
-        col_sums = torch.zeros(n, dtype=torch.float32, device=dev)
+        col_sums = torch.zeros(n, dtype=dtype, device=dev)
         col_sums.scatter_add_(0, col_sorted, f_values_sorted)
-        row_sums = torch.zeros(n, dtype=torch.float32, device=dev)
+        row_sums = torch.zeros(n, dtype=dtype, device=dev)
         row_sums.scatter_add_(0, row_sorted, f_values_sorted)
         e = torch.norm((col_sums - row_sums) - z_torch, p=1)
         err.append(e.item())
