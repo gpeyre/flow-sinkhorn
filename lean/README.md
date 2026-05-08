@@ -27,7 +27,7 @@ Recommended entrypoint:
 - Important quality note:
   - endpoint coverage and build success do not automatically mean every intermediate derivation is fully internalized from first principles at that endpoint; see Section 3 and `AUDIT_INTERNALIZATION_GAPS.md`.
 
-## 2) Current certification status (2026-05-06)
+## 2) Current certification status (2026-05-08)
 
 From `lean/`:
 
@@ -41,10 +41,15 @@ rg '^\s*(sorry|admit|axiom)\b' FlowSinkhorn/KLProjection | wc -l
 ```
 
 Snapshot:
-- actual non-comment, non-blank Lean code lines: `26596` (with block comments stripped)
-- theorem/lemma declarations: `1511`
+- actual non-comment, non-blank Lean code lines: `26917` (with block comments stripped)
+- theorem/lemma declarations: `1527`
 - direct `def`/`structure` declarations: `36` with the simple README counter above
 - placeholders: `0`
+- paper-label endpoint coverage: `27/27`
+- endpoint structural shape checks: `27/27`
+- internalization candidates with no structural gap flags: `16/27`
+- internalization-review flags: `11` paper labels
+- `_of_assumption` paper-map targets: `0`
 
 ## 3) Certification status tiers
 
@@ -52,6 +57,13 @@ Use this distinction when auditing:
 - Tier 1: mapped + build-checked endpoint (all paper labels currently satisfy this).
 - Tier 2: endpoint theorem is structurally nontrivial (passes `scripts/audit_paper_certification.py` shape checks).
 - Tier 3: fully internalized paper-style derivation (no key model-specific inequality is assumed as an external hypothesis at the paper-facing endpoint).
+
+Important audit convention:
+- `scripts/check_statementmap_sync.py` certifies synchronization and endpoint coverage.
+- `scripts/audit_paper_certification.py` reports Tier 1/Tier 2 status and structural Tier 3 review flags.
+- A Tier 3 `candidate` result means the structural audit found no obvious internalization gap; it is not a semantic proof of full manuscript-level internalization.
+- Targets or aliases ending in `_of_assumption` are explicit internalization gaps.
+- Assumption-heavy endpoints are review items: they may be correct and useful Lean theorems, but the paper-facing statement still exposes several proof obligations as hypotheses.
 
 ## 4) Where paper-to-Lean linking happens
 

@@ -116,6 +116,81 @@ theorem graphW1_projection_closedForm
     exact graphW1_projection_C2_coordinate (f i j) (g i j) (hfg i j)
 
 /-!
+## Projection-to-update algebra
+
+The closed-form `C1` projection root feeds the Flow-Sinkhorn update with
+`t = 2*r/b` and `u = a/b`.  The lemmas in this block package the positivity assumptions
+needed to rewrite that root into the square-root update used by Proposition `prop:flow-algo`.
+-/
+
+/--
+The `C1` closed-form root with parameters `t = 2*r/b`, `u = a/b` is exactly the
+Flow-Sinkhorn numerator divided by `b`.
+-/
+theorem graphW1_phi_flowSinkhorn_ratio
+    (r a b : ℝ)
+    (hb : 0 < b)
+    (hab : 0 ≤ a * b) :
+    graphW1_phi (2 * r / b) (a / b) =
+      (Real.sqrt (r ^ 2 + a * b) - r) / b := by
+  have hb_ne : b ≠ 0 := ne_of_gt hb
+  have hrad : 0 ≤ r ^ 2 + a * b := by nlinarith [sq_nonneg r, hab]
+  have hsqrt :
+      Real.sqrt ((2 * r / b) ^ 2 + 4 * (a / b)) =
+        (2 / b) * Real.sqrt (r ^ 2 + a * b) := by
+    have hscale_nonneg : 0 ≤ (2 / b) * Real.sqrt (r ^ 2 + a * b) := by
+      exact mul_nonneg (le_of_lt (div_pos (by norm_num) hb)) (Real.sqrt_nonneg _)
+    have harg :
+        (2 * r / b) ^ 2 + 4 * (a / b) =
+          ((2 / b) * Real.sqrt (r ^ 2 + a * b)) ^ 2 := by
+      have hleft :
+          (2 * r / b) ^ 2 + 4 * (a / b) = 4 * (r ^ 2 + a * b) / b ^ 2 := by
+        field_simp [hb_ne]
+        ring
+      have hright :
+          ((2 / b) * Real.sqrt (r ^ 2 + a * b)) ^ 2 =
+            4 * (r ^ 2 + a * b) / b ^ 2 := by
+        rw [mul_pow, div_pow, Real.sq_sqrt hrad]
+        ring
+      exact hleft.trans hright.symm
+    rw [harg, Real.sqrt_sq_eq_abs, abs_of_nonneg hscale_nonneg]
+  unfold graphW1_phi
+  rw [hsqrt]
+  field_simp [hb_ne]
+
+/--
+Closed-form projection/update bridge for one coordinate.
+
+The same scalar obtained from the `C1` projection equation is the numerator used in the
+stable Flow-Sinkhorn update after division by the current scale `s`.
+-/
+theorem graphW1_projection_C1_flowSinkhorn_bridge
+    (r a b s : ℝ)
+    (hb : 0 < b)
+    (hs : 0 < s)
+    (hab : 0 ≤ a * b) :
+    let sigma := graphW1_phi (2 * r / b) (a / b)
+    ((sigma ^ 2) * b + sigma * (2 * r) - a = 0) ∧
+      sigma / s = (Real.sqrt (r ^ 2 + a * b) - r) / (s * b) := by
+  intro sigma
+  have hb_ne : b ≠ 0 := ne_of_gt hb
+  have hs_ne : s ≠ 0 := ne_of_gt hs
+  have hrad : 0 ≤ r ^ 2 + a * b := by nlinarith [sq_nonneg r, hab]
+  have hdisc : 0 ≤ (2 * r / b) ^ 2 + 4 * (a / b) := by
+    have harg : (2 * r / b) ^ 2 + 4 * (a / b) = 4 * (r ^ 2 + a * b) / b ^ 2 := by
+      field_simp [hb_ne]
+      ring
+    rw [harg]
+    exact div_nonneg (mul_nonneg (by norm_num) hrad) (sq_nonneg b)
+  constructor
+  · exact graphW1_projection_C1_coordinate (2 * r) b a hb_ne hdisc
+  · have hphi :
+        sigma = (Real.sqrt (r ^ 2 + a * b) - r) / b := by
+      simpa [sigma] using graphW1_phi_flowSinkhorn_ratio r a b hb hab
+    rw [hphi]
+    field_simp [hb_ne, hs_ne]
+
+/-!
 ## Diagnostic: paper-as-stated graph-`W₁` closed-form encoding
 
 This block intentionally encodes algebraic consequences of the paper formulas as written
@@ -211,6 +286,43 @@ theorem graphW1_flowSinkhorn_update
   exact hsqrt_eq.symm
 
 /--
+The closed-form intermediate ratio `q` is nonnegative under the natural product
+assumption `0 ≤ a*b` and positive denominator assumptions.
+-/
+theorem graphW1_flowSinkhorn_q_nonneg
+    (r a b s q : ℝ)
+    (hb : 0 < b)
+    (hs : 0 < s)
+    (hab : 0 ≤ a * b)
+    (hq :
+      q = (Real.sqrt (r ^ 2 + a * b) - r) / (s * b)) :
+    0 ≤ q := by
+  rw [hq]
+  apply div_nonneg
+  · have hrad : 0 ≤ r ^ 2 + a * b := by nlinarith [sq_nonneg r, hab]
+    have hsqr : r ^ 2 ≤ r ^ 2 + a * b := by nlinarith [hab]
+    have habs_le : |r| ≤ Real.sqrt (r ^ 2 + a * b) := by
+      rw [← Real.sqrt_sq_eq_abs r]
+      exact Real.sqrt_le_sqrt hsqr
+    exact sub_nonneg.mpr (le_trans (le_abs_self r) habs_le)
+  · exact mul_nonneg (le_of_lt hs) (le_of_lt hb)
+
+/--
+Packaged scalar Flow-Sinkhorn update: `q ≥ 0` is derived internally from `0 ≤ a*b`.
+-/
+theorem graphW1_flowSinkhorn_update_of_product_nonneg
+    (r a b s q sNext : ℝ)
+    (hb : 0 < b)
+    (hs : 0 < s)
+    (hab : 0 ≤ a * b)
+    (hq :
+      q = (Real.sqrt (r ^ 2 + a * b) - r) / (s * b))
+    (hsNext : sNext = s * Real.sqrt q) :
+    sNext = Real.sqrt ((s / b) * (Real.sqrt (r ^ 2 + a * b) - r)) := by
+  exact graphW1_flowSinkhorn_update r a b s q sNext hb hs hq
+    (graphW1_flowSinkhorn_q_nonneg r a b s q hb hs hab hq) hsNext
+
+/--
 Vector form of Proposition `prop:flow-algo` (Flow-Sinkhorn update in scaling variables).
 
 Under the coordinatewise closed forms for the `C1` and `C2` steps, this gives the exact
@@ -234,6 +346,28 @@ theorem graphW1_flowSinkhorn_update_vector
   exact graphW1_flowSinkhorn_update
     (r := r i) (a := a i) (b := b i) (s := s i) (q := q i) (sNext := sNext i)
     (hb i) (hs i) (hq i) (hq_nonneg i) (hsNext i)
+
+/--
+Packaged vector Flow-Sinkhorn update: coordinatewise nonnegativity of `q` is derived
+from `0 ≤ a_i*b_i`.
+-/
+theorem graphW1_flowSinkhorn_update_vector_of_product_nonneg
+    {ι : Type*}
+    (r a b s q sNext : ι → ℝ)
+    (hb : ∀ i : ι, 0 < b i)
+    (hs : ∀ i : ι, 0 < s i)
+    (hab : ∀ i : ι, 0 ≤ a i * b i)
+    (hq :
+      ∀ i : ι,
+        q i = (Real.sqrt (r i ^ 2 + a i * b i) - r i) / (s i * b i))
+    (hsNext : ∀ i : ι, sNext i = s i * Real.sqrt (q i)) :
+    sNext =
+      fun i =>
+        Real.sqrt ((s i / b i) * (Real.sqrt (r i ^ 2 + a i * b i) - r i)) := by
+  exact graphW1_flowSinkhorn_update_vector r a b s q sNext hb hs hq
+    (fun i => graphW1_flowSinkhorn_q_nonneg
+      (r i) (a i) (b i) (s i) (q i) (hb i) (hs i) (hab i) (hq i))
+    hsNext
 
 /--
 Paper-shaped form of Proposition `prop:flow-algo` with explicit `zC` matrix-vector terms.
@@ -282,6 +416,54 @@ theorem graphW1_flowSinkhorn_update_as_stated
     (hq i)
     (hq_nonneg i)
     (hsNext i)
+
+/--
+Paper-shaped Proposition `prop:flow-algo` with the nonnegativity side condition packaged as
+nonnegativity of the forward row sum.  Since the backward row sum is already assumed positive,
+the scalar `q ≥ 0` condition is discharged internally.
+-/
+theorem graphW1_flowSinkhorn_update_as_stated_of_forward_nonneg
+    {ι : Type*} [Fintype ι]
+    (zC : ι → ι → ℝ)
+    (r s q sNext : ι → ℝ)
+    (hb :
+      ∀ i : ι,
+        0 < Finset.univ.sum (fun j : ι => zC i j * (1 / s j)))
+    (hs : ∀ i : ι, 0 < s i)
+    (ha :
+      ∀ i : ι,
+        0 ≤ Finset.univ.sum (fun j : ι => zC i j * s j))
+    (hq :
+      ∀ i : ι,
+        q i =
+          (Real.sqrt
+            (r i ^ 2 +
+              (Finset.univ.sum (fun j : ι => zC i j * s j)) *
+              (Finset.univ.sum (fun j : ι => zC i j * (1 / s j))) ) - r i) /
+            (s i * (Finset.univ.sum (fun j : ι => zC i j * (1 / s j))))
+      )
+    (hsNext : ∀ i : ι, sNext i = s i * Real.sqrt (q i)) :
+    sNext =
+      fun i =>
+        Real.sqrt (
+          (s i / (Finset.univ.sum (fun j : ι => zC i j * (1 / s j)))) *
+          (Real.sqrt
+            (r i ^ 2 +
+              (Finset.univ.sum (fun j : ι => zC i j * s j)) *
+              (Finset.univ.sum (fun j : ι => zC i j * (1 / s j))) ) - r i)
+        ) := by
+  exact graphW1_flowSinkhorn_update_as_stated zC r s q sNext hb hs hq
+    (fun i => graphW1_flowSinkhorn_q_nonneg
+      (r i)
+      (Finset.univ.sum (fun j : ι => zC i j * s j))
+      (Finset.univ.sum (fun j : ι => zC i j * (1 / s j)))
+      (s i)
+      (q i)
+      (hb i)
+      (hs i)
+      (mul_nonneg (ha i) (le_of_lt (hb i)))
+      (hq i))
+    hsNext
 
 /--
 Stable dual update derived from the code-form step.

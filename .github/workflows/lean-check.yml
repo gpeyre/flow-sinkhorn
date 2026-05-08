@@ -11,6 +11,11 @@ on:
       - '.github/workflows/lean-check.yml'
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  LEAN_VERSION: v4.28.0
+  LEAN_TOOLCHAIN_NAME: leanprover/lean4:v4.28.0
+
 jobs:
   lean-build:
     runs-on: ubuntu-latest
@@ -21,7 +26,7 @@ jobs:
         run: |
           curl --retry 5 --retry-delay 5 --retry-all-errors \
             https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf \
-            | sh -s -- -y
+            | sh -s -- -y --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
 
       - name: Cache Lean toolchain
@@ -44,14 +49,43 @@ jobs:
       - name: Install Lean toolchain
         working-directory: lean
         run: |
+          elan_toolchain_dir="$HOME/.elan/toolchains/leanprover--lean4---${LEAN_VERSION}"
+
+          if [ -x "$elan_toolchain_dir/bin/lean" ]; then
+            echo "Using cached Lean toolchain ${LEAN_TOOLCHAIN_NAME}"
+            lean --version
+            exit 0
+          fi
+
+          archive="$RUNNER_TEMP/lean-${LEAN_VERSION}-linux.tar.zst"
+          mkdir -p "$elan_toolchain_dir" "$(dirname "$archive")"
+
+          urls=(
+            "https://releases.lean-lang.org/lean4/${LEAN_VERSION}/lean-${LEAN_VERSION#v}-linux.tar.zst"
+            "https://github.com/leanprover/lean4/releases/download/${LEAN_VERSION}/lean-${LEAN_VERSION#v}-linux.tar.zst"
+          )
+
           for attempt in 1 2 3 4 5; do
-            if lean --version; then
-              exit 0
-            fi
-            echo "Lean toolchain download failed on attempt ${attempt}; retrying..."
-            sleep $((attempt * 10))
+            for url in "${urls[@]}"; do
+              echo "Downloading Lean from ${url} (attempt ${attempt})"
+              if curl -L --fail --connect-timeout 30 --max-time 300 \
+                   --retry 3 --retry-delay 10 --retry-all-errors \
+                   "$url" -o "$archive"; then
+                tar --zstd -xf "$archive" -C "$RUNNER_TEMP"
+                extracted="$RUNNER_TEMP/lean-${LEAN_VERSION#v}-linux"
+                rm -rf "$elan_toolchain_dir"
+                mkdir -p "$elan_toolchain_dir"
+                cp -a "$extracted/." "$elan_toolchain_dir/"
+                lean --version
+                exit 0
+              fi
+            done
+            echo "Lean manual download failed on attempt ${attempt}; retrying..."
+            sleep $((attempt * 15))
           done
-          lean --version
+
+          echo "Lean toolchain installation failed after all retries."
+          exit 1
 
       - name: Restore mathlib cache
         working-directory: lean

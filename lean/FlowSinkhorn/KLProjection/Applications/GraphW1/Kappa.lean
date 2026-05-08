@@ -256,6 +256,30 @@ theorem graphW1_kappa_le_twoDiam_of_twoStep_path
   simpa using hkappa_two
 
 /--
+Internally derived graph-`W₁` `κ ≤ 2 * diam` endpoint.
+
+This is the preferred non-packaged theorem behind the paper-facing aliases: it derives the
+diameter control directly from the two-step edge-gradient/path witness, rather than requiring
+a pre-packaged scalar hypothesis `κ ≤ 2 * diam`.
+-/
+theorem graphW1_kappa_le_twoGraphDiameter_from_path
+    {ι : Type*}
+    {kappa B : ℝ}
+    (hB : 0 ≤ B)
+    (hBunit : B ≤ 1)
+    (graphDiam : ℕ)
+    (yf yg : ι × ι → ℝ)
+    (hyf : ∀ p : ι × ι, |yf p| ≤ B)
+    (hyg : ∀ p : ι × ι, |yg p| ≤ B)
+    (steps : List ℝ)
+    (hlen : steps.length ≤ graphDiam)
+    (hsteps : ∀ x ∈ steps, ∃ p : ι × ι, x = (yf + yg) p)
+    (hkappa_from_path : kappa ≤ |steps.sum|) :
+    kappa ≤ 2 * (graphDiam : ℝ) :=
+  graphW1_kappa_le_twoDiam_of_twoStep_path
+    hB hBunit graphDiam yf yg hyf hyg steps hlen hsteps hkappa_from_path
+
+/--
 Concrete paper-facing `\kappa` estimate for graph `W₁`.
 
 It composes the certified two-step path estimate with the normalization `B ≤ 1` to derive
@@ -275,15 +299,34 @@ theorem graphW1_kappa_le_graphDiameter
     (hsteps : ∀ x ∈ steps, ∃ p : ι × ι, x = (yf + yg) p)
     (hkappa_from_path : kappa ≤ |steps.sum|) :
     kappa ≤ 2 * (graphDiam : ℝ) := by
-  have htwo :
-      |steps.sum| ≤ 2 * (graphDiam : ℝ) * B :=
-    graphW1_kappa_twoStep_bound yf yg B hB graphDiam hyf hyg steps hlen hsteps
-  have hkappa_scaled : kappa ≤ 2 * (graphDiam : ℝ) * B := hkappa_from_path.trans htwo
-  have hfac_nonneg : 0 ≤ 2 * (graphDiam : ℝ) := by positivity
-  have hscale : 2 * (graphDiam : ℝ) * B ≤ 2 * (graphDiam : ℝ) * 1 :=
-    mul_le_mul_of_nonneg_left hBunit hfac_nonneg
-  have hkappa_two : kappa ≤ 2 * (graphDiam : ℝ) * 1 := hkappa_scaled.trans hscale
-  simpa using hkappa_two
+  exact graphW1_kappa_le_twoGraphDiameter_from_path
+    hB hBunit graphDiam yf yg hyf hyg steps hlen hsteps hkappa_from_path
+
+/--
+Direct split-potential control from the internally derived graph-`W₁` path witness.
+
+This avoids routing through the compatibility theorem
+`graphW1_splitPotential_bound` when the edge-gradient/path proof of `κ ≤ 2 * diam`
+is available.
+-/
+theorem graphW1_splitPotential_bound_from_path
+    {ι : Type*}
+    {splitPotential kappa B : ℝ}
+    (hsplit : splitPotential ≤ kappa)
+    (hB : 0 ≤ B)
+    (hBunit : B ≤ 1)
+    (graphDiam : ℕ)
+    (yf yg : ι × ι → ℝ)
+    (hyf : ∀ p : ι × ι, |yf p| ≤ B)
+    (hyg : ∀ p : ι × ι, |yg p| ≤ B)
+    (steps : List ℝ)
+    (hlen : steps.length ≤ graphDiam)
+    (hsteps : ∀ x ∈ steps, ∃ p : ι × ι, x = (yf + yg) p)
+    (hkappa_from_path : kappa ≤ |steps.sum|) :
+    splitPotential ≤ 2 * (graphDiam : ℝ) :=
+  hsplit.trans
+    (graphW1_kappa_le_twoGraphDiameter_from_path
+      hB hBunit graphDiam yf yg hyf hyg steps hlen hsteps hkappa_from_path)
 
 /--
 Bridge theorem from the two-step path estimate to the paper-facing budget API.

@@ -305,6 +305,21 @@ theorem ot_kappa_one_concrete
   ot_variationSeminorm_le_supNorm alpha beta j₀ Y hY
 
 /--
+Internally derived OT `κ ≤ 1` endpoint for separable witnesses.
+
+This is the preferred non-packaged theorem behind the paper-facing aliases: it derives the
+seminorm control directly from a decomposition `Y(i,j) = α i + β j`, rather than from an
+abstract scalar assumption `κ = 1`.
+-/
+theorem ot_kappa_le_one_from_separable
+    {ι₁ ι₂ : Type*} [Fintype ι₁] [Nonempty ι₁] [Fintype ι₂] [Nonempty ι₂]
+    (alpha : ι₁ → ℝ) (beta : ι₂ → ℝ) (j₀ : ι₂)
+    (Y : ι₁ × ι₂ → ℝ)
+    (hY : ∀ i j, alpha i + beta j = Y (i, j)) :
+    variationSeminorm alpha ≤ coordSupNorm Y :=
+  ot_kappa_one_concrete alpha beta j₀ Y hY
+
+/--
 Concrete paper-facing `\kappa = 1` normalization for balanced OT.
 
 Under the separable decomposition `Y(i,j) = α_i + β_j`, if `‖Y‖_∞ ≤ 1` then
@@ -317,7 +332,23 @@ theorem ot_kappa_eq_one
     (hY : ∀ i j, alpha i + beta j = Y (i, j))
     (hY_unit : coordSupNorm Y ≤ 1) :
     variationSeminorm alpha ≤ 1 := by
-  exact (ot_kappa_one_concrete alpha beta j₀ Y hY).trans hY_unit
+  exact (ot_kappa_le_one_from_separable alpha beta j₀ Y hY).trans hY_unit
+
+/--
+Direct split-term control from the internally derived OT witness.
+
+This removes the need to first package the concrete separable estimate into an abstract
+`κ` parameter when the desired target is the natural `coordSupNorm Y` bound.
+-/
+theorem ot_signedPair_split_bound_from_separable
+    {ι₁ ι₂ : Type*} [Fintype ι₁] [Nonempty ι₁] [Fintype ι₂] [Nonempty ι₂]
+    (alpha : ι₁ → ℝ) (beta : ι₂ → ℝ) (j₀ : ι₂)
+    (Y : ι₁ × ι₂ → ℝ)
+    (hY : ∀ i j, alpha i + beta j = Y (i, j))
+    {splitTerm : ℝ}
+    (hsplit : splitTerm ≤ variationSeminorm alpha) :
+    splitTerm ≤ coordSupNorm Y :=
+  hsplit.trans (ot_kappa_le_one_from_separable alpha beta j₀ Y hY)
 
 /--
 Bridge lemma: transfer the concrete OT `κ = 1` seminorm control to an abstract
@@ -348,8 +379,7 @@ theorem ot_signedPair_split_bound_of_kappa_one_concrete
     (hkappa : kappa = 1) :
     splitTerm ≤ 1 := by
   have hsplit_kappa : splitTerm ≤ kappa := by
-    exact le_trans hsplit
-      (ot_variationSeminorm_le_kappa_of_kappa_one_concrete alpha beta j₀ Y hY hYkappa)
+    exact (ot_signedPair_split_bound_from_separable alpha beta j₀ Y hY hsplit).trans hYkappa
   exact ot_signedPair_split_bound hsplit_kappa hkappa
 
 /--
@@ -369,8 +399,7 @@ theorem ot_signedPair_scaled_bound_of_kappa_one_concrete
     splitTerm * (cost + gamma * hGamma) ≤
       PrimalDualBounds.hGammaKappaBudget kappa cost gamma hGamma := by
   have hsplit_kappa : splitTerm ≤ kappa := by
-    exact le_trans hsplit
-      (ot_variationSeminorm_le_kappa_of_kappa_one_concrete alpha beta j₀ Y hY hYkappa)
+    exact (ot_signedPair_split_bound_from_separable alpha beta j₀ Y hY hsplit).trans hYkappa
   exact ot_signedPair_scaled_bound_of_kappa_eq_one hsplit_kappa hkappa hnonneg
 
 /--

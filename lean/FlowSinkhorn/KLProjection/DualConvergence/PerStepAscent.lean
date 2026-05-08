@@ -2651,6 +2651,47 @@ theorem halfStepAscent_of_finiteProbabilityMeasureComputedPinsker_klGain_add_com
     (klGain_of_klGain_add hgain_add)
 
 /--
+Single-block A.1 bridge using the support-aware computed finite-measure A.3 endpoint.
+
+This is the boundary analogue of
+`halfStepAscent_of_finiteProbabilityMeasureComputedPinsker_klGain_commonMass`: the all-test
+variational premise is not assumed, and zero coordinates in `q` are allowed when `p` is also zero
+there.
+-/
+theorem halfStepAscent_of_finiteProbabilityMeasureComputedPinsker_klGain_commonMass_of_support
+    {n : ℕ} {p q : Fin n → ℝ} {Fbefore Fafter M : ℝ}
+    (hMpos : 0 < M)
+    (hp_nonneg : ∀ i, 0 ≤ p i)
+    (hp_mass : ∑ i, p i = M)
+    (hq_nonneg : ∀ i, 0 ≤ q i)
+    (hq_mass : ∑ i, q i = M)
+    (hsupp : ∀ i, q i = 0 → p i = 0)
+    (hgain : finiteKL p q ≤ Fafter - Fbefore) :
+    (l1Norm (fun i => p i - q i)) ^ 2 / (2 * M) ≤ Fafter - Fbefore := by
+  have hpinsker :
+      finiteKL p q ≥ (l1Norm (fun i => p i - q i)) ^ 2 / (2 * M) :=
+    pinsker_nonnormalized_of_finiteProbabilityMeasure_klDiv_computed_support
+      (p := p) (q := q) hMpos hp_nonneg hp_mass hq_nonneg hq_mass hsupp
+  exact halfStepAscent_of_klGain_of_finitePinsker hpinsker hgain
+
+/--
+Additive-gain form of the support-aware computed-Pinsker half-step bridge.
+-/
+theorem halfStepAscent_of_finiteProbabilityMeasureComputedPinsker_klGain_add_commonMass_of_support
+    {n : ℕ} {p q : Fin n → ℝ} {Fbefore Fafter M : ℝ}
+    (hMpos : 0 < M)
+    (hp_nonneg : ∀ i, 0 ≤ p i)
+    (hp_mass : ∑ i, p i = M)
+    (hq_nonneg : ∀ i, 0 ≤ q i)
+    (hq_mass : ∑ i, q i = M)
+    (hsupp : ∀ i, q i = 0 → p i = 0)
+    (hgain_add : Fbefore + finiteKL p q ≤ Fafter) :
+    (l1Norm (fun i => p i - q i)) ^ 2 / (2 * M) ≤ Fafter - Fbefore :=
+  halfStepAscent_of_finiteProbabilityMeasureComputedPinsker_klGain_commonMass_of_support
+    (p := p) (q := q) (M := M) hMpos hp_nonneg hp_mass hq_nonneg hq_mass hsupp
+    (klGain_of_klGain_add hgain_add)
+
+/--
 Sequence form of the positive-reference computed-Pinsker half-step bridge.
 -/
 theorem halfStepAscent_seq_of_finiteProbabilityMeasureComputedPinsker_klGain_commonMass
@@ -2668,6 +2709,26 @@ theorem halfStepAscent_seq_of_finiteProbabilityMeasureComputedPinsker_klGain_com
   exact halfStepAscent_of_finiteProbabilityMeasureComputedPinsker_klGain_commonMass
     (p := p k) (q := q k) (M := M) hMpos
     (hp_nonneg k) (hp_mass k) (hq_pos k) (hq_mass k) (hgain k)
+
+/--
+Sequence form of the support-aware computed-Pinsker half-step bridge.
+-/
+theorem halfStepAscent_seq_of_finiteProbabilityMeasureComputedPinsker_klGain_commonMass_of_support
+    {n : ℕ} {p q : ℕ → Fin n → ℝ} {Fbefore Fafter : ℕ → ℝ} {M : ℝ}
+    (hMpos : 0 < M)
+    (hp_nonneg : ∀ k i, 0 ≤ p k i)
+    (hp_mass : ∀ k, ∑ i, p k i = M)
+    (hq_nonneg : ∀ k i, 0 ≤ q k i)
+    (hq_mass : ∀ k, ∑ i, q k i = M)
+    (hsupp : ∀ k i, q k i = 0 → p k i = 0)
+    (hgain : ∀ k : ℕ, finiteKL (p k) (q k) ≤ Fafter k - Fbefore k) :
+    ∀ k : ℕ,
+      (l1Norm (fun i => p k i - q k i)) ^ 2 / (2 * M)
+        ≤ Fafter k - Fbefore k := by
+  intro k
+  exact halfStepAscent_of_finiteProbabilityMeasureComputedPinsker_klGain_commonMass_of_support
+    (p := p k) (q := q k) (M := M) hMpos
+    (hp_nonneg k) (hp_mass k) (hq_nonneg k) (hq_mass k) (hsupp k) (hgain k)
 
 /--
 Full-sweep A.1 bridge from positive-reference finite blocks and computed finite-measure Pinsker.
@@ -2743,6 +2804,90 @@ theorem perStepAscent_residualProxy_of_finiteProbabilityMeasureComputedPinsker_k
     (klGain_seq_of_klGain_add hgain2_add)
 
 /--
+Full-sweep A.1 bridge from support-aware finite blocks and computed finite-measure Pinsker.
+
+This is the direct boundary counterpart of
+`perStepAscent_residualProxy_of_finiteProbabilityMeasureComputedPinsker_klGains_commonMass`.
+It derives Pinsker from concrete finite-measure KL plus support domination, not from a supplied
+variational inequality.
+-/
+theorem
+    perStepAscent_residualProxy_of_finiteProbabilityMeasureComputedPinsker_klGains_commonMass_of_support
+    {n₁ n₂ : ℕ}
+    {F Fhalf : ℕ → ℝ}
+    {p1 q1 : ℕ → Fin n₁ → ℝ} {p2 q2 : ℕ → Fin n₂ → ℝ} {M : ℝ}
+    (hMpos : 0 < M)
+    (hp1_nonneg : ∀ k i, 0 ≤ p1 k i)
+    (hp1_mass : ∀ k, ∑ i, p1 k i = M)
+    (hq1_nonneg : ∀ k i, 0 ≤ q1 k i)
+    (hq1_mass : ∀ k, ∑ i, q1 k i = M)
+    (hsupp1 : ∀ k i, q1 k i = 0 → p1 k i = 0)
+    (hgain1 : ∀ k : ℕ, finiteKL (p1 k) (q1 k) ≤ Fhalf k - F k)
+    (hp2_nonneg : ∀ k i, 0 ≤ p2 k i)
+    (hp2_mass : ∀ k, ∑ i, p2 k i = M)
+    (hq2_nonneg : ∀ k i, 0 ≤ q2 k i)
+    (hq2_mass : ∀ k, ∑ i, q2 k i = M)
+    (hsupp2 : ∀ k i, q2 k i = 0 → p2 k i = 0)
+    (hgain2 : ∀ k : ℕ, finiteKL (p2 k) (q2 k) ≤ F (k + 1) - Fhalf k) :
+    ∀ k : ℕ,
+      (1 / (2 * M)) *
+          ((l1Norm (fun i => p1 k i - q1 k i)) ^ 2
+            + (l1Norm (fun i => p2 k i - q2 k i)) ^ 2)
+        ≤ F (k + 1) - F k := by
+  have hpinsker1 :
+      ∀ k : ℕ,
+        finiteKL (p1 k) (q1 k) ≥
+          (l1Norm (fun i => p1 k i - q1 k i)) ^ 2 / (2 * M) := by
+    intro k
+    exact pinsker_nonnormalized_of_finiteProbabilityMeasure_klDiv_computed_support
+      (p := p1 k) (q := q1 k) hMpos
+      (hp1_nonneg k) (hp1_mass k) (hq1_nonneg k) (hq1_mass k) (hsupp1 k)
+  have hpinsker2 :
+      ∀ k : ℕ,
+        finiteKL (p2 k) (q2 k) ≥
+          (l1Norm (fun i => p2 k i - q2 k i)) ^ 2 / (2 * M) := by
+    intro k
+    exact pinsker_nonnormalized_of_finiteProbabilityMeasure_klDiv_computed_support
+      (p := p2 k) (q := q2 k) hMpos
+      (hp2_nonneg k) (hp2_mass k) (hq2_nonneg k) (hq2_mass k) (hsupp2 k)
+  exact perStepAscent_residualProxy_of_finitePinsker_klGains_commonMass
+    (F := F) (Fhalf := Fhalf) (p1 := p1) (q1 := q1) (p2 := p2) (q2 := q2)
+    (M := M) hpinsker1 hgain1 hpinsker2 hgain2
+
+/--
+Additive-gain form of the support-aware computed-Pinsker full-sweep bridge.
+-/
+theorem
+    perStepAscent_residualProxy_of_finiteProbabilityMeasureComputedPinsker_klGains_add_commonMass_of_support
+    {n₁ n₂ : ℕ}
+    {F Fhalf : ℕ → ℝ}
+    {p1 q1 : ℕ → Fin n₁ → ℝ} {p2 q2 : ℕ → Fin n₂ → ℝ} {M : ℝ}
+    (hMpos : 0 < M)
+    (hp1_nonneg : ∀ k i, 0 ≤ p1 k i)
+    (hp1_mass : ∀ k, ∑ i, p1 k i = M)
+    (hq1_nonneg : ∀ k i, 0 ≤ q1 k i)
+    (hq1_mass : ∀ k, ∑ i, q1 k i = M)
+    (hsupp1 : ∀ k i, q1 k i = 0 → p1 k i = 0)
+    (hgain1_add : ∀ k : ℕ, F k + finiteKL (p1 k) (q1 k) ≤ Fhalf k)
+    (hp2_nonneg : ∀ k i, 0 ≤ p2 k i)
+    (hp2_mass : ∀ k, ∑ i, p2 k i = M)
+    (hq2_nonneg : ∀ k i, 0 ≤ q2 k i)
+    (hq2_mass : ∀ k, ∑ i, q2 k i = M)
+    (hsupp2 : ∀ k i, q2 k i = 0 → p2 k i = 0)
+    (hgain2_add : ∀ k : ℕ, Fhalf k + finiteKL (p2 k) (q2 k) ≤ F (k + 1)) :
+    ∀ k : ℕ,
+      (1 / (2 * M)) *
+          ((l1Norm (fun i => p1 k i - q1 k i)) ^ 2
+            + (l1Norm (fun i => p2 k i - q2 k i)) ^ 2)
+        ≤ F (k + 1) - F k :=
+  perStepAscent_residualProxy_of_finiteProbabilityMeasureComputedPinsker_klGains_commonMass_of_support
+    (F := F) (Fhalf := Fhalf) (p1 := p1) (q1 := q1) (p2 := p2) (q2 := q2)
+    (M := M) hMpos hp1_nonneg hp1_mass hq1_nonneg hq1_mass hsupp1
+    (klGain_seq_of_klGain_add hgain1_add)
+    hp2_nonneg hp2_mass hq2_nonneg hq2_mass hsupp2
+    (klGain_seq_of_klGain_add hgain2_add)
+
+/--
 One-sweep, non-sequence A.1 bridge from separated mass-shell primitives.
 
 This is close to algorithm update notation: one first block update from `Fbefore` to `Fhalf`,
@@ -2795,10 +2940,11 @@ theorem halfStepAscent_of_finiteMassShellBlockUpdateCertificate_commonMass
     (hMpos : 0 < M)
     (hcert : FiniteMassShellBlockUpdateCertificate p q M Fbefore Fafter) :
     (l1Norm (fun i => p i - q i)) ^ 2 / (2 * M) ≤ Fafter - Fbefore :=
-  halfStepAscent_of_finiteMassShellVariationalOptimality_blockUpdateGain_commonMass
+  halfStepAscent_of_finiteProbabilityMeasureComputedPinsker_klGain_add_commonMass
     (p := p) (q := q) (M := M) hMpos
-    (finiteMassShellVariationalOptimality_of_blockUpdateCertificate hMpos hcert)
-    (finiteKLGainFromBlockUpdate_of_blockUpdateCertificate hcert)
+    hcert.source_nonneg hcert.source_mass hcert.update_pos hcert.update_mass
+    (finiteKLGainFromBlockUpdate_gain_add
+      (finiteKLGainFromBlockUpdate_of_blockUpdateCertificate hcert))
 
 /--
 Sequence form of `halfStepAscent_of_finiteMassShellBlockUpdateCertificate_commonMass`.
@@ -2839,13 +2985,23 @@ theorem perStepAscent_residualProxy_of_finiteMassShellBlockUpdateCertificates_co
           ((l1Norm (fun i => p1 k i - q1 k i)) ^ 2
             + (l1Norm (fun i => p2 k i - q2 k i)) ^ 2)
         ≤ F (k + 1) - F k :=
-  perStepAscent_residualProxy_of_finiteMassShellVariationalOptimality_blockUpdateGains_commonMass
+  perStepAscent_residualProxy_of_finiteProbabilityMeasureComputedPinsker_klGains_add_commonMass
     (F := F) (Fhalf := Fhalf) (p1 := p1) (q1 := q1) (p2 := p2) (q2 := q2)
     (M := M) hMpos
-    (fun k => finiteMassShellVariationalOptimality_of_blockUpdateCertificate hMpos (hcert1 k))
-    (fun k => finiteKLGainFromBlockUpdate_of_blockUpdateCertificate (hcert1 k))
-    (fun k => finiteMassShellVariationalOptimality_of_blockUpdateCertificate hMpos (hcert2 k))
-    (fun k => finiteKLGainFromBlockUpdate_of_blockUpdateCertificate (hcert2 k))
+    (fun k => (hcert1 k).source_nonneg)
+    (fun k => (hcert1 k).source_mass)
+    (fun k => (hcert1 k).update_pos)
+    (fun k => (hcert1 k).update_mass)
+    (fun k =>
+      finiteKLGainFromBlockUpdate_gain_add
+        (finiteKLGainFromBlockUpdate_of_blockUpdateCertificate (hcert1 k)))
+    (fun k => (hcert2 k).source_nonneg)
+    (fun k => (hcert2 k).source_mass)
+    (fun k => (hcert2 k).update_pos)
+    (fun k => (hcert2 k).update_mass)
+    (fun k =>
+      finiteKLGainFromBlockUpdate_gain_add
+        (finiteKLGainFromBlockUpdate_of_blockUpdateCertificate (hcert2 k)))
 
 /--
 One-sweep, non-sequence A.1 bridge from algorithm-facing finite block-update certificates.
@@ -2879,10 +3035,11 @@ theorem halfStepAscent_of_finiteMassShellSupportBlockUpdateCertificate_commonMas
     (hMpos : 0 < M)
     (hcert : FiniteMassShellSupportBlockUpdateCertificate p q M Fbefore Fafter) :
     (l1Norm (fun i => p i - q i)) ^ 2 / (2 * M) ≤ Fafter - Fbefore :=
-  halfStepAscent_of_finiteMassShellVariationalOptimality_blockUpdateGain_commonMass
+  halfStepAscent_of_finiteProbabilityMeasureComputedPinsker_klGain_add_commonMass_of_support
     (p := p) (q := q) (M := M) hMpos
-    (finiteMassShellVariationalOptimality_of_supportBlockUpdateCertificate hMpos hcert)
-    (finiteKLGainFromBlockUpdate_of_supportBlockUpdateCertificate hcert)
+    hcert.source_nonneg hcert.source_mass hcert.update_nonneg hcert.update_mass hcert.support
+    (finiteKLGainFromBlockUpdate_gain_add
+      (finiteKLGainFromBlockUpdate_of_supportBlockUpdateCertificate hcert))
 
 /--
 Sequence form of the support-aware single-block A.1 bridge.
@@ -2924,15 +3081,25 @@ theorem perStepAscent_residualProxy_of_finiteMassShellSupportBlockUpdateCertific
           ((l1Norm (fun i => p1 k i - q1 k i)) ^ 2
             + (l1Norm (fun i => p2 k i - q2 k i)) ^ 2)
         ≤ F (k + 1) - F k :=
-  perStepAscent_residualProxy_of_finiteMassShellVariationalOptimality_blockUpdateGains_commonMass
+  perStepAscent_residualProxy_of_finiteProbabilityMeasureComputedPinsker_klGains_add_commonMass_of_support
     (F := F) (Fhalf := Fhalf) (p1 := p1) (q1 := q1) (p2 := p2) (q2 := q2)
     (M := M) hMpos
-    (fun k => finiteMassShellVariationalOptimality_of_supportBlockUpdateCertificate
-      hMpos (hcert1 k))
-    (fun k => finiteKLGainFromBlockUpdate_of_supportBlockUpdateCertificate (hcert1 k))
-    (fun k => finiteMassShellVariationalOptimality_of_supportBlockUpdateCertificate
-      hMpos (hcert2 k))
-    (fun k => finiteKLGainFromBlockUpdate_of_supportBlockUpdateCertificate (hcert2 k))
+    (fun k => (hcert1 k).source_nonneg)
+    (fun k => (hcert1 k).source_mass)
+    (fun k => (hcert1 k).update_nonneg)
+    (fun k => (hcert1 k).update_mass)
+    (fun k => (hcert1 k).support)
+    (fun k =>
+      finiteKLGainFromBlockUpdate_gain_add
+        (finiteKLGainFromBlockUpdate_of_supportBlockUpdateCertificate (hcert1 k)))
+    (fun k => (hcert2 k).source_nonneg)
+    (fun k => (hcert2 k).source_mass)
+    (fun k => (hcert2 k).update_nonneg)
+    (fun k => (hcert2 k).update_mass)
+    (fun k => (hcert2 k).support)
+    (fun k =>
+      finiteKLGainFromBlockUpdate_gain_add
+        (finiteKLGainFromBlockUpdate_of_supportBlockUpdateCertificate (hcert2 k)))
 
 /--
 One-sweep A.1 bridge from support-aware finite block-update certificates.
