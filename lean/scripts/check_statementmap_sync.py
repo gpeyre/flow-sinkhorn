@@ -21,6 +21,7 @@ REPO = Path(__file__).resolve().parents[2]
 AUX = REPO / "neurips" / "paper.aux"
 STATEMENT_MAP = REPO / "lean" / "FlowSinkhorn" / "KLProjection" / "StatementMap.lean"
 LEAN_ROOT = REPO / "lean" / "FlowSinkhorn" / "KLProjection"
+PAPER_ROOT = REPO / "lean" / "FlowSinkhorn" / "Paper"
 
 LABEL_PREFIXES = ("prop:", "lem:", "thm:", "cor:", "app-prop:", "app-lem:", "app-cor:")
 
@@ -52,6 +53,18 @@ def parse_statement_map(text: str) -> Dict[str, str]:
     out: Dict[str, str] = {}
     for m in re.finditer(r"^abbrev\s+([A-Za-z0-9_]+)\s*:=\s*@([A-Za-z0-9_.]+)", text, re.M):
         out[m.group(1)] = m.group(2)
+    return out
+
+
+def parse_paper_facade_aliases() -> Dict[str, Tuple[str, Path]]:
+    out: Dict[str, Tuple[str, Path]] = {}
+    if not PAPER_ROOT.exists():
+        return out
+    for fp in PAPER_ROOT.glob("*.lean"):
+        if fp.name == "StatementMap.lean":
+            continue
+        for alias, target in parse_statement_map(fp.read_text(encoding="utf-8")).items():
+            out[alias] = (target, fp)
     return out
 
 
@@ -89,6 +102,7 @@ def main() -> int:
 
     labels = parse_aux_labels(AUX.read_text(encoding="utf-8"))
     aliases = parse_statement_map(STATEMENT_MAP.read_text(encoding="utf-8"))
+    facade_aliases = parse_paper_facade_aliases()
 
     errors: List[str] = []
 
@@ -115,6 +129,20 @@ def main() -> int:
         target = t_label or t_num or "MISSING"
         src = resolve_target_file(target) if target != "MISSING" else "MISSING"
         print(f"{info.label} | {info.number} | {a_label} | {a_num} | {target} | {src}")
+
+        for alias_name, expected_target in ((a_label, t_label), (a_num, t_num)):
+            if expected_target is None:
+                continue
+            facade = facade_aliases.get(alias_name)
+            if facade is None:
+                continue
+            facade_target, facade_file = facade
+            if facade_target != expected_target:
+                errors.append(
+                    "Paper facade alias drift: "
+                    f"{facade_file.relative_to(REPO)}::{alias_name} -> {facade_target}, "
+                    f"canonical -> {expected_target}"
+                )
 
     if errors:
         print("\nSYNC CHECK FAILED:", file=sys.stderr)

@@ -82,7 +82,7 @@ abbrev prop_A_1 :=
 abbrev lem_A_3 :=
   @pinsker_nonnormalized_of_massShell_finiteProbabilityMeasure_klDiv_computed_mathlib_hoeffding -- impl: DualConvergence/Pinsker.lean
 abbrev lem_B_1 := @klBias_bound -- impl: DualConvergence/Rate.lean
-abbrev thm_3_2 := @regularizedApproximation_complexity_of_closedFormIterationThreshold -- impl: Applications/OT/Complexity.lean
+abbrev thm_3_2 := @regularizedApproximation_complexity_of_closedFormIterationThreshold -- impl: DualConvergence/Rate.lean
 
 /- Section 4. -/
 abbrev prop_4_1 := @uniformIterateBound_of_nonexpansive_of_budget -- impl: PrimalDualBounds/FixedPointControl.lean
@@ -97,12 +97,13 @@ abbrev prop_G_3 := @sweep_translationEquivariant -- impl: Setup/Translation.lean
 /- Appendix E (OT instantiation). -/
 abbrev prop_E_1 := @ot_HGamma_bound -- impl: Applications/OT/HGamma.lean
 abbrev prop_E_2 := @ot_kappa_eq_one -- impl: Applications/OT/Kappa.lean
-abbrev cor_E_1 := @ot_explicit_XGamma_UGamma -- impl: Applications/OT/Complexity.lean
+abbrev cor_E_1 := @ot_orbit_bound_from_separable_and_blockConditions_zeroStart -- impl: Applications/OT/Complexity.lean
 
 /- Section 5 main text. -/
 abbrev prop_5_1 := @graphW1_projection_closedForm -- impl: Applications/GraphW1/ClosedForms.lean
 abbrev prop_5_2 := @graphW1_flowSinkhorn_update_as_stated_of_forward_nonneg -- impl: Applications/GraphW1/ClosedForms.lean
-abbrev thm_5_1 := @graphW1_Sinkhorn_iterationComplexity -- impl: Applications/GraphW1/Complexity.lean
+abbrev thm_5_1 :=
+  @graphW1_epsilonAccuracy_explicitLog_from_zeroFn_succ_of_twoStep_path_IsTopical_via_HGamma_at_ceil_index -- impl: Applications/GraphW1/Complexity.lean
 
 /- Appendix F (graph-W1 technical statements). -/
 abbrev prop_F_1 := @graphW1_blockQuotient_closedForm -- impl: Applications/GraphW1/ClosedForms.lean
@@ -111,7 +112,8 @@ abbrev prop_F_3 := @graphW1_Psi2_nonexpansive -- impl: Applications/GraphW1/Clos
 abbrev prop_F_4 := @graphW1_HGamma_bound -- impl: Applications/GraphW1/HGamma.lean
 abbrev lem_F_1 := @graphW1_primalL1Bound_positiveCosts -- impl: Applications/GraphW1/HGamma.lean
 abbrev prop_F_5 := @graphW1_kappa_le_graphDiameter -- impl: Applications/GraphW1/Kappa.lean
-abbrev cor_F_5 := @graphW1_explicit_XGamma_UGamma -- impl: Applications/GraphW1/Complexity.lean
+abbrev cor_F_5 :=
+  @graphW1_orbit_bound_explicitLog_from_zeroFn_of_twoStep_path_IsTopical_via_HGamma -- impl: Applications/GraphW1/Complexity.lean
 
 /- Label-key aliases used in the NeurIPS source. -/
 /-
@@ -128,7 +130,7 @@ abbrev prop_pinsker_normalized :=
 abbrev lem_pinsker_nonnormalized :=
   @pinsker_nonnormalized_of_massShell_finiteProbabilityMeasure_klDiv_computed_mathlib_hoeffding -- impl: DualConvergence/Pinsker.lean
 abbrev lem_kl_bias := @klBias_bound -- impl: DualConvergence/Rate.lean
-abbrev thm_approx_linprog := @regularizedApproximation_complexity_of_closedFormIterationThreshold -- impl: Applications/OT/Complexity.lean
+abbrev thm_approx_linprog := @regularizedApproximation_complexity_of_closedFormIterationThreshold -- impl: DualConvergence/Rate.lean
 abbrev prop_mass_bound_block := @primalBound_fromDualBudget -- impl: PrimalDualBounds/PrimalFromDual.lean
 abbrev prop_uniform_iter_final := @uniformIterateBound_of_nonexpansive_of_budget -- impl: PrimalDualBounds/FixedPointControl.lean
 abbrev prop_topical_nonexpansive := @variationSeminorm_nonexpansive_of_topical_shifted -- impl: Setup/VariationGeometry.lean
@@ -137,7 +139,7 @@ abbrev lem_moment_monotone := @momentMap_monotone -- impl: Setup/BlockMonotonici
 abbrev prop_translation_equivariance := @sweep_translationEquivariant -- impl: Setup/Translation.lean
 abbrev prop_hgamma_ot := @ot_HGamma_bound -- impl: Applications/OT/HGamma.lean
 abbrev prop_kappa_ot := @ot_kappa_eq_one -- impl: Applications/OT/Kappa.lean
-abbrev cor_ot_xgamma_ugamma := @ot_explicit_XGamma_UGamma -- impl: Applications/OT/Complexity.lean
+abbrev cor_ot_xgamma_ugamma := @ot_orbit_bound_from_separable_and_blockConditions_zeroStart -- impl: Applications/OT/Complexity.lean
 abbrev prop_graphw1_projection_closed_form := @graphW1_projection_closedForm -- impl: Applications/GraphW1/ClosedForms.lean
 abbrev prop_graphw1_flow_sinkhorn_update :=
   @graphW1_flowSinkhorn_update_as_stated_of_forward_nonneg -- impl: Applications/GraphW1/ClosedForms.lean
@@ -148,8 +150,10 @@ abbrev prop_graphw1_psi2_closed_nonexp := @graphW1_Psi2_nonexpansive -- impl: Ap
 abbrev prop_hgamma_graphw1 := @graphW1_HGamma_bound -- impl: Applications/GraphW1/HGamma.lean
 abbrev lem_l1_bound_from_feasible := @graphW1_primalL1Bound_positiveCosts -- impl: Applications/GraphW1/HGamma.lean
 abbrev prop_kappa_graph_diameter := @graphW1_kappa_le_graphDiameter -- impl: Applications/GraphW1/Kappa.lean
-abbrev cor_graphw1_xgamma_ugamma := @graphW1_explicit_XGamma_UGamma -- impl: Applications/GraphW1/Complexity.lean
-abbrev thm_graphw1_complexity := @graphW1_Sinkhorn_iterationComplexity -- impl: Applications/GraphW1/Complexity.lean
+abbrev cor_graphw1_xgamma_ugamma :=
+  @graphW1_orbit_bound_explicitLog_from_zeroFn_of_twoStep_path_IsTopical_via_HGamma -- impl: Applications/GraphW1/Complexity.lean
+abbrev thm_graphw1_complexity :=
+  @graphW1_epsilonAccuracy_explicitLog_from_zeroFn_succ_of_twoStep_path_IsTopical_via_HGamma_at_ceil_index -- impl: Applications/GraphW1/Complexity.lean
 
 end StatementMap
 end KLProjection

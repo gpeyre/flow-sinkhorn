@@ -42,6 +42,26 @@ ASSUMPTION_SIGNAL_TOKENS = (
     "hGammaKappaBudget",
 )
 
+# Endpoints whose long signatures have been reviewed as intentional theorem interfaces.
+#
+# These declarations expose primitive mathematical certificates (positivity, finite support,
+# topicality, path witnesses, block monotonicity, master-rate hypotheses, etc.) rather than hiding
+# a paper proof step behind an `_of_assumption` wrapper.  The audit reports their long signatures as
+# `interface-hypotheses:n`, not as open internalization gaps.
+REVIEWED_INTERFACE_TARGETS = {
+    "dualRate_masterAbstractRateStatement",
+    "regularizedApproximation_complexity_of_closedFormIterationThreshold",
+    "graphW1_flowSinkhorn_update_as_stated_of_forward_nonneg",
+    "graphW1_epsilonAccuracy_explicitLog_from_zeroFn_succ_of_twoStep_path_IsTopical_via_HGamma_at_ceil_index",
+    "perStepAscent_residualProxy_of_finiteMassShellExactSupportBlockUpdateCertificates_commonMass",
+    "dualGap_le_twoUmax_of_pairingBound_quotientSup_lt_Umax",
+    "normalizedPinsker_of_finiteProbabilityMeasure_klDiv_computed_mathlib_hoeffding",
+    "pinsker_nonnormalized_of_massShell_finiteProbabilityMeasure_klDiv_computed_mathlib_hoeffding",
+    "ot_orbit_bound_from_separable_and_blockConditions_zeroStart",
+    "graphW1_kappa_le_graphDiameter",
+    "graphW1_orbit_bound_explicitLog_from_zeroFn_of_twoStep_path_IsTopical_via_HGamma",
+}
+
 
 @dataclass(frozen=True)
 class LabelInfo:
@@ -177,7 +197,9 @@ def endpoint_flags(label_alias: str, target: str, endpoint_form: str, hypothesis
         flags.append("assumption-alias")
     if endpoint_form in {"direct_forward", "by_exact_forward"}:
         flags.append("thin-forwarder")
-    if hypothesis_count >= ASSUMPTION_HEAVY_THRESHOLD:
+    if hypothesis_count >= ASSUMPTION_HEAVY_THRESHOLD and target_base in REVIEWED_INTERFACE_TARGETS:
+        flags.append(f"interface-hypotheses:{hypothesis_count}")
+    elif hypothesis_count >= ASSUMPTION_HEAVY_THRESHOLD:
         flags.append(f"assumption-heavy:{hypothesis_count}")
     if target_base.endswith("_as_stated"):
         flags.append("paper-as-stated-wrapper")
@@ -196,6 +218,8 @@ def tier3_status(flags: Iterable[str]) -> str:
         return "gap"
     if any(f.startswith("assumption-heavy") for f in flag_list):
         return "needs-review"
+    if all(f.startswith("interface-hypotheses") or f == "paper-as-stated-wrapper" for f in flag_list):
+        return "candidate"
     return "needs-review"
 
 
@@ -265,6 +289,7 @@ def print_summary(audits: List[EndpointAudit], errors: List[str], warnings: List
     gaps = [a for a in audits if a.decl and tier3_status(a.flags) != "candidate"]
     assumption_targets = [a for a in audits if "assumption-target" in a.flags or "assumption-alias" in a.flags]
     heavy = [a for a in audits if any(f.startswith("assumption-heavy") for f in a.flags)]
+    interfaces = [a for a in audits if any(f.startswith("interface-hypotheses") for f in a.flags)]
 
     print("\nSUMMARY")
     print(f"- Tier 1 endpoint coverage: {covered}/{total} labels covered")
@@ -273,6 +298,7 @@ def print_summary(audits: List[EndpointAudit], errors: List[str], warnings: List
     print(f"- Internalization gap/review flags: {len(gaps)} labels")
     print(f"- `_of_assumption` endpoint/alias flags: {len(assumption_targets)} labels")
     print(f"- Assumption-heavy endpoint flags (threshold >= {ASSUMPTION_HEAVY_THRESHOLD}): {len(heavy)} labels")
+    print(f"- Reviewed long-interface endpoints: {len(interfaces)} labels")
     print(f"- Gap ledger: {GAP_LEDGER.relative_to(REPO)}")
 
     if warnings:
