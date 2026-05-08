@@ -19,12 +19,51 @@ jobs:
 
       - name: Install elan
         run: |
-          curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y
+          curl --retry 5 --retry-delay 5 --retry-all-errors \
+            https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf \
+            | sh -s -- -y
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Cache Lean toolchain
+        uses: actions/cache@v4
+        with:
+          path: ~/.elan
+          key: ${{ runner.os }}-elan-${{ hashFiles('lean/lean-toolchain') }}
+          restore-keys: |
+            ${{ runner.os }}-elan-
+
+      - name: Cache Lake build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            lean/.lake
+          key: ${{ runner.os }}-lake-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json', 'lean/lakefile.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-lake-
+
+      - name: Install Lean toolchain
+        working-directory: lean
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if lean --version; then
+              exit 0
+            fi
+            echo "Lean toolchain download failed on attempt ${attempt}; retrying..."
+            sleep $((attempt * 10))
+          done
+          lean --version
 
       - name: Restore mathlib cache
         working-directory: lean
-        run: lake exe cache get
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if lake exe cache get; then
+              exit 0
+            fi
+            echo "mathlib cache restore failed on attempt ${attempt}; retrying..."
+            sleep $((attempt * 10))
+          done
+          lake exe cache get
 
       - name: Check StatementMap sync with NeurIPS labels
         run: python3 lean/scripts/check_statementmap_sync.py
