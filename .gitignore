@@ -102,5 +102,28 @@ dmypy.json
 code/.ipynb_checkpoints/
 *.ipynb_checkpoints
 
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.bbl
+*.blg
+
 # Data files (user-specific)
 data/
+data/wot/
+benchmarks/data/
+benchmarks/results/figures/
+benchmarks/results/tables/
+benchmarks/results/report.pdf
+benchmarks/report/figures/
+benchmarks/report/tables/
+benchmarks/report/report-*.pdf
+
+# Local paper/submission workspaces
+arxiv/
+supplementary/

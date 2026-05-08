@@ -30,13 +30,13 @@ Quick Start
 
 References
 ----------
-Gabriel Peyré, "Robust Sublinear Convergence Rates for Iterative Bregman
-Projections on Affine Spaces", arXiv preprint, 2026.
-https://arxiv.org/abs/2602.01372
+Gabriel Peyre, "Robust Sublinear Convergence Rates for Iterative Bregman
+Projections", preprint, 2026.
+https://github.com/gpeyre/flow-sinkhorn
 """
 
 __version__ = "0.1.0"
-__author__ = "Gabriel Peyré"
+__author__ = "Gabriel Peyre"
 
 # Import main functions for convenient access
 from .sinkhorn import sinkhorn_w1, sinkhorn_w1_sparse

@@ -1,0 +1,3018 @@
+\documentclass[11pt]{article}
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{bm}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\CC}{\mathbb{C}}
+\newcommand{\Id}{\mathrm{Id}}
+\newcommand{\tr}{\operatorname{tr}}
+\newcommand{\Trone}{\operatorname{Tr}_{1}}
+\newcommand{\Trtwo}{\operatorname{Tr}_{2}}
+\newcommand{\argmax}{\operatorname{argmax}}
+\newcommand{\argmin}{\operatorname{argmin}}
+\newcommand{\eqdef}{\coloneqq}
+\newcommand{\dotp}[2]{\langle #1,#2\rangle}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\Hh}{\mathbb{H}}
+\newcommand{\Ss}{\mathcal{S}}
+\newcommand{\Cc}{\mathcal{C}}
+\newcommand{\Xx}{\mathcal{X}}
+\newcommand{\Aa}{\mathcal{A}}
+\newcommand{\Ee}{\widetilde F}
+\newcommand{\op}{\mathrm{op}}
+\newcommand{\nuc}{\ast}
+\newcommand{\varop}{\mathrm{var},\op}
+
+\theoremstyle{plain}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}{Proposition}[section]
+\newtheorem{corollary}[proposition]{Corollary}
+\newtheorem{remark}{Remark}[section]
+
+\title{Exact Variational Quantum OT in the General-Bregman KL-Projection Framework}
+\author{Gabriel Peyr\'e}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This note records a first exact, variational integration of entropic quantum optimal transport into the general-Bregman framework of the KL-projections paper.
+The main point is to work with the \emph{exact} entropic quantum problem as a Bregman projection problem on the positive definite cone, not with a surrogate.
+We formulate the primal and dual problems, define the two implicit block maximization maps, and isolate the quantities that would be needed to apply the abstract convergence-speed theorem.
+The emerging picture is encouraging on the primal side: the natural primal norm is the nuclear norm, the natural dual norm is the operator norm modulo scalar identity shifts, and the generalized Pinsker constant is plausibly dimension-free on trace slices.
+The hard point remains the dual boundedness / non-expansiveness step: Loewner monotonicity alone does not appear sufficient for the quotient operator norm, so a genuinely noncommutative replacement of the topical-map argument is still missing.
+\end{abstract}
+
+\section{Setting and exact variational formulation}
+
+Let $\Hh_N$ be the Hermitian matrices on $\CC^N$, with cones $\Hh_{N,+}$ and $\Hh_{N,++}$.
+We write $N=nm$, identify $\Hh_N \simeq \Hh_n \otimes \Hh_m$, and denote by
+\[
+\Trtwo : \Hh_N \to \Hh_n,
+\qquad
+\Trone : \Hh_N \to \Hh_m
+\]
+the two partial traces.
+Given marginals $A \in \Hh_{n,+}$ and $B \in \Hh_{m,+}$ with $\tr(A)=\tr(B)=X_\gamma$, define
+\[
+\Cc_1 \eqdef \{ T \in \Hh_{N,++} : \Trtwo(T)=A \},
+\qquad
+\Cc_2 \eqdef \{ T \in \Hh_{N,++} : \Trone(T)=B \}.
+\]
+
+\paragraph{Bregman generator.}
+The exact entropic route fits the general-Bregman subsection of the main paper with the Legendre function
+\[
+\phi(T) \eqdef \tr(T \log T - T),
+\qquad T \in \Hh_{N,++}.
+\]
+Its gradient and Legendre dual are
+\[
+\nabla \phi(T)=\log T,
+\qquad
+\phi^\ast(Y)=\tr(e^Y),
+\qquad
+\nabla \phi^\ast(Y)=e^Y.
+\]
+The associated Bregman divergence is the non-normalized quantum relative entropy
+\begin{equation}
+\label{eq:q-bregman}
+D_\phi(T \mid S)
+=
+\tr\!\bigl(T(\log T-\log S)-T+S\bigr),
+\qquad T,S \in \Hh_{N,++}.
+\end{equation}
+
+\paragraph{Shifted reference.}
+Fix a reference $Z \in \Hh_{N,++}$ and a temperature $\gamma>0$.
+The general-Bregman reference shift is
+\[
+Y_\gamma \eqdef \log Z - \frac{C}{\gamma},
+\qquad
+K_\gamma \eqdef \nabla \phi^\ast(Y_\gamma)=\exp\!\Bigl(\log Z-\frac{C}{\gamma}\Bigr).
+\]
+The exact regularized problem is therefore
+\begin{equation}
+\label{eq:qot-bregman-primal}
+\min_{T \in \Cc_1 \cap \Cc_2}
+\dotp{C}{T} + \gamma D_\phi(T \mid Z)
+\equiv
+\min_{T \in \Cc_1 \cap \Cc_2}
+\gamma D_\phi(T \mid K_\gamma),
+\end{equation}
+up to an additive constant.
+The standard entropic Q-OT formulation corresponds to $Z=\Id_N$.
+
+\paragraph{Linear constraint operator.}
+Introduce
+\[
+\Aa : \Hh_N \to \Hh_n \times \Hh_m,
+\qquad
+\Aa(T) \eqdef (\Trtwo(T),\Trone(T)),
+\qquad
+b \eqdef (A,B),
+\]
+whose adjoint is
+\begin{equation}
+\label{eq:qot-adjoint}
+\Aa^\ast(F,G) = F \otimes \Id_m + \Id_n \otimes G.
+\end{equation}
+The gauge kernel is one-dimensional:
+\begin{equation}
+\label{eq:qot-gauge}
+\Aa^\ast(F,G)=0
+\quad\Longleftrightarrow\quad
+(F,G)=(\lambda \Id_n,-\lambda \Id_m).
+\end{equation}
+
+\section{Exact dual, block maps, and sweep formalism}
+
+The general-Bregman dual from the main paper gives
+\begin{equation}
+\label{eq:qot-general-dual}
+\Ee_\gamma(F,G)
+\eqdef
+\dotp{F}{A} + \dotp{G}{B}
+- \gamma \phi^\ast\!\Bigl(Y_\gamma + \frac{\Aa^\ast(F,G)}{\gamma}\Bigr).
+\end{equation}
+Using $\phi^\ast(Y)=\tr(e^Y)$ and \eqref{eq:qot-adjoint},
+\begin{equation}
+\label{eq:qot-dual-explicit}
+\Ee_\gamma(F,G)
+=
+\dotp{F}{A} + \dotp{G}{B}
+- \gamma \tr\!\Bigl[
+\exp\!\Bigl(
+\log Z - \frac{C}{\gamma} + \frac{F \otimes \Id_m + \Id_n \otimes G}{\gamma}
+\Bigr)
+\Bigr].
+\end{equation}
+The primal-dual map is
+\begin{equation}
+\label{eq:qot-primal-dual-map}
+T(F,G)
+\eqdef
+\nabla \phi^\ast\!\Bigl(Y_\gamma + \frac{\Aa^\ast(F,G)}{\gamma}\Bigr)
+=
+\exp\!\Bigl(
+\log Z - \frac{C}{\gamma} + \frac{F \otimes \Id_m + \Id_n \otimes G}{\gamma}
+\Bigr).
+\end{equation}
+At an optimum $(F_\gamma,G_\gamma)$ one has
+\[
+\Aa(T(F_\gamma,G_\gamma))=b.
+\]
+
+\paragraph{Exact block maps.}
+For fixed $G$, define
+\[
+\Phi_1(G) \eqdef \argmax_{F \in \Hh_n} \Ee_\gamma(F,G),
+\]
+and similarly, for fixed $F$,
+\[
+\Phi_2(F) \eqdef \argmax_{G \in \Hh_m} \Ee_\gamma(F,G).
+\]
+The associated alternating maximization reads
+\[
+F^{(k+1)}=\Phi_1(G^{(k)}),
+\qquad
+G^{(k+1)}=\Phi_2(F^{(k+1)}).
+\]
+The block optimality conditions are exactly the two marginal equations
+\begin{align}
+\Trtwo(T(F^{(k+1)},G^{(k)})) &= A,
+\label{eq:block-opt-1}\\
+\Trone(T(F^{(k+1)},G^{(k+1)})) &= B.
+\label{eq:block-opt-2}
+\end{align}
+
+\begin{remark}[No closed form, but this is not fatal]
+\label{rem:no-closed-form}
+Outside the commuting case, \eqref{eq:block-opt-1}--\eqref{eq:block-opt-2} do not appear to admit a Sinkhorn-style closed form.
+The obstruction is the noncommutativity inside the matrix exponential.
+However, this is \emph{not} by itself a fatal obstruction for the general-Bregman framework: the abstract convergence proof only needs exact block maximization together with the right coercivity, quotient-norm, and non-expansiveness controls.
+So the correct object for the draft is still the exact implicit pair $(\Phi_1,\Phi_2)$.
+\end{remark}
+
+\paragraph{Well-posedness of the block subproblems.}
+For fixed $G$, the map
+\[
+F \mapsto \gamma \tr\!\Bigl[\exp\!\Bigl(Y_\gamma + \frac{F \otimes \Id_m + \Id_n \otimes G}{\gamma}\Bigr)\Bigr]
+\]
+is convex, so $F \mapsto \Ee_\gamma(F,G)$ is concave.
+Its gradient is
+\[
+\nabla_F \Ee_\gamma(F,G)=A-\Trtwo(T(F,G)),
+\]
+and similarly
+\[
+\nabla_G \Ee_\gamma(F,G)=B-\Trone(T(F,G)).
+\]
+Thus the exact block maps are best viewed as \emph{implicit resolvents} defined by the two operator equations
+\[
+\Trtwo(T(F,G))=A,
+\qquad
+\Trone(T(F,G))=B.
+\]
+The main open issue is quantitative control of these resolvents, not their formal definition.
+
+\section{What the general-Bregman blueprint needs in the quantum setting}
+\subsection{Blueprint checklist: hypotheses and constants}
+
+To apply the abstract general-Bregman convergence theorem from the main paper to exact quantum OT, one must identify and control the following ingredients in the present noncommutative setting:
+\begin{enumerate}[label=\textnormal{(B\arabic*)}]
+\item a primal confinement set together with a natural primal norm;
+\item a quotient dual norm compatible with the gauge invariance \eqref{eq:qot-gauge};
+\item a generalized Pinsker constant on the confinement set;
+\item operator norms of the constraint maps in the primal norm;
+\item a decomposition constant for $\Aa^\ast$ relative to the quotient dual norm;
+\item a dual orbit bound, obtained either from non-expansiveness of the exact sweep plus a fixed-point bound, or from a direct confinement theorem.
+\end{enumerate}
+The next subsections verify the first five items and then isolate the last one as the real missing analytic input for the global blueprint. The local version will later be reduced to an explicit derivative bound for the exact sweep.
+
+\begin{proposition}[Blueprint dictionary for exact quantum OT]
+\label{prop:qot-blueprint-dictionary}
+The exact entropic quantum OT problem fits the abstract general-Bregman blueprint of the main paper with the following dictionary:
+\begin{enumerate}[label=\textnormal{(\roman*)}]
+\item the primal space is the positive definite cone $\Hh_{N,++}$;
+\item the Legendre generator is
+\[
+\phi(T)=\tr(T\log T-T),
+\]
+with Bregman divergence \eqref{eq:q-bregman};
+\item the two affine constraint blocks are
+\[
+\Cc_1=\{T:\Trtwo(T)=A\},
+\qquad
+\Cc_2=\{T:\Trone(T)=B\};
+\]
+\item the shifted Bregman reference is
+\[
+K_\gamma=\exp\!\Bigl(\log Z-\frac{C}{\gamma}\Bigr);
+\]
+\item the exact primal problem is the two-block Bregman projection
+\[
+\min_{T\in \Cc_1\cap \Cc_2}\gamma D_\phi(T\mid K_\gamma);
+\]
+\item the exact dual block maximizers are the implicit maps $\Phi_1,\Phi_2$, and the one-block sweeps are $\Psi_F=\Phi_1\circ\Phi_2$ and $\Psi_G=\Phi_2\circ\Phi_1$;
+\item the primal norm is the nuclear norm $\|\cdot\|_1$, the one-block dual quotient seminorm is $\|\cdot\|_{\varop}$, and the two-block quotient norm is $\|\cdot\|_{V,\op}$.
+\end{enumerate}
+Thus the only part of the abstract blueprint that is genuinely nontrivial in the quantum setting is not the variational formulation itself, but the verification of the coercivity, decomposition, and orbit-control constants in this dictionary.
+\end{proposition}
+
+\begin{proof}
+Items (i)--(v) are exactly the constructions from Sections~1--2.
+Item (vi) is the block-dual formalism introduced in Section~2, and item (vii) is the norm choice made in the present section to match the Hölder pairing and the gauge symmetry \eqref{eq:qot-gauge}.
+\end{proof}
+
+
+\subsection{Primal confinement set and primal norm}
+
+The natural primal norm is the Schatten-$1$ (nuclear) norm
+\[
+\|T\|_1 \eqdef \tr(|T|).
+\]
+For PSD matrices, $\|T\|_1=\tr(T)$.
+Since every iterate after one block projection has the corresponding marginal constraint, the trace is fixed:
+\[
+\tr(T)=\tr(\Trtwo(T))=\tr(A)=X_\gamma
+\quad \text{or} \quad
+\tr(T)=\tr(\Trone(T))=\tr(B)=X_\gamma.
+\]
+This suggests the confinement set
+\begin{equation}
+\label{eq:primal-confinement}
+\Xx_\gamma(X_\gamma)
+\eqdef
+\{ T \in \Hh_{N,++} : \tr(T)=X_\gamma \}.
+\end{equation}
+In the standard normalized situation, $X_\gamma=1$.
+On this set one has the immediate primal bound
+\[
+\sup_k \|T^{(k)}\|_1 \le X_\gamma.
+\]
+
+\subsection{Generalized Pinsker constant}
+
+The general-Bregman theorem asks for
+\[
+D_\phi(T \mid S) \ge \eta_\gamma \|T-S\|_1^2
+\qquad \text{on } \Xx_\gamma(X_\gamma).
+\]
+The candidate constant is
+\begin{equation}
+\label{eq:quantum-pinsker}
+\eta_\gamma = \frac{1}{2 X_\gamma},
+\end{equation}
+with \emph{no dimension factor}.
+Indeed, if $T=X_\gamma \rho$ and $S=X_\gamma \sigma$ with density matrices $\rho,\sigma$, then
+\[
+D_\phi(T \mid S)
+=
+X_\gamma D(\rho \mid \sigma),
+\]
+where $D(\rho \mid \sigma)=\tr(\rho(\log \rho-\log \sigma))$ is the normalized quantum relative entropy, and the quantum Pinsker inequality gives
+\[
+D(\rho \mid \sigma) \ge \frac12 \|\rho-\sigma\|_1^2.
+\]
+Therefore
+\[
+D_\phi(T \mid S)
+\ge
+\frac{1}{2X_\gamma}\|T-S\|_1^2.
+\]
+So on the fixed-trace confinement set \eqref{eq:primal-confinement}, the generalized Pinsker condition from the main paper appears to hold with a dimension-free constant.
+
+\begin{remark}
+If one insists on a larger confinement set $\{T \succ 0 : \tr(T)\le X_\gamma\}$, one should check carefully whether the same constant follows from a non-normalized quantum Pinsker inequality or from a one-dimensional augmentation argument.
+For the exact alternating projections, the fixed-trace slice seems the natural and cleaner choice.
+\end{remark}
+
+\subsection{Quotient dual norm}
+
+The natural dual pairing for Hermitian matrices is
+\[
+|\dotp{F}{R}| \le \|F\|_{\op}\,\|R\|_1.
+\]
+Hence the dual norm paired with the nuclear norm is the operator norm.
+Because of the gauge invariance \eqref{eq:qot-gauge}, the relevant block-quotient seminorm is
+\begin{equation}
+\label{eq:quotient-pair}
+\|(F,G)\|_{V,\op}
+\eqdef
+\inf_{\lambda \in \RR}
+\max\bigl\{
+\|F+\lambda \Id_n\|_{\op},
+\|G-\lambda \Id_m\|_{\op}
+\bigr\}.
+\end{equation}
+For a single Hermitian block, the corresponding quotient seminorm is
+\begin{equation}
+\label{eq:spectral-variation}
+\|F\|_{\varop}
+\eqdef
+\inf_{\lambda \in \RR}\|F+\lambda \Id_n\|_{\op}
+=
+\frac{\lambda_{\max}(F)-\lambda_{\min}(F)}{2}.
+\end{equation}
+This is the direct noncommutative analogue of the classical variation seminorm; it is essentially the \emph{spectral spread} (or half the spectral diameter).
+I do not yet know whether there is a fully standard name for the two-block quotient norm \eqref{eq:quotient-pair}, but \eqref{eq:spectral-variation} is the right single-block prototype.
+
+\subsection{Residual norms and the gap estimate}
+
+The residual operators are
+\[
+r_1(T)\eqdef \Trtwo(T)-A \in \Hh_n,
+\qquad
+r_2(T)\eqdef \Trone(T)-B \in \Hh_m.
+\]
+Their natural size is the nuclear norm.
+At the beginning of a sweep one has $r_2(T^{(k)})=0$, so by concavity of $\Ee_\gamma$ and Hölder duality,
+\[
+\Delta_k
+\le
+\dotp{F_\gamma-F^{(k)}}{-r_1(T^{(k)})}
+\le
+2 U_{\max} \|r_1(T^{(k)})\|_1,
+\]
+provided
+\[
+\sup_k \|(F^{(k)},G^{(k)})\|_{V,\op} \le U_{\max}
+\]
+and similarly for the half-step residual $r_2$.
+So the gap-versus-residual part of the classical proof seems to transfer rather cleanly once the quotient norm is chosen correctly.
+
+\section{Conditional blueprint closure and explicit constants}
+
+At this stage the exact variational setting and the abstract checklist are in place. The goal of the present section is to turn these ingredients into conditional convergence statements: first on the fixed-point side through $H_\gamma^{\rm q}$, then on the decomposition side through $\kappa_{\rm q}$, and finally through local and global blueprint-closure theorems with all constants written explicitly.
+
+\subsection{Primal logarithmic bound}
+
+The exact analogue of the quantity $H_\gamma$ from the main paper is
+\begin{equation}
+\label{eq:quantum-Hgamma}
+H_\gamma^{\rm q}
+\eqdef
+\|\log T_\gamma - \log Z\|_{\op},
+\end{equation}
+where $T_\gamma$ is the exact regularized optimum.
+Indeed, the stationarity relation gives
+\begin{equation}
+\label{eq:stationarity-quantum}
+\Aa^\ast(F_\gamma,G_\gamma)
+=
+C + \gamma(\log T_\gamma-\log Z).
+\end{equation}
+Thus any spectral control of $\log T_\gamma-\log Z$ immediately yields a spectral control of $\Aa^\ast(F_\gamma,G_\gamma)$.
+
+\paragraph{What should replace pointwise lower bounds on the cost.}
+In the vector case, one often controls $H_\gamma$ through pointwise bounds on the cost and the primal optimizer.
+In the present setting, the natural replacement is spectral:
+\begin{itemize}[leftmargin=1.5em]
+\item lower and upper operator bounds on $C$ relative to $\log Z$;
+\item lower bounds on $\lambda_{\min}(T_\gamma)$ and upper bounds on $\lambda_{\max}(T_\gamma)$;
+\item all estimates measured in operator norm, not entrywise.
+\end{itemize}
+Because $\tr(T_\gamma)=X_\gamma$, one always has $\lambda_{\max}(T_\gamma)\le X_\gamma$.
+The hard part is the lower spectral bound on $\lambda_{\min}(T_\gamma)$.
+This is precisely where a quantum version of the ``primal bound from a dual bound'' argument will need a new spectral proof.
+
+\begin{proposition}[Spectral primal bound from a quotient dual bound]
+\label{prop:qot-alpha-from-dual}
+Let $(F,G)\in \Hh_n\times \Hh_m$ and set
+\[
+T(F,G)
+=
+\exp\!\Bigl(
+\log Z-\frac{C}{\gamma}+\frac{\Aa^\ast(F,G)}{\gamma}
+\Bigr).
+\]
+If
+\[
+\|(F,G)\|_{V,\op}\le U,
+\]
+then
+\begin{equation}
+\label{eq:qot-alpha-from-dual}
+T(F,G)
+\succeq
+\lambda_{\min}(Z)\exp\!\Bigl(-\frac{\|C\|_{\op}+2U}{\gamma}\Bigr)\Id_{nm}.
+\end{equation}
+In particular, for an exact dual maximizer $(F_\gamma,G_\gamma)$ with
+\[
+\|(F_\gamma,G_\gamma)\|_{V,\op}\le U_\star^{\rm pair},
+\]
+one may take
+\begin{equation}
+\label{eq:qot-alpha-from-pairU}
+\alpha_\gamma
+=
+\lambda_{\min}(Z)\exp\!\Bigl(-\frac{\|C\|_{\op}+2U_\star^{\rm pair}}{\gamma}\Bigr)
+\end{equation}
+in Proposition~\ref{prop:qot-lower-spectral-bound}.
+\end{proposition}
+
+\begin{proof}
+By definition of the quotient norm \eqref{eq:quotient-pair}, there exists $\lambda\in\RR$ such that
+\[
+\|F+\lambda \Id_n\|_{\op}\le U,
+\qquad
+\|G-\lambda \Id_m\|_{\op}\le U.
+\]
+Set
+\[
+\widetilde F\eqdef F+\lambda \Id_n,
+\qquad
+\widetilde G\eqdef G-\lambda \Id_m.
+\]
+Then
+\[
+\Aa^\ast(\widetilde F,\widetilde G)=\Aa^\ast(F,G),
+\]
+while
+\[
+\lambda_{\min}(\widetilde F)\ge -U,
+\qquad
+\lambda_{\min}(\widetilde G)\ge -U.
+\]
+Therefore
+\[
+\lambda_{\min}\!\bigl(\Aa^\ast(F,G)\bigr)
+=
+\lambda_{\min}\!\bigl(\widetilde F\otimes \Id_m+\Id_n\otimes \widetilde G\bigr)
+\ge
+\lambda_{\min}(\widetilde F)+\lambda_{\min}(\widetilde G)
+\ge
+-2U.
+\]
+Using also
+\[
+\lambda_{\min}(\log Z)=\log \lambda_{\min}(Z),
+\qquad
+\lambda_{\min}(-C/\gamma)\ge -\|C\|_{\op}/\gamma,
+\]
+we obtain
+\[
+\lambda_{\min}\!\Bigl(
+\log Z-\frac{C}{\gamma}+\frac{\Aa^\ast(F,G)}{\gamma}
+\Bigr)
+\ge
+\log \lambda_{\min}(Z)-\frac{\|C\|_{\op}+2U}{\gamma}.
+\]
+Exponentiating gives \eqref{eq:qot-alpha-from-dual}.
+The final statement is immediate by substitution into Proposition~\ref{prop:qot-lower-spectral-bound}.
+\end{proof}
+
+\begin{proposition}[A spectral lower bound closes the fixed-point side]
+\label{prop:qot-lower-spectral-bound}
+Assume there exists $\alpha_\gamma>0$ such that
+\[
+\alpha_\gamma \Id_{nm}\preceq T_\gamma.
+\]
+Then
+\begin{equation}
+\label{eq:qot-Hgamma-from-alpha}
+H_\gamma^{\rm q}
+\le
+\max\{-\log \alpha_\gamma,\log X_\gamma\}
+\;+\;
+\|\log Z\|_{\op}.
+\end{equation}
+Consequently, the dual maximizer satisfies
+\begin{equation}
+\label{eq:qot-Ustar-from-alpha}
+\|F_\gamma\|_{\varop}
+\le
+\|C\|_{\op}
+\;+\;
+\gamma\Bigl(
+\max\{-\log \alpha_\gamma,\log X_\gamma\}
+\;+\;
+\|\log Z\|_{\op}
+\Bigr).
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+Because $\tr(T_\gamma)=X_\gamma$, one has
+\[
+\lambda_{\max}(T_\gamma)\le X_\gamma.
+\]
+Together with $\lambda_{\min}(T_\gamma)\ge \alpha_\gamma$, this yields
+\[
+\mathrm{spec}(T_\gamma)\subset [\alpha_\gamma,X_\gamma].
+\]
+Therefore
+\[
+\mathrm{spec}(\log T_\gamma)\subset [\log \alpha_\gamma,\log X_\gamma],
+\]
+and hence
+\[
+\|\log T_\gamma\|_{\op}
+\le
+\max\{-\log \alpha_\gamma,\log X_\gamma\}.
+\]
+Using \eqref{eq:quantum-Hgamma},
+\[
+H_\gamma^{\rm q}
+=
+\|\log T_\gamma-\log Z\|_{\op}
+\le
+\|\log T_\gamma\|_{\op}
+\;+\;
+\|\log Z\|_{\op},
+\]
+which proves \eqref{eq:qot-Hgamma-from-alpha}.
+Finally, \eqref{eq:stationarity-quantum} and Proposition~\ref{prop:qot-kappa} give
+\[
+\|F_\gamma\|_{\varop}
+\le
+\|\Aa^\ast(F_\gamma,G_\gamma)\|_{\op}
+\le
+\|C\|_{\op}+\gamma H_\gamma^{\rm q},
+\]
+and substituting \eqref{eq:qot-Hgamma-from-alpha} yields \eqref{eq:qot-Ustar-from-alpha}.
+\end{proof}
+
+\begin{remark}[Two directions between primal and dual bounds]
+\label{rem:qot-primal-dual-two-directions}
+Proposition~\ref{prop:qot-alpha-from-dual} and Proposition~\ref{prop:qot-lower-spectral-bound} together give the exact quantum analogue of the classical ``primal bound from a dual bound'' mechanism.
+One direction is
+\[
+\|(F_\gamma,G_\gamma)\|_{V,\op}
+\;\Longrightarrow\;
+\alpha_\gamma
+\;\Longrightarrow\;
+H_\gamma^{\rm q},
+\]
+while the converse stationarity direction is
+\[
+\alpha_\gamma
+\;\Longrightarrow\;
+H_\gamma^{\rm q}
+\;\Longrightarrow\;
+\|F_\gamma\|_{\varop}.
+\]
+So the fixed-point side of the blueprint can now be attacked either from the primal spectrum or from a quotient dual bound.
+\end{remark}
+
+\subsection{Decomposition constant}
+
+The exact analogue of the decomposition constant should be attached to the linear map
+\[
+(F,G) \mapsto \Aa^\ast(F,G)=F \otimes \Id_m + \Id_n \otimes G,
+\]
+with operator norm on the range and quotient operator norm on the blocks.
+A natural candidate is
+\begin{equation}
+\label{eq:quantum-kappa}
+\kappa_{\rm q}
+\eqdef
+\sup_{Y \in \mathrm{range}(\Aa^\ast),\,Y\neq 0}
+\inf\left\{
+\frac{\|F\|_{\varop}}{\|Y\|_{\op}}
+:
+\exists G,\ Y=F \otimes \Id_m+\Id_n \otimes G
+\right\}.
+\end{equation}
+There should also be a symmetric version with the two-block norm \eqref{eq:quotient-pair}.
+My current guess is that $\kappa_{\rm q}$ is dimension-free, plausibly of order $1$, because the single-block spectral spread is already the distance to scalar shifts.
+In fact, for the one-block constant entering the abstract blueprint, one can prove $\kappa_{\rm q}\le 1$.
+
+\begin{proposition}[Quantum decomposition constant]\label{prop:qot-kappa}
+For the exact quantum split associated to
+\[
+\Aa^\ast(F,G)=F \otimes \Id_m + \Id_n \otimes G,
+\]
+the one-block decomposition constant satisfies
+\[
+\kappa_{\rm q}\le 1.
+\]
+The same bound holds with the roles of the two blocks exchanged.
+\end{proposition}
+
+\begin{proof}
+Fix $Y \in \mathrm{range}(\Aa^\ast)$, so that $Y=F \otimes \Id_m+\Id_n \otimes G$ for some $(F,G)$.
+Define
+\[
+\widetilde F \eqdef \frac{1}{m}\Trtwo(Y),
+\qquad
+\widetilde G \eqdef \frac{1}{n}\Trone(Y)-\frac{\tr(Y)}{mn}\Id_m.
+\]
+Then
+\[
+\widetilde F = F+\frac{\tr(G)}{m}\Id_n,
+\qquad
+\widetilde G = G-\frac{\tr(G)}{m}\Id_m,
+\]
+so
+\[
+Y=\widetilde F \otimes \Id_m + \Id_n \otimes \widetilde G.
+\]
+Therefore $\widetilde F$ is an admissible representative in the infimum defining $\kappa_{\rm q}$.
+Using the operator-norm bound for partial trace,
+\[
+\|\widetilde F\|_{\op}
+=
+\frac1m \|\Trtwo(Y)\|_{\op}
+\le
+\|Y\|_{\op}.
+\]
+Since $\|\widetilde F\|_{\varop}\le \|\widetilde F\|_{\op}$, one obtains
+\[
+\inf\left\{
+\frac{\|F\|_{\varop}}{\|Y\|_{\op}}
+:
+\exists G,\ Y=F \otimes \Id_m+\Id_n \otimes G
+\right\}
+\le
+\frac{\|\widetilde F\|_{\varop}}{\|Y\|_{\op}}
+\le 1.
+\]
+Taking the supremum over $Y\neq 0$ yields $\kappa_{\rm q}\le 1$.
+\end{proof}
+
+\begin{proposition}[Two-block quotient decomposition constant]
+\label{prop:qot-kappa-pair}
+Define the two-block decomposition constant
+\[
+\kappa_{\rm q}^{\rm pair}
+\eqdef
+\sup_{Y \in \mathrm{range}(\Aa^\ast),\,Y\neq 0}
+\inf\left\{
+\frac{\|(F,G)\|_{V,\op}}{\|Y\|_{\op}}
+:
+Y=F \otimes \Id_m+\Id_n \otimes G
+\right\}.
+\]
+Then
+\[
+\kappa_{\rm q}^{\rm pair}\le 1.
+\]
+\end{proposition}
+
+\begin{proof}
+Fix $Y\in \mathrm{range}(\Aa^\ast)$ and define, as in the proof of Proposition~\ref{prop:qot-kappa},
+\[
+\widetilde F \eqdef \frac{1}{m}\Trtwo(Y),
+\qquad
+\widetilde G \eqdef \frac{1}{n}\Trone(Y)-\frac{\tr(Y)}{mn}\Id_m.
+\]
+Then
+\[
+Y=\widetilde F \otimes \Id_m+\Id_n \otimes \widetilde G.
+\]
+Therefore
+\[
+\inf\left\{
+\frac{\|(F,G)\|_{V,\op}}{\|Y\|_{\op}}
+:
+Y=F \otimes \Id_m+\Id_n \otimes G
+\right\}
+\le
+\frac{\|(\widetilde F,\widetilde G)\|_{V,\op}}{\|Y\|_{\op}}.
+\]
+Set
+\[
+R\eqdef \|Y\|_{\op},
+\qquad
+a_- \eqdef \lambda_{\min}(\widetilde F),\quad a_+ \eqdef \lambda_{\max}(\widetilde F),
+\qquad
+b_- \eqdef \lambda_{\min}(\widetilde G),\quad b_+ \eqdef \lambda_{\max}(\widetilde G).
+\]
+Because $\widetilde F\otimes \Id_m$ and $\Id_n\otimes \widetilde G$ commute, the spectrum of
+\[
+Y=\widetilde F \otimes \Id_m+\Id_n \otimes \widetilde G
+\]
+is exactly
+\[
+\mathrm{spec}(Y)=\{\alpha_i+\beta_j\},
+\]
+where $\{\alpha_i\}$ and $\{\beta_j\}$ are the spectra of $\widetilde F$ and $\widetilde G$.
+Hence
+\[
+a_+ + b_+ = \lambda_{\max}(Y)\le R,
+\qquad
+a_- + b_- = \lambda_{\min}(Y)\ge -R.
+\]
+Consider the two intervals
+\[
+I_F \eqdef [-R-a_-,\,R-a_+],
+\qquad
+I_G \eqdef [\,b_+-R,\,b_-+R\,].
+\]
+The preceding bounds imply
+\[
+b_+-R\le R-a_+,
+\qquad
+-R-a_-\le b_-+R,
+\]
+so $I_F\cap I_G\neq \varnothing$.
+Pick $\lambda \in I_F\cap I_G$.
+Then
+\[
+-R\le a_-+\lambda \le a_++\lambda \le R,
+\]
+and similarly
+\[
+-R\le b_--\lambda \le b_+-\lambda \le R.
+\]
+Therefore
+\[
+\|\widetilde F+\lambda \Id_n\|_{\op}\le R,
+\qquad
+\|\widetilde G-\lambda \Id_m\|_{\op}\le R.
+\]
+By definition of the quotient norm,
+\[
+\|(\widetilde F,\widetilde G)\|_{V,\op}\le R=\|Y\|_{\op}.
+\]
+Hence $\kappa_{\rm q}^{\rm pair}\le 1$.
+\end{proof}
+
+\begin{corollary}[Pair quotient bound from stationarity]
+\label{cor:qot-pair-bound-from-H}
+For any exact dual maximizer $(F_\gamma,G_\gamma)$, one has
+\begin{equation}
+\label{eq:qot-pair-bound-from-H}
+\|(F_\gamma,G_\gamma)\|_{V,\op}
+\le
+\|C\|_{\op}+\gamma H_\gamma^{\rm q}.
+\end{equation}
+If, moreover, $\alpha_\gamma \Id_{nm}\preceq T_\gamma$, then
+\begin{equation}
+\label{eq:qot-pair-bound-from-alpha}
+\|(F_\gamma,G_\gamma)\|_{V,\op}
+\le
+\|C\|_{\op}
+\;+\;
+\gamma\Bigl(
+\max\{-\log \alpha_\gamma,\log X_\gamma\}
+\;+\;
+\|\log Z\|_{\op}
+\Bigr).
+\end{equation}
+\end{corollary}
+
+\begin{proof}
+Apply Proposition~\ref{prop:qot-kappa-pair} to
+\[
+Y=\Aa^\ast(F_\gamma,G_\gamma)
+=
+C+\gamma(\log T_\gamma-\log Z),
+\]
+using \eqref{eq:stationarity-quantum}. This gives
+\[
+\|(F_\gamma,G_\gamma)\|_{V,\op}
+\le
+\|\Aa^\ast(F_\gamma,G_\gamma)\|_{\op}
+\le
+\|C\|_{\op}+\gamma H_\gamma^{\rm q},
+\]
+which proves \eqref{eq:qot-pair-bound-from-H}.
+The bound \eqref{eq:qot-pair-bound-from-alpha} follows by substituting Proposition~\ref{prop:qot-lower-spectral-bound}.
+\end{proof}
+
+\begin{corollary}[Explicit spectral lower bound from \texorpdfstring{$H_\gamma^{\rm q}$}{H-gamma-q}]
+\label{cor:qot-alpha-from-H}
+If $H_\gamma^{\rm q}<+\infty$, then the exact optimizer satisfies
+\begin{equation}
+\label{eq:qot-alpha-from-H}
+T_\gamma
+\succeq
+\lambda_{\min}(Z)\exp\!\Bigl(
+-\frac{3\|C\|_{\op}}{\gamma}
+-2H_\gamma^{\rm q}
+\Bigr)\Id_{nm}.
+\end{equation}
+\end{corollary}
+
+\begin{proof}
+Corollary~\ref{cor:qot-pair-bound-from-H} gives
+\[
+\|(F_\gamma,G_\gamma)\|_{V,\op}
+\le
+\|C\|_{\op}+\gamma H_\gamma^{\rm q}.
+\]
+Applying Proposition~\ref{prop:qot-alpha-from-dual} with
+\[
+U=\|C\|_{\op}+\gamma H_\gamma^{\rm q}
+\]
+yields \eqref{eq:qot-alpha-from-H}.
+\end{proof}
+
+\begin{proposition}[Exact quantum specialization of the abstract Bregman checklist]
+\label{prop:qot-blueprint-checklist}
+For exact entropic quantum OT, the abstract Bregman blueprint of the main paper specializes as follows:
+\begin{enumerate}[label=\textnormal{(\roman*)}]
+\item the primal confinement set is the fixed-trace slice $\Xx_\gamma(X_\gamma)$ from \eqref{eq:primal-confinement};
+\item the primal norm is the Schatten-$1$ norm and the quotient dual norm is $\|\cdot\|_{\varop}$;
+\item the generalized Pinsker constant is
+\[
+\eta_\gamma=\frac{1}{2X_\gamma};
+\]
+\item the one-block decomposition constant satisfies
+\[
+\kappa_{\rm q}\le 1;
+\]
+\item the two-block decomposition constant satisfies
+\[
+\kappa_{\rm q}^{\rm pair}\le 1;
+\]
+\item the one-block constraint operators satisfy
+\[
+\|\Trtwo\|_{1\to 1}\le 1,
+\qquad
+\|\Trone\|_{1\to 1}\le 1.
+\]
+\end{enumerate}
+Therefore, the only genuinely missing inputs for the exact KL-projection blueprint are:
+\begin{enumerate}[label=\textnormal{(A\arabic*)}]
+\item a uniform quotient-norm bound for the sweep (obtained either from non-expansiveness plus a fixed-point bound, or by some direct dual-confinement argument);
+\item a usable bound on the fixed point or on the two-block quotient norm of a maximizer, since Proposition~\ref{prop:qot-alpha-from-dual} now converts any such pair bound into a spectral lower bound on the primal optimizer.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+Items (i)--(iii) were established above.
+Item (iv) is Proposition~\ref{prop:qot-kappa}, item (v) is Proposition~\ref{prop:qot-kappa-pair}, and item (vi) follows from the fact that partial trace is a trace-preserving completely positive map, hence contractive for the nuclear norm.
+The final statement is then just a restatement of the abstract general-Bregman theorem with the quantum constants substituted in.
+\end{proof}
+
+\begin{remark}[How the abstract blueprint now specializes]
+\label{rem:qot-blueprint-specializes}
+Propositions~\ref{prop:qot-blueprint-dictionary} and \ref{prop:qot-blueprint-checklist} together isolate the exact point where the quantum argument departs from the generic one.
+Everything in the abstract theorem that is purely variational---Legendre structure, affine splitting, primal/dual pairing, Bregman coercivity, and decomposition constant---now has a direct quantum counterpart with explicit constants.
+What remains is the orbit-control step: one must still obtain either a global quotient bound on the exact sweep or an equivalent local/global contraction mechanism.
+\end{remark}
+
+\begin{theorem}[Clean conditional blueprint theorem for exact quantum OT]
+\label{thm:qot-clean-conditional-blueprint}
+Let the exact $F$-sweep be
+\[
+F^{(k+1)}=\Psi_F(F^{(k)})=\Phi_1(\Phi_2(F^{(k)})),
+\]
+and set
+\[
+G^{(k)}\eqdef \Phi_2(F^{(k)}),
+\qquad
+T^{(k)}\eqdef T(F^{(k)},G^{(k)}).
+\]
+Assume:
+\begin{enumerate}[label=\textnormal{(\arabic*)}]
+\item the exact sweep $\Psi_F$ is non-expansive in $\|\cdot\|_{\varop}$;
+\item one has a bound
+\[
+\|F_\gamma\|_{\varop}\le U_\star
+\]
+for some dual maximizer $(F_\gamma,G_\gamma)$.
+\end{enumerate}
+Then
+\[
+\sup_{k\ge 0}\|F^{(k)}\|_{\varop}
+\le
+U_{\max}
+\eqdef
+\|F^{(0)}\|_{\varop}+2U_\star.
+\]
+Moreover, the associated dual gaps
+\[
+\Delta_k
+\eqdef
+\Ee_\gamma(F_\gamma,G_\gamma)-\Ee_\gamma(F^{(k)},G^{(k)})
+\]
+satisfy, for every $k\ge 1$,
+\begin{equation}
+\label{eq:qot-blueprint-rate}
+\Delta_k
+\le
+\frac{8X_\gamma U_{\max}^2}{\gamma}\frac{1}{k}.
+\end{equation}
+In particular, if one chooses
+\[
+U_\star=\|C\|_{\op}+\gamma H_\gamma^{\rm q},
+\]
+which is valid whenever $H_\gamma^{\rm q}<+\infty$, then the whole blueprint closes conditionally with explicit constants.
+\end{theorem}
+
+\begin{proof}
+The iterate bound follows from non-expansiveness exactly as in the abstract blueprint:
+\[
+\|F^{(k)}\|_{\varop}
+\le
+\|F^{(0)}\|_{\varop}+2\|F_\gamma\|_{\varop}
+\le
+\|F^{(0)}\|_{\varop}+2U_\star.
+\]
+Because $G^{(k)}=\Phi_2(F^{(k)})$, the second marginal constraint is satisfied at the beginning of each sweep, so $r_2(T^{(k)})=0$.
+By the gap-versus-residual estimate already recorded above,
+\[
+\Delta_k \le 2U_{\max}\|r_1(T^{(k)})\|_1.
+\]
+For one half-sweep, exact Bregman projection and the generalized Pinsker bound on the fixed-trace slice give
+\[
+\Ee_\gamma(F^{(k+1)},G^{(k)})-\Ee_\gamma(F^{(k)},G^{(k)})
+=
+\gamma D_\phi(T^{(k+\frac12)}\mid T^{(k)})
+\ge
+\frac{\gamma}{2X_\gamma}\|T^{(k+\frac12)}-T^{(k)}\|_1^2.
+\]
+Since partial trace is contractive for the nuclear norm,
+\[
+\|r_1(T^{(k)})\|_1
+=
+\|\Trtwo(T^{(k+\frac12)}-T^{(k)})\|_1
+\le
+\|T^{(k+\frac12)}-T^{(k)}\|_1.
+\]
+Therefore
+\[
+\Delta_k-\Delta_{k+1}
+\ge
+\frac{\gamma}{2X_\gamma}\|r_1(T^{(k)})\|_1^2
+\ge
+\frac{\gamma}{8X_\gamma U_{\max}^2}\Delta_k^2.
+\]
+The usual reciprocal-gap summation then yields \eqref{eq:qot-blueprint-rate}.
+Finally, if $H_\gamma^{\rm q}<+\infty$, then \eqref{eq:stationarity-quantum} and Proposition~\ref{prop:qot-kappa} imply
+\[
+\|F_\gamma\|_{\varop}
+\le
+\|\Aa^\ast(F_\gamma,G_\gamma)\|_{\op}
+\le
+\|C\|_{\op}+\gamma H_\gamma^{\rm q},
+\]
+which gives the advertised choice of $U_\star$.
+\end{proof}
+
+\begin{theorem}[Global proof-status theorem under the two remaining analytic inputs]
+\label{thm:qot-global-proof-status}
+Assume that:
+\begin{enumerate}[label=\textnormal{(\roman*)}]
+\item the exact sweep $\Psi_F$ is non-expansive in $\|\cdot\|_{\varop}$;
+\item the logarithmic fixed-point quantity $H_\gamma^{\rm q}$ from \eqref{eq:quantum-Hgamma} is finite.
+\end{enumerate}
+Then all hypotheses needed to apply the abstract general-Bregman blueprint to exact quantum OT are verified with the explicit constants
+\begin{align*}
+\eta_\gamma &= \frac{1}{2X_\gamma},\\
+\kappa_{\rm q} &\le 1,\\
+\kappa_{\rm q}^{\rm pair} &\le 1,\\
+\|\Trtwo\|_{1\to 1},\ \|\Trone\|_{1\to 1} &\le 1,\\
+U_\star^{\rm pair} &= \|C\|_{\op}+\gamma H_\gamma^{\rm q},\\
+\alpha_\gamma
+&=
+\lambda_{\min}(Z)\exp\!\Bigl(
+-\frac{3\|C\|_{\op}}{\gamma}
+-2H_\gamma^{\rm q}
+\Bigr),\\
+U_\star &= \|C\|_{\op}+\gamma H_\gamma^{\rm q},\\
+U_{\max} &= \|F^{(0)}\|_{\varop}+2U_\star,\\
+\text{rate constant} &= \frac{8X_\gamma U_{\max}^2}{\gamma}.
+\end{align*}
+Consequently, for every $k\ge 1$,
+\begin{align}
+\sup_{j\ge 0}\|F^{(j)}\|_{\varop}
+&\le
+U_{\max},
+\label{eq:qot-global-proof-status-bound}\\
+\Delta_k
+&\le
+\frac{8X_\gamma U_{\max}^2}{\gamma}\frac{1}{k}.
+\label{eq:qot-global-proof-status-rate}
+\end{align}
+In other words: modulo the two analytic inputs above, every constant required by the general blueprint is now explicit in the exact quantum setting.
+\end{theorem}
+
+\begin{proof}
+Proposition~\ref{prop:qot-blueprint-checklist} gives
+\[
+\eta_\gamma=\frac{1}{2X_\gamma},
+\qquad
+\kappa_{\rm q}\le 1,
+\qquad
+\kappa_{\rm q}^{\rm pair}\le 1,
+\qquad
+\|\Trtwo\|_{1\to 1},\ \|\Trone\|_{1\to 1}\le 1.
+\]
+Assumption~(ii) and stationarity give the fixed-point bound
+\[
+\|F_\gamma\|_{\varop}\le \|C\|_{\op}+\gamma H_\gamma^{\rm q}=U_\star,
+\]
+as shown at the end of Theorem~\ref{thm:qot-clean-conditional-blueprint}.
+Corollary~\ref{cor:qot-pair-bound-from-H} gives
+\[
+\|(F_\gamma,G_\gamma)\|_{V,\op}\le \|C\|_{\op}+\gamma H_\gamma^{\rm q}=U_\star^{\rm pair},
+\]
+and Corollary~\ref{cor:qot-alpha-from-H} gives the displayed value of $\alpha_\gamma$.
+Applying that theorem with this explicit choice of $U_\star$ yields
+\[
+\sup_{j\ge 0}\|F^{(j)}\|_{\varop}
+\le
+\|F^{(0)}\|_{\varop}+2U_\star
+=
+U_{\max}
+\]
+and the rate bound \eqref{eq:qot-global-proof-status-rate}.
+\end{proof}
+
+\begin{remark}[Why $H_\gamma^{\rm q}$ is only one route]
+\label{rem:qot-Hgamma-only-one-route}
+Theorem~\ref{thm:qot-clean-conditional-blueprint} makes clear that $H_\gamma^{\rm q}$ is \emph{not} conceptually part of the rate proof itself.
+Its role is only to provide one convenient way to bound the dual fixed point through stationarity.
+Any alternative argument yielding a direct quotient bound on a fixed point, or even directly on all iterates, would replace $H_\gamma^{\rm q}$ without changing the rest of the blueprint.
+This is important because the fragile monotonicity route is only one possible route to dual confinement, not a structural requirement of the exact Bregman theorem.
+\end{remark}
+
+\begin{theorem}[Global blueprint closure from a pair dual bound]
+\label{thm:qot-global-from-pair-bound}
+Assume:
+\begin{enumerate}[label=\textnormal{(\roman*)}]
+\item the exact sweep $\Psi_F$ is non-expansive in $\|\cdot\|_{\varop}$;
+\item an exact dual maximizer $(F_\gamma,G_\gamma)$ satisfies
+\[
+\|(F_\gamma,G_\gamma)\|_{V,\op}\le U_\star^{\rm pair}.
+\]
+\end{enumerate}
+Then all hypotheses needed to apply the abstract general-Bregman blueprint to exact quantum OT are verified with the explicit constants
+\begin{align*}
+\eta_\gamma &= \frac{1}{2X_\gamma},\\
+\kappa_{\rm q} &\le 1,\\
+\kappa_{\rm q}^{\rm pair} &\le 1,\\
+\|\Trtwo\|_{1\to 1},\ \|\Trone\|_{1\to 1} &\le 1,\\
+\alpha_\gamma
+&=
+\lambda_{\min}(Z)\exp\!\Bigl(-\frac{\|C\|_{\op}+2U_\star^{\rm pair}}{\gamma}\Bigr),\\
+U_\star
+&=
+\|C\|_{\op}
+\;+\;
+\gamma\Bigl(
+\max\{-\log \alpha_\gamma,\log X_\gamma\}
+\;+\;
+\|\log Z\|_{\op}
+\Bigr),\\
+U_{\max} &= \|F^{(0)}\|_{\varop}+2U_\star.
+\end{align*}
+Consequently, for every $k\ge 1$,
+\begin{align}
+\sup_{j\ge 0}\|F^{(j)}\|_{\varop}
+&\le
+U_{\max},
+\label{eq:qot-global-from-pair-bound-orbit}\\
+\Delta_k
+&\le
+\frac{8X_\gamma U_{\max}^2}{\gamma}\frac{1}{k}.
+\label{eq:qot-global-from-pair-bound-rate}
+\end{align}
+\end{theorem}
+
+\begin{proof}
+By Proposition~\ref{prop:qot-alpha-from-dual}, assumption~(ii) implies
+\[
+T_\gamma
+\succeq
+\lambda_{\min}(Z)\exp\!\Bigl(-\frac{\|C\|_{\op}+2U_\star^{\rm pair}}{\gamma}\Bigr)\Id_{nm}
+=
+\alpha_\gamma \Id_{nm}.
+\]
+Proposition~\ref{prop:qot-lower-spectral-bound} then gives the explicit one-block fixed-point bound
+\[
+\|F_\gamma\|_{\varop}\le U_\star.
+\]
+Applying Theorem~\ref{thm:qot-clean-conditional-blueprint} yields
+\eqref{eq:qot-global-from-pair-bound-orbit} and \eqref{eq:qot-global-from-pair-bound-rate}.
+The remaining constants come from Proposition~\ref{prop:qot-blueprint-checklist} and Proposition~\ref{prop:qot-kappa-pair}.
+\end{proof}
+
+\begin{definition}[Local quantum Dobrushin coefficient of the exact sweep]
+\label{def:qot-local-dobrushin}
+At a point where $\Psi_F$ is Fr\'echet differentiable, define
+\[
+\delta_{\rm q}(F)
+\eqdef
+\|D\Psi_F(F)\|_{\varop\to\varop}.
+\]
+By Corollary~\ref{cor:qot-local-dobrushin-sweep},
+\[
+\delta_{\rm q}(F)
+=
+\frac12\sup_{\rho,\sigma\in \Ss_n}
+\Bigl\|
+\bigl(D\Psi_F(F)\bigr)^\ast(\rho-\sigma)
+\Bigr\|_1.
+\]
+This is the exact local quantum analogue of the classical Dobrushin contraction coefficient.
+\end{definition}
+
+\begin{proposition}[Local dual confinement from a Dobrushin coefficient bound]
+\label{prop:qot-local-confinement-no-H}
+Let $F_\star$ be a fixed point of the exact sweep $\Psi_F$.
+Assume there exist $r>0$ and $\theta\in[0,1)$ such that:
+\begin{enumerate}[label=\textnormal{(\roman*)}]
+\item $\Psi_F$ is continuously Fr\'echet differentiable on the ball
+\[
+\mathbb B_r(F_\star)
+\eqdef
+\{F : \|F-F_\star\|_{\varop}\le r\};
+\]
+\item
+\[
+\sup_{F\in \mathbb B_r(F_\star)} \delta_{\rm q}(F)\le \theta.
+\]
+\end{enumerate}
+Then for every initialization $F^{(0)}\in \mathbb B_r(F_\star)$, the exact sweep iterates satisfy
+\begin{align}
+\|F^{(k)}-F_\star\|_{\varop}
+&\le
+\theta^k \|F^{(0)}-F_\star\|_{\varop},
+\label{eq:qot-local-linear-conv}\\
+\sup_{k\ge 0}\|F^{(k)}\|_{\varop}
+&\le
+\|F_\star\|_{\varop}+r.
+\label{eq:qot-local-dual-bound}
+\end{align}
+Consequently, along this local orbit, the dual gaps satisfy
+\begin{equation}
+\label{eq:qot-local-rate-no-H}
+\Delta_k
+\le
+\frac{8X_\gamma(\|F_\star\|_{\varop}+r)^2}{\gamma}\frac{1}{k}
+\qquad (k\ge 1),
+\end{equation}
+with no use of $H_\gamma^{\rm q}$.
+\end{proposition}
+
+\begin{proof}
+For $F,G\in \mathbb B_r(F_\star)$, the mean-value formula in finite dimension gives
+\[
+\|\Psi_F(F)-\Psi_F(G)\|_{\varop}
+\le
+\sup_{\xi\in [F,G]}\|D\Psi_F(\xi)\|_{\varop\to\varop}\,\|F-G\|_{\varop}
+\le
+\theta\|F-G\|_{\varop},
+\]
+because the segment $[F,G]$ stays in the convex ball $\mathbb B_r(F_\star)$.
+Applying this with $G=F_\star$ and using $\Psi_F(F_\star)=F_\star$ gives
+\[
+\|\Psi_F(F)-F_\star\|_{\varop}\le \theta\|F-F_\star\|_{\varop},
+\]
+so the ball is invariant and \eqref{eq:qot-local-linear-conv} follows by iteration.
+The bound \eqref{eq:qot-local-dual-bound} is immediate.
+
+Finally, the proof of Theorem~\ref{thm:qot-clean-conditional-blueprint} uses only:
+\begin{enumerate}[label=\textnormal{(\alph*)}]
+\item a uniform quotient bound on the orbit;
+\item the exact Bregman projection identity;
+\item the generalized Pinsker constant on the fixed-trace slice;
+\item contractivity of partial trace for the nuclear norm.
+\end{enumerate}
+Applying that same argument with
+\[
+U_{\max}=\|F_\star\|_{\varop}+r
+\]
+yields \eqref{eq:qot-local-rate-no-H}.
+\end{proof}
+
+\begin{corollary}[Local blueprint closure under projection-strip control]
+\label{cor:qot-local-projection-strip-blueprint}
+Let $F_\star$ be a fixed point of the exact sweep $\Psi_F$.
+Assume there exist $r>0$ and $\theta\in[0,1)$ such that:
+\begin{enumerate}[label=\textnormal{(\roman*)}]
+\item $\Psi_F$ is continuously Fr\'echet differentiable on the ball
+\[
+\mathbb B_r(F_\star)
+\eqdef
+\{F : \|F-F_\star\|_{\varop}\le r\};
+\]
+\item for every $F\in \mathbb B_r(F_\star)$ and every orthogonal projection $P$, there exists a scalar $a_{F,P}\in \RR$ such that
+\begin{equation}
+\label{eq:qot-local-projection-strip}
+a_{F,P}\Id_n
+\preceq
+D\Psi_F(F)[P]
+\preceq
+a_{F,P}\Id_n+\theta \Id_n.
+\end{equation}
+\end{enumerate}
+Then for every initialization $F^{(0)}\in \mathbb B_r(F_\star)$, the exact sweep iterates satisfy
+\begin{align}
+\|F^{(k)}-F_\star\|_{\varop}
+&\le
+\theta^k\|F^{(0)}-F_\star\|_{\varop},
+\label{eq:qot-local-projection-strip-linear}\\
+\sup_{k\ge 0}\|F^{(k)}\|_{\varop}
+&\le
+\|F_\star\|_{\varop}+r,
+\label{eq:qot-local-projection-strip-bound}
+\end{align}
+and the dual gaps obey
+\begin{equation}
+\label{eq:qot-local-projection-strip-rate}
+\Delta_k
+\le
+\frac{8X_\gamma(\|F_\star\|_{\varop}+r)^2}{\gamma}\frac{1}{k}
+\qquad (k\ge 1).
+\end{equation}
+Equivalently, the exact local blueprint closes as soon as the explicit derivative
+\[
+D\Psi_F(F)=M_F^{-1}N_F P_F^{-1}N_F^\ast
+\]
+satisfies the uniform projection-strip estimate \eqref{eq:qot-local-projection-strip} on a neighborhood of a fixed point.
+\end{corollary}
+
+\begin{proof}
+Fix $F\in \mathbb B_r(F_\star)$.
+Because $\Psi_F$ maps Hermitian matrices to Hermitian matrices, $D\Psi_F(F)$ is Hermiticity-preserving.
+Because $\Psi_F(F+\lambda \Id_n)=\Psi_F(F)+\lambda \Id_n$, differentiation in $\lambda$ gives
+\[
+D\Psi_F(F)[\Id_n]=\Id_n,
+\]
+so $D\Psi_F(F)$ is unital.
+Proposition~\ref{prop:qot-projection-strip} therefore applies pointwise and yields
+\[
+\|D\Psi_F(F)\|_{\varop\to\varop}\le \theta
+\qquad
+\forall\, F\in \mathbb B_r(F_\star).
+\]
+Thus
+\[
+\sup_{F\in \mathbb B_r(F_\star)}\delta_{\rm q}(F)\le \theta.
+\]
+Proposition~\ref{prop:qot-local-confinement-no-H} now gives
+\eqref{eq:qot-local-projection-strip-linear},
+\eqref{eq:qot-local-projection-strip-bound}, and
+\eqref{eq:qot-local-projection-strip-rate}.
+\end{proof}
+
+\begin{corollary}[Local blueprint closure under scalar-shifted positivity]
+\label{cor:qot-local-shifted-positive-blueprint}
+Let $F_\star$ be a fixed point of the exact sweep $\Psi_F$.
+Assume there exist $r>0$ and $\theta\in[0,1)$ such that:
+\begin{enumerate}[label=\textnormal{(\roman*)}]
+\item $\Psi_F$ is continuously Fr\'echet differentiable on the ball
+\[
+\mathbb B_r(F_\star)
+\eqdef
+\{F : \|F-F_\star\|_{\varop}\le r\};
+\]
+\item for every $F\in \mathbb B_r(F_\star)$, the derivative admits a decomposition
+\[
+D\Psi_F(F)=K_F+\eta_F(\cdot)\Id_n,
+\]
+where $K_F:\Hh_n\to\Hh_n$ is linear and positive on the PSD cone, $\eta_F:\Hh_n\to\RR$ is linear, and
+\[
+K_F(\Id_n)=\theta_F\Id_n
+\qquad\text{with}\qquad
+0\le \theta_F\le \theta.
+\]
+\end{enumerate}
+Then for every initialization $F^{(0)}\in \mathbb B_r(F_\star)$, the exact sweep iterates satisfy
+\begin{align}
+\|F^{(k)}-F_\star\|_{\varop}
+&\le
+\theta^k\|F^{(0)}-F_\star\|_{\varop},
+\label{eq:qot-local-shifted-positive-linear}\\
+\sup_{k\ge 0}\|F^{(k)}\|_{\varop}
+&\le
+\|F_\star\|_{\varop}+r,
+\label{eq:qot-local-shifted-positive-bound}
+\end{align}
+and the dual gaps obey
+\begin{equation}
+\label{eq:qot-local-shifted-positive-rate}
+\Delta_k
+\le
+\frac{8X_\gamma(\|F_\star\|_{\varop}+r)^2}{\gamma}\frac{1}{k}
+\qquad (k\ge 1).
+\end{equation}
+\end{corollary}
+
+\begin{proof}
+Fix $F\in \mathbb B_r(F_\star)$.
+Because $\Psi_F$ is translation-equivariant, $D\Psi_F(F)$ is unital.
+Proposition~\ref{prop:qot-shifted-positive} therefore gives
+\[
+\|D\Psi_F(F)\|_{\varop\to\varop}\le \theta_F\le \theta.
+\]
+Applying Corollary~\ref{cor:qot-local-projection-strip-blueprint} yields
+\eqref{eq:qot-local-shifted-positive-linear},
+\eqref{eq:qot-local-shifted-positive-bound}, and
+\eqref{eq:qot-local-shifted-positive-rate}.
+\end{proof}
+
+\begin{theorem}[Local proof-status theorem with explicit constants]
+\label{thm:qot-local-proof-status}
+Let $F_\star$ be a fixed point of the exact sweep $\Psi_F$, and assume:
+\begin{enumerate}[label=\textnormal{(\roman*)}]
+\item $\Psi_F$ is continuously Fr\'echet differentiable on the ball
+\[
+\mathbb B_r(F_\star)
+\eqdef
+\{F : \|F-F_\star\|_{\varop}\le r\};
+\]
+\item there exists $\theta\in[0,1)$ such that for every $F\in \mathbb B_r(F_\star)$ and every orthogonal projection $P$, one has
+\[
+a_{F,P}\Id_n
+\preceq
+D\Psi_F(F)[P]
+\preceq
+a_{F,P}\Id_n+\theta \Id_n
+\]
+for some scalar $a_{F,P}\in\RR$;
+\item one has a fixed-point bound
+\[
+\|F_\star\|_{\varop}\le U_\star.
+\]
+\end{enumerate}
+Then, for every initialization $F^{(0)}\in \mathbb B_r(F_\star)$, all the local hypotheses of the exact general-Bregman blueprint are verified with the explicit constants
+\begin{align*}
+\eta_\gamma &= \frac{1}{2X_\gamma},\\
+\kappa_{\rm q} &\le 1,\\
+\|\Trtwo\|_{1\to 1},\ \|\Trone\|_{1\to 1} &\le 1,\\
+\sup_{F\in \mathbb B_r(F_\star)}\|D\Psi_F(F)\|_{\varop\to\varop} &\le \theta,\\
+U_{\max} &= U_\star+r.
+\end{align*}
+Consequently, the exact sweep iterates satisfy
+\begin{align}
+\|F^{(k)}-F_\star\|_{\varop}
+&\le
+\theta^k \|F^{(0)}-F_\star\|_{\varop},
+\label{eq:qot-proof-status-linear}\\
+\sup_{k\ge 0}\|F^{(k)}\|_{\varop}
+&\le
+U_{\max},
+\label{eq:qot-proof-status-bound}\\
+\Delta_k
+&\le
+\frac{8X_\gamma U_{\max}^2}{\gamma}\frac{1}{k}
+\qquad (k\ge 1).
+\label{eq:qot-proof-status-rate}
+\end{align}
+If, in addition, one has
+\[
+U_\star=\|C\|_{\op}+\gamma H_\gamma^{\rm q},
+\]
+then the fixed-point bound is also explicit.
+\end{theorem}
+
+\begin{proof}
+Proposition~\ref{prop:qot-blueprint-checklist} gives
+\[
+\eta_\gamma=\frac{1}{2X_\gamma},
+\qquad
+\kappa_{\rm q}\le 1,
+\qquad
+\|\Trtwo\|_{1\to 1},\ \|\Trone\|_{1\to 1}\le 1.
+\]
+Corollary~\ref{cor:qot-local-projection-strip-blueprint} gives
+\[
+\sup_{F\in \mathbb B_r(F_\star)}\|D\Psi_F(F)\|_{\varop\to\varop}\le \theta,
+\]
+together with the local contraction and local $O(1/k)$ rate.
+Because
+\[
+\|F^{(k)}\|_{\varop}
+\le
+\|F_\star\|_{\varop}+\|F^{(k)}-F_\star\|_{\varop}
+\le
+U_\star+r,
+\]
+one may take
+\[
+U_{\max}=U_\star+r.
+\]
+Substituting this value into Corollary~\ref{cor:qot-local-projection-strip-blueprint}
+gives \eqref{eq:qot-proof-status-linear}, \eqref{eq:qot-proof-status-bound}, and \eqref{eq:qot-proof-status-rate}.
+The last statement is just the stationarity-based choice of $U_\star$ from
+Theorem~\ref{thm:qot-clean-conditional-blueprint}.
+\end{proof}
+
+\begin{remark}[Proof-strategy consequence]
+\label{rem:qot-local-dobrushin-strategy}
+Proposition~\ref{prop:qot-local-confinement-no-H} sharpens the proof strategy in a concrete way:
+to bypass $H_\gamma^{\rm q}$, it is enough to establish a local bound
+\[
+\delta_{\rm q}(F)\le \theta<1
+\]
+on a neighborhood of a fixed point.
+This is exactly the quantum counterpart of the classical stochastic-kernel route, but phrased directly in terms of the exact variational sweep rather than via global monotonicity.
+Corollary~\ref{cor:qot-local-projection-strip-blueprint} makes the remaining hypothesis fully explicit:
+it is enough to verify a uniform scalar-strip estimate for
+\[
+M_F^{-1}N_F P_F^{-1}N_F^\ast(P)
+\]
+on projections $P$ and on a neighborhood of the fixed point.
+Corollary~\ref{cor:qot-local-shifted-positive-blueprint} gives a slightly more structured route:
+it is enough to decompose the local derivative into a positive sub-unital part plus a scalar gauge term.
+Theorem~\ref{thm:qot-local-proof-status} packages the resulting status cleanly:
+modulo local projection-strip control and a bound on $F_\star$, every local constant in the blueprint is now explicit.
+\end{remark}
+
+\begin{remark}[What is still open, and only that]
+\label{rem:qot-status-two-inputs}
+At this stage, the exact variational Q-OT blueprint is reduced to two genuinely analytic inputs:
+\begin{enumerate}[label=\textnormal{(\roman*)}]
+\item a local non-expansiveness input, for instance the projection-strip estimate on
+\[
+M_F^{-1}N_F P_F^{-1}N_F^\ast(P)
+\]
+uniformly on a neighborhood of a fixed point;
+\item a fixed-point bound, obtainable either directly as $\|F_\star\|_{\varop}\le U_\star$, or indirectly from a spectral lower bound
+\[
+\alpha_\gamma \Id_{nm}\preceq T_\gamma,
+\]
+which by Proposition~\ref{prop:qot-lower-spectral-bound} yields the explicit choice
+\[
+U_\star
+=
+\|C\|_{\op}
+\;+\;
+\gamma\Bigl(
+\max\{-\log \alpha_\gamma,\log X_\gamma\}
+\;+\;
+\|\log Z\|_{\op}
+\Bigr).
+\]
+\end{enumerate}
+Everything else is now explicit and checked:
+\[
+\eta_\gamma=\frac{1}{2X_\gamma},
+\qquad
+\kappa_{\rm q}\le 1,
+\qquad
+\|\Trone\|_{1\to 1},\ \|\Trtwo\|_{1\to 1}\le 1,
+\]
+and, once $U_\star$ and local projection-strip are available, the local rate constant is
+\[
+\frac{8X_\gamma(U_\star+r)^2}{\gamma}.
+\]
+So the paper is now down to those two inputs and nothing essentially hidden.
+\end{remark}
+
+\begin{theorem}[Concrete global closure route from shifted-positive derivatives]
+\label{thm:qot-concrete-global-route}
+Assume:
+\begin{enumerate}[label=\textnormal{(\roman*)}]
+\item the exact sweep $\Psi_F:\Hh_n\to\Hh_n$ is continuously Fr\'echet differentiable on $\Hh_n$;
+\item for every $F\in \Hh_n$, the derivative admits a decomposition
+\[
+D\Psi_F(F)=K_F+\eta_F(\cdot)\Id_n,
+\]
+where $K_F:\Hh_n\to\Hh_n$ is linear and positive on the PSD cone, $\eta_F:\Hh_n\to\RR$ is linear, and
+\[
+K_F(\Id_n)=\theta_F \Id_n
+\qquad\text{with}\qquad
+0\le \theta_F\le 1;
+\]
+\item the exact optimizer satisfies the spectral lower bound
+\[
+\alpha_\gamma \Id_{nm}\preceq T_\gamma
+\]
+for some $\alpha_\gamma>0$.
+\end{enumerate}
+Then the exact sweep is globally non-expansive in $\|\cdot\|_{\varop}$, and all hypotheses needed to apply the abstract general-Bregman blueprint are verified with the explicit constants
+\begin{align*}
+\eta_\gamma &= \frac{1}{2X_\gamma},\\
+\kappa_{\rm q} &\le 1,\\
+\|\Trtwo\|_{1\to 1},\ \|\Trone\|_{1\to 1} &\le 1,\\
+U_\star &=
+\|C\|_{\op}
+\;+\;
+\gamma\Bigl(
+\max\{-\log \alpha_\gamma,\log X_\gamma\}
+\;+\;
+\|\log Z\|_{\op}
+\Bigr),\\
+U_{\max} &= \|F^{(0)}\|_{\varop}+2U_\star.
+\end{align*}
+Consequently, for every $k\ge 1$,
+\begin{align}
+\sup_{j\ge 0}\|F^{(j)}\|_{\varop}
+&\le
+U_{\max},
+\label{eq:qot-concrete-global-bound}\\
+\Delta_k
+&\le
+\frac{8X_\gamma U_{\max}^2}{\gamma}\frac{1}{k}.
+\label{eq:qot-concrete-global-rate}
+\end{align}
+If, moreover, one has $\sup_F \theta_F\le \theta<1$, then every fixed point $F_\star$ of $\Psi_F$ satisfies the global contraction estimate
+\begin{equation}
+\label{eq:qot-concrete-global-linear}
+\|F^{(k)}-F_\star\|_{\varop}
+\le
+\theta^k\|F^{(0)}-F_\star\|_{\varop}.
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+Fix $F\in \Hh_n$.
+Proposition~\ref{prop:qot-shifted-positive} gives
+\[
+\|D\Psi_F(F)\|_{\varop\to\varop}\le \theta_F\le 1.
+\]
+Since $\Psi_F$ is continuously Fr\'echet differentiable on the convex space $\Hh_n$, the mean-value formula yields
+\[
+\|\Psi_F(F)-\Psi_F(G)\|_{\varop}\le \|F-G\|_{\varop}
+\qquad \forall\, F,G\in \Hh_n,
+\]
+so the exact sweep is globally non-expansive in $\|\cdot\|_{\varop}$.
+
+Proposition~\ref{prop:qot-lower-spectral-bound} gives
+\[
+\|F_\gamma\|_{\varop}
+\le
+\|C\|_{\op}
+\;+\;
+\gamma\Bigl(
+\max\{-\log \alpha_\gamma,\log X_\gamma\}
+\;+\;
+\|\log Z\|_{\op}
+\Bigr)
+=U_\star.
+\]
+Applying Theorem~\ref{thm:qot-global-proof-status} with this explicit value of $U_\star$ yields
+\eqref{eq:qot-concrete-global-bound} and \eqref{eq:qot-concrete-global-rate}.
+
+If in fact $\sup_F\theta_F\le \theta<1$, then the same mean-value argument gives
+\[
+\|\Psi_F(F)-\Psi_F(G)\|_{\varop}\le \theta\|F-G\|_{\varop}
+\qquad \forall\, F,G\in \Hh_n.
+\]
+Applying this with $G=F_\star$ and $\Psi_F(F_\star)=F_\star$ proves
+\eqref{eq:qot-concrete-global-linear}.
+\end{proof}
+
+\paragraph{From the checklist to the actual missing operator estimates.}
+The previous sections identify the exact variational setting and then spell out the constants required by the general-Bregman blueprint. We now turn to the one genuinely nonclassical part of the story: the non-expansiveness / dual-confinement mechanism for the exact sweep. The point of placing this discussion here is that the reader can now see precisely which previously identified blueprint item is still open.
+
+\section{Non-expansiveness questions for the exact sweep}
+
+Since $\Phi_1$ and $\Phi_2$ act on different spaces, the natural one-block sweep maps are
+\[
+\Psi_F \eqdef \Phi_1 \circ \Phi_2 : \Hh_n \to \Hh_n,
+\qquad
+\Psi_G \eqdef \Phi_2 \circ \Phi_1 : \Hh_m \to \Hh_m.
+\]
+The correct question is whether these sweep maps are non-expansive for the quotient seminorm \eqref{eq:spectral-variation}.
+
+\begin{proposition}[Gauge equivariance of the exact block maps]
+\label{prop:qot-gauge-equivariance}
+For every $\lambda \in \RR$ one has
+\[
+\Phi_1(G+\lambda \Id_m)=\Phi_1(G)-\lambda \Id_n,
+\qquad
+\Phi_2(F+\lambda \Id_n)=\Phi_2(F)-\lambda \Id_m.
+\]
+Consequently, the exact block maps descend to the quotient by scalar identity shifts, and the seminorm \eqref{eq:spectral-variation} is the correct one-block norm in which to test contractance.
+Moreover,
+\[
+\Psi_F(F+\lambda \Id_n)=\Psi_F(F)+\lambda \Id_n,
+\qquad
+\Psi_G(G+\lambda \Id_m)=\Psi_G(G)+\lambda \Id_m.
+\]
+\end{proposition}
+
+\begin{proof}
+By \eqref{eq:qot-adjoint} and \eqref{eq:qot-gauge},
+\[
+\Aa^\ast(F-\lambda \Id_n,G+\lambda \Id_m)=\Aa^\ast(F,G).
+\]
+Since $\tr(A)=\tr(B)=X_\gamma$, the linear part of the dual objective also stays unchanged:
+\[
+\dotp{F-\lambda \Id_n}{A}+\dotp{G+\lambda \Id_m}{B}
+=
+\dotp{F}{A}+\dotp{G}{B}-\lambda \tr(A)+\lambda \tr(B)
+=
+\dotp{F}{A}+\dotp{G}{B}.
+\]
+Therefore
+\[
+\Ee_\gamma(F-\lambda \Id_n,G+\lambda \Id_m)=\Ee_\gamma(F,G).
+\]
+Taking the maximizer in $F$ at fixed $G+\lambda \Id_m$ gives the first identity, and the second is identical.
+\end{proof}
+
+\begin{proposition}[Loewner-monotone, translation-equivariant maps are non-expansive in spectral variation]
+\label{prop:qot-loewner-varop}
+Let $T:\Hh_n \to \Hh_n$ satisfy:
+\begin{enumerate}[label=\textnormal{(\roman*)}]
+\item \emph{Loewner monotonicity:} $X \preceq Y \Rightarrow T(X)\preceq T(Y)$;
+\item \emph{Translation equivariance:} $T(X+\lambda \Id_n)=T(X)+\lambda \Id_n$ for all $\lambda\in\RR$.
+\end{enumerate}
+Then $T$ is non-expansive for the spectral-variation seminorm:
+\[
+\|T(X)-T(Y)\|_{\varop}\le \|X-Y\|_{\varop}
+\qquad\text{for all }X,Y\in \Hh_n.
+\]
+\end{proposition}
+
+\begin{proof}
+Set $\Delta \eqdef Y-X$ and let
+\[
+m \eqdef \lambda_{\min}(\Delta),
+\qquad
+M \eqdef \lambda_{\max}(\Delta).
+\]
+Then
+\[
+m \Id_n \preceq \Delta \preceq M \Id_n,
+\qquad\text{hence}\qquad
+X+m\Id_n \preceq Y \preceq X+M\Id_n.
+\]
+By Loewner monotonicity and translation equivariance,
+\[
+T(X)+m\Id_n = T(X+m\Id_n) \preceq T(Y) \preceq T(X+M\Id_n)=T(X)+M\Id_n.
+\]
+Therefore the eigenvalues of $T(Y)-T(X)$ lie in $[m,M]$, so
+\[
+\|T(Y)-T(X)\|_{\varop}
+\le
+\frac{M-m}{2}
+=
+\frac{\lambda_{\max}(\Delta)-\lambda_{\min}(\Delta)}{2}
+=
+\|Y-X\|_{\varop}.
+\]
+\end{proof}
+
+\begin{proposition}[Spectral variation and quantum Dobrushin coefficient]
+\label{prop:qot-dobrushin-duality}
+For Hermitian matrices one has
+\begin{equation}
+\label{eq:qot-varop-duality}
+\|H\|_{\varop}
+=
+\frac12 \sup_{\rho,\sigma \in \Ss_n} \dotp{H}{\rho-\sigma},
+\end{equation}
+where $\Ss_n \eqdef \{\rho \in \Hh_{n,+} : \tr(\rho)=1\}$ is the state space.
+Equivalently, the dual norm of $\|\cdot\|_{\varop}$ on the trace-zero Hermitian subspace is the trace norm.
+
+Consequently, if $L:\Hh_n\to\Hh_n$ is linear and unital, then
+\begin{equation}
+\label{eq:qot-dobrushin}
+\|L\|_{\varop\to\varop}
+=
+\sup_{\substack{X=X^\ast\\ \tr(X)=0\\ \|X\|_1\le 1}}
+\|L^\ast(X)\|_1
+=
+\frac12 \sup_{\rho,\sigma\in \Ss_n}\|L^\ast(\rho-\sigma)\|_1.
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+For Hermitian $H$, the variational characterization of eigenvalues gives
+\[
+\sup_{\rho\in \Ss_n}\dotp{H}{\rho}=\lambda_{\max}(H),
+\qquad
+\inf_{\sigma\in \Ss_n}\dotp{H}{\sigma}=\lambda_{\min}(H),
+\]
+hence \eqref{eq:qot-varop-duality}.
+Now let $X=X^\ast$ with $\tr(X)=0$.
+Writing the Jordan decomposition $X=X_+-X_-$, one has
+\[
+\tr(X_+)=\tr(X_-)=\frac12\|X\|_1.
+\]
+Therefore, if $\|X\|_1\le 1$, then $X=t(\rho-\sigma)$ for some $t\in[0,1/2]$ and states $\rho,\sigma\in \Ss_n$.
+This shows that the unit ball of the dual norm on the trace-zero Hermitian subspace is exactly the trace-norm unit ball, hence
+\[
+\|L\|_{\varop\to\varop}
+=
+\sup_{\substack{X=X^\ast\\ \tr(X)=0\\ \|X\|_1\le 1}}
+\|L^\ast(X)\|_1.
+\]
+Because every such $X$ is a scaled difference of two states, this is equivalent to \eqref{eq:qot-dobrushin}.
+\end{proof}
+
+\begin{corollary}[Positive unital maps are spectral-variation contractions]
+\label{cor:qot-positive-unital-varop}
+If $L:\Hh_n\to\Hh_n$ is linear, positive, and unital, then
+\[
+\|L\|_{\varop\to\varop}\le 1.
+\]
+\end{corollary}
+
+\begin{proof}
+Positivity implies Loewner monotonicity, and unitality implies
+\[
+L(X+\lambda \Id_n)=L(X)+\lambda L(\Id_n)=L(X)+\lambda \Id_n.
+\]
+The conclusion therefore follows from Proposition~\ref{prop:qot-loewner-varop}.
+\end{proof}
+
+\begin{proposition}[Local classical Sinkhorn mechanism]
+\label{prop:qot-classical-local-kernel}
+For classical balanced OT, the derivatives of the two soft-$c$-transforms are negative stochastic kernels.
+More precisely, for the classical dual updates
+\[
+\Psi_1(u_2)_i
+\eqdef
+-\gamma \log \sum_j b_{2,j} e^{(-C_{i,j}+u_{2,j})/\gamma},
+\qquad
+\Psi_2(u_1)_j
+\eqdef
+-\gamma \log \sum_i b_{1,i} e^{(-C_{i,j}+u_{1,i})/\gamma},
+\]
+one has
+\begin{align}
+\bigl(D\Psi_1(u_2)[h]\bigr)_i
+&=
+-\sum_j \pi_{ij}(u_2)\,h_j,
+\label{eq:classical-DPsi1}\\
+\bigl(D\Psi_2(u_1)[g]\bigr)_j
+&=
+-\sum_i \rho_{ji}(u_1)\,g_i,
+\label{eq:classical-DPsi2}
+\end{align}
+where
+\[
+\pi_{ij}(u_2)
+\eqdef
+\frac{b_{2,j}e^{(-C_{i,j}+u_{2,j})/\gamma}}
+{\sum_\ell b_{2,\ell}e^{(-C_{i,\ell}+u_{2,\ell})/\gamma}},
+\qquad
+\rho_{ji}(u_1)
+\eqdef
+\frac{b_{1,i}e^{(-C_{i,j}+u_{1,i})/\gamma}}
+{\sum_k b_{1,k}e^{(-C_{k,j}+u_{1,k})/\gamma}},
+\]
+and each row of $\pi(u_2)$ and of $\rho(u_1)$ sums to $1$.
+Consequently, the derivative of the classical sweep is a row-stochastic matrix:
+\[
+D\Psi(u_1)=\pi(\Psi_2(u_1))\,\rho(u_1),
+\]
+hence
+\[
+\|D\Psi(u_1)\|_{\mathrm{var}\to\mathrm{var}}\le 1.
+\]
+\end{proposition}
+
+\begin{proof}
+Differentiate the classical soft-$c$-transform formulas. For instance,
+\[
+\Psi_1(u_2)_i
+=
+-\gamma \log \sum_j b_{2,j} e^{(-C_{i,j}+u_{2,j})/\gamma},
+\]
+so
+\[
+\partial_{u_{2,j}}\Psi_1(u_2)_i
+=
+-\frac{b_{2,j}e^{(-C_{i,j}+u_{2,j})/\gamma}}
+{\sum_\ell b_{2,\ell}e^{(-C_{i,\ell}+u_{2,\ell})/\gamma}}
+=-\pi_{ij}(u_2),
+\]
+which gives \eqref{eq:classical-DPsi1}; \eqref{eq:classical-DPsi2} is identical.
+Since the coefficients are nonnegative and each row sums to $1$, the matrices $\pi(u_2)$ and $\rho(u_1)$ are row-stochastic.
+Their product is therefore row-stochastic as well, so its Dobrushin coefficient is at most $1$, which is exactly variation-seminorm non-expansiveness.
+\end{proof}
+
+\begin{remark}[The right next object]
+\label{rem:qot-right-next-object}
+Propositions~\ref{prop:qot-dobrushin-duality} and \ref{prop:qot-classical-local-kernel} identify the sharp classical mechanism behind Sinkhorn non-expansiveness:
+globally, the proof is via monotonicity plus translation equivariance; infinitesimally, the derivative of the sweep is a stochastic kernel, and its variation-seminorm contraction is exactly a Dobrushin-coefficient bound.
+For the exact quantum sweep derivative, the contraction problem in $\|\cdot\|_{\varop}$ is likewise a trace-distance contraction problem for the preadjoint.
+Moreover, differentiating the translation-equivariance identities
+\[
+\Psi_F(F+\lambda \Id_n)=\Psi_F(F)+\lambda \Id_n,
+\qquad
+\Psi_G(G+\lambda \Id_m)=\Psi_G(G)+\lambda \Id_m
+\]
+shows that the local sweep derivatives are unital:
+\[
+D\Psi_F(F_\star)[\Id_n]=\Id_n,
+\qquad
+D\Psi_G(G_\star)[\Id_m]=\Id_m.
+\]
+Therefore the exact local quantum question can be phrased as follows:
+\begin{itemize}[leftmargin=1.5em]
+\item if $D\Psi_F(F_\star)$ were positive and unital, then Corollary~\ref{cor:qot-positive-unital-varop} would give local spectral-variation contraction immediately, perfectly mirroring the classical stochastic-kernel route;
+\item however, the numerical obstruction recorded later strongly suggests that positivity fails in general;
+\item so the right noncommutative analogue of the classical proof is \emph{not} plain monotonicity, but rather the weaker requirement that the preadjoint of $D\Psi_F(F_\star)$ contract trace distance, i.e. that its quantum Dobrushin coefficient be at most $1$.
+\end{itemize}
+So after ruling out both the crude Hilbert--Schmidt route and the naive monotone-map route, the natural next target is precisely a \emph{quantum Dobrushin coefficient} for the local exact sweep.
+\end{remark}
+
+\begin{proposition}[Classical Sinkhorn also admits a direct Dobrushin proof]
+\label{prop:classical-sinkhorn-dobrushin}
+For classical balanced OT, write the soft-$c$ transforms as
+\[
+(\Psi_1(v))_i
+=
+-\gamma \log \sum_j K_{ij} e^{v_j/\gamma} b_{2,j},
+\qquad
+(\Psi_2(u))_j
+=
+-\gamma \log \sum_i K_{ij} e^{u_i/\gamma} b_{1,i},
+\]
+with $K_{ij}=e^{-C_{ij}/\gamma}$, and let $\Psi=\Psi_1\circ\Psi_2$ be the sweep on the first block.
+Then for every $u,v$ the Fr\'echet derivatives satisfy
+\[
+D\Psi_1(v)[h] = -P(v)h,
+\qquad
+D\Psi_2(u)[k] = -Q(u)k,
+\]
+where $P(v)$ and $Q(u)$ are row-stochastic matrices.
+Consequently
+\[
+D\Psi(u)=P(\Psi_2(u))\,Q(u)
+\]
+is row-stochastic, and therefore
+\[
+\|D\Psi(u)\|_{\mathrm{var}\to \mathrm{var}}\le 1.
+\]
+\end{proposition}
+
+\begin{proof}
+Differentiating the logarithmic formulas gives
+\[
+(D\Psi_1(v)[h])_i
+=
+-\sum_j p_{ij}(v) h_j,
+\qquad
+p_{ij}(v)
+\eqdef
+\frac{K_{ij} e^{v_j/\gamma} b_{2,j}}
+{\sum_{\ell} K_{i\ell} e^{v_\ell/\gamma} b_{2,\ell}},
+\]
+and similarly
+\[
+(D\Psi_2(u)[k])_j
+=
+-\sum_i q_{ji}(u) k_i,
+\qquad
+q_{ji}(u)
+\eqdef
+\frac{K_{ij} e^{u_i/\gamma} b_{1,i}}
+{\sum_{\ell} K_{\ell j} e^{u_\ell/\gamma} b_{1,\ell}}.
+\]
+For each fixed $i$, one has $p_{ij}(v)\ge 0$ and $\sum_j p_{ij}(v)=1$, so $P(v)$ is row-stochastic; the same holds for $Q(u)$.
+The chain rule yields
+\[
+D\Psi(u)=D\Psi_1(\Psi_2(u))D\Psi_2(u)=P(\Psi_2(u))Q(u),
+\]
+because the two minus signs cancel.
+Now if $M$ is row-stochastic and $m\le h_j\le M_h$ for all $j$, then
+\[
+m \le (Mh)_i = \sum_j M_{ij}h_j \le M_h
+\]
+for every $i$.
+Hence $\operatorname{osc}(Mh)\le \operatorname{osc}(h)$, i.e.
+$\|Mh\|_{\mathrm{var}}\le \|h\|_{\mathrm{var}}$.
+Applying this to $M=D\Psi(u)$ proves the claim.
+\end{proof}
+
+\begin{remark}[Why the direct classical proof does not transfer verbatim]
+\label{rem:qot-classical-direct-route}
+Proposition~\ref{prop:classical-sinkhorn-dobrushin} shows that the classical Sinkhorn non-expansiveness can be proved \emph{directly}, without using the topical-map argument from the main paper:
+the local sweep derivative is a Markov operator, so its Dobrushin coefficient is automatically at most $1$.
+
+The exact quantum reformulation from Proposition~\ref{prop:qot-dobrushin-duality} suggests the analogous hope that $D\Psi_F(F_\star)^\ast$ might be a positive trace-preserving map on states.
+If this were true, local spectral-variation non-expansiveness would follow immediately.
+However, Remark~\ref{rem:qot-sweep-not-locally-monotone} exhibits a PSD direction $H\succeq 0$ for which
+$D\Psi_F(F_\star)[H]\not\succeq 0$ in a genuinely noncommutative example.
+So the exact quantum sweep derivative is generally \emph{not} a positive map, and the classical Markov-kernel proof does not transfer as such.
+
+The useful surviving conclusion is more modest but still important:
+the correct replacement problem is to bound the quantum Dobrushin coefficient of a generally nonpositive unital map, namely the local exact sweep derivative.
+\end{remark}
+
+\begin{remark}[What the diagonal case is really telling us]
+\label{rem:qot-diagonal-diagnosis}
+Proposition~\ref{prop:qot-loewner-varop} explains why the crude Hessian-to-Hilbert--Schmidt route is not the right explanation of the diagonal/commuting case.
+On a diagonal algebra, the exact sweep is order-preserving and translation-equivariant, so spectral-variation non-expansiveness follows \emph{directly} from order, with no dimension factor.
+Therefore the appearance of factors such as $\sqrt{n}$ in Proposition~\ref{prop:qot-hessian-vs-varop-bounds} is not a fundamental feature of the commuting case; it is an artifact of passing through a coarse Hilbert--Schmidt comparison.
+\end{remark}
+
+\begin{proposition}[Linearization of the exact block resolvent]
+\label{prop:qot-phi-linearization}
+Fix $G \in \Hh_m$ and set $F\eqdef \Phi_1(G)$.
+Let
+\[
+X(F,G)\eqdef Y_\gamma + \frac{\Aa^\ast(F,G)}{\gamma},
+\qquad
+T(F,G)=e^{X(F,G)}.
+\]
+Introduce the Fr\'echet derivative of the matrix exponential
+\[
+\mathcal L_{X}(H)
+\eqdef
+D\!\exp_X[H]
+=
+\int_0^1 e^{(1-s)X} H e^{sX}\,\mathrm ds,
+\]
+and the two linear maps
+\[
+\mathcal M_G(H)
+\eqdef
+\Trtwo\!\Bigl(\mathcal L_{X(F,G)}\!\Bigl(\frac{H \otimes \Id_m}{\gamma}\Bigr)\Bigr),
+\qquad
+\mathcal N_G(K)
+\eqdef
+\Trtwo\!\Bigl(\mathcal L_{X(F,G)}\!\Bigl(\frac{\Id_n \otimes K}{\gamma}\Bigr)\Bigr).
+\]
+If $\mathcal M_G$ is invertible on the gauge slice $\{H \in \Hh_n : \tr(H)=0\}$, then $\Phi_1$ is Fr\'echet differentiable on the corresponding quotient chart and
+\begin{equation}
+\label{eq:DPhi1}
+D\Phi_1(G)[K]
+=
+-\mathcal M_G^{-1}\mathcal N_G(K)
+\qquad \text{for } \tr(K)=0.
+\end{equation}
+The same statement holds for $\Phi_2$ with the roles of the two partial traces exchanged.
+\end{proposition}
+
+\begin{proof}
+Let
+\[
+\mathcal R(F,G)\eqdef \Trtwo(T(F,G))-A.
+\]
+The identity $\mathcal R(\Phi_1(G),G)=0$ is exactly the first block optimality equation.
+Differentiating $\mathcal R$ and using the Fr\'echet derivative of the exponential gives
+\[
+D_F \mathcal R(F,G)[H]=\mathcal M_G(H),
+\qquad
+D_G \mathcal R(F,G)[K]=\mathcal N_G(K).
+\]
+Restricting to trace-zero directions removes the scalar gauge, and the implicit-function theorem yields \eqref{eq:DPhi1}.
+\end{proof}
+
+\begin{remark}[Linearized monotonicity and contractance]
+\label{rem:qot-linearized-obstacle}
+The formula \eqref{eq:DPhi1} shows that Loewner anti-monotonicity of $\Phi_1$ would require
+\[
+K \succeq 0
+\quad\Longrightarrow\quad
+-\mathcal M_G^{-1}\mathcal N_G(K) \preceq 0
+\]
+on the trace-zero slice, and similarly for $\Phi_2$.
+Thus two distinct positivity properties are needed:
+\begin{enumerate}[label=\textnormal{(\roman*)}]
+\item $\mathcal N_G$ should preserve the PSD cone;
+\item the inverse of $\mathcal M_G$ should also preserve the PSD cone.
+\end{enumerate}
+Neither property is automatic for general positive linear maps on matrix spaces.
+Likewise, local non-expansiveness of the exact sweep would require
+\[
+\|D\Psi_F(F)\|_{\varop \to \varop}\le 1,
+\qquad
+D\Psi_F(F)=D\Phi_1(\Phi_2(F)) \circ D\Phi_2(F),
+\]
+which is a substantially more delicate statement than the scalar topical-map estimate.
+\end{remark}
+
+\begin{proposition}[Local sweep non-expansiveness in the Hessian metric]
+\label{prop:qot-local-hessian-contraction}
+Let $(F_\star,G_\star)$ be a fixed point of the exact block iteration, i.e.
+\[
+F_\star=\Phi_1(G_\star),
+\qquad
+G_\star=\Phi_2(F_\star).
+\]
+Set
+\[
+X_\star \eqdef Y_\gamma + \frac{\Aa^\ast(F_\star,G_\star)}{\gamma},
+\qquad
+T_\star \eqdef e^{X_\star},
+\]
+and define, on the trace-zero quotient slices,
+\begin{align*}
+M_\star(H)
+&\eqdef
+\Trtwo\!\Bigl(\mathcal L_{X_\star}\!\Bigl(\frac{H \otimes \Id_m}{\gamma}\Bigr)\Bigr),\\
+N_\star(K)
+&\eqdef
+\Trtwo\!\Bigl(\mathcal L_{X_\star}\!\Bigl(\frac{\Id_n \otimes K}{\gamma}\Bigr)\Bigr),\\
+P_\star(K)
+&\eqdef
+\Trone\!\Bigl(\mathcal L_{X_\star}\!\Bigl(\frac{\Id_n \otimes K}{\gamma}\Bigr)\Bigr),\\
+Q_\star(H)
+&\eqdef
+\Trone\!\Bigl(\mathcal L_{X_\star}\!\Bigl(\frac{H \otimes \Id_m}{\gamma}\Bigr)\Bigr).
+\end{align*}
+Assume $M_\star$ and $P_\star$ are invertible on these quotient slices. Then:
+\begin{enumerate}[label=\textnormal{(\roman*)}]
+\item $Q_\star=N_\star^\ast$ for the Hilbert--Schmidt pairing;
+\item the sweep derivatives are
+\[
+D\Psi_F(F_\star)=M_\star^{-1}N_\star P_\star^{-1}N_\star^\ast,
+\qquad
+D\Psi_G(G_\star)=P_\star^{-1}N_\star^\ast M_\star^{-1}N_\star;
+\]
+\item with the local Hessian norms
+\[
+\|H\|_{M_\star}^2 \eqdef \dotp{H}{M_\star H},
+\qquad
+\|K\|_{P_\star}^2 \eqdef \dotp{K}{P_\star K},
+\]
+one has
+\[
+\|D\Psi_F(F_\star)H\|_{M_\star}\le \|H\|_{M_\star},
+\qquad
+\|D\Psi_G(G_\star)K\|_{P_\star}\le \|K\|_{P_\star}.
+\]
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+Consider the convex function
+\[
+\Gamma(F,G)
+\eqdef
+\gamma \tr\!\Bigl[\exp\!\Bigl(Y_\gamma + \frac{\Aa^\ast(F,G)}{\gamma}\Bigr)\Bigr].
+\]
+Its second variation at $(F_\star,G_\star)$ in the direction $(H,K)$ is
+\[
+D^2\Gamma(F_\star,G_\star)[(H,K),(H,K)]
+=
+\dotp{H \otimes \Id_m + \Id_n \otimes K}
+{\mathcal L_{X_\star}\!\Bigl(\frac{H \otimes \Id_m + \Id_n \otimes K}{\gamma}\Bigr)}
+\ge 0,
+\]
+since $\mathcal L_{X_\star}$ is a positive self-adjoint operator for the Hilbert--Schmidt pairing.
+Therefore the block Hessian operator
+\[
+\mathbb H_\star
+\eqdef
+\begin{pmatrix}
+M_\star & N_\star \\
+Q_\star & P_\star
+\end{pmatrix}
+\]
+is positive semidefinite and self-adjoint, so $Q_\star=N_\star^\ast$.
+Using Proposition~\ref{prop:qot-phi-linearization},
+\[
+D\Phi_1(G_\star)=-M_\star^{-1}N_\star,
+\qquad
+D\Phi_2(F_\star)=-P_\star^{-1}N_\star^\ast,
+\]
+which yields the displayed formulas for the sweep derivatives by composition.
+Since $\mathbb H_\star \succeq 0$ and $P_\star$ is invertible, the Schur complement gives
+\[
+M_\star - N_\star P_\star^{-1} N_\star^\ast \succeq 0.
+\]
+Equivalently,
+\[
+0 \preceq
+M_\star^{-1/2} N_\star P_\star^{-1} N_\star^\ast M_\star^{-1/2}
+\preceq I.
+\]
+This is exactly the non-expansiveness of $D\Psi_F(F_\star)$ in the $M_\star$-norm. The statement for $D\Psi_G(G_\star)$ is identical.
+\end{proof}
+
+\begin{corollary}[Local exact sweep contraction coefficient]
+\label{cor:qot-local-dobrushin-sweep}
+At a fixed point $(F_\star,G_\star)$, the local spectral-variation contractance of the exact sweep is equivalent to a quantum Dobrushin-coefficient bound.
+More precisely,
+\begin{align}
+\|D\Psi_F(F_\star)\|_{\varop\to\varop}
+&=
+\frac12
+\sup_{\rho,\sigma\in \Ss_n}
+\Bigl\|
+\bigl(D\Psi_F(F_\star)\bigr)^\ast(\rho-\sigma)
+\Bigr\|_1,
+\label{eq:qot-local-dobrushin-F}\\
+\|D\Psi_G(G_\star)\|_{\varop\to\varop}
+&=
+\frac12
+\sup_{\rho,\sigma\in \Ss_m}
+\Bigl\|
+\bigl(D\Psi_G(G_\star)\bigr)^\ast(\rho-\sigma)
+\Bigr\|_1.
+\label{eq:qot-local-dobrushin-G}
+\end{align}
+Using Proposition~\ref{prop:qot-local-hessian-contraction}, these preadjoints are explicitly
+\begin{align*}
+\bigl(D\Psi_F(F_\star)\bigr)^\ast
+&=
+N_\star P_\star^{-1}N_\star^\ast M_\star^{-1},\\
+\bigl(D\Psi_G(G_\star)\bigr)^\ast
+&=
+N_\star^\ast M_\star^{-1}N_\star P_\star^{-1}.
+\end{align*}
+Hence local non-expansiveness in $\|\cdot\|_{\varop}$ is equivalent to the corresponding trace-distance contraction coefficient being at most $1$.
+\end{corollary}
+
+\begin{proof}
+This is Proposition~\ref{prop:qot-dobrushin-duality} applied to the unital linear maps
+$D\Psi_F(F_\star)$ and $D\Psi_G(G_\star)$, together with the explicit formulas of Proposition~\ref{prop:qot-local-hessian-contraction}.
+\end{proof}
+
+\begin{proposition}[State-contraction formulation of the local coefficient]
+\label{prop:qot-local-state-contraction}
+Let $L:\Hh_n\to\Hh_n$ be linear, Hermiticity-preserving, and unital.
+Then
+\begin{align}
+\|L\|_{\varop\to\varop}
+&=
+\sup_{\substack{\rho,\sigma\in \Ss_n\\ \rho\neq \sigma}}
+\frac{\|L^\ast(\rho)-L^\ast(\sigma)\|_1}{\|\rho-\sigma\|_1},
+\label{eq:qot-state-ratio}\\
+\|L\|_{\varop\to\varop}
+&=
+\frac12
+\sup_{\substack{\rho,\sigma\in \Ss_n\\ \rho\sigma=0}}
+\|L^\ast(\rho)-L^\ast(\sigma)\|_1.
+\label{eq:qot-state-orthogonal}
+\end{align}
+In particular, if there exists $\theta\ge 0$ such that
+\[
+\|L^\ast(\rho)-L^\ast(\sigma)\|_1
+\le
+\theta \|\rho-\sigma\|_1
+\qquad \forall \rho,\sigma\in \Ss_n,
+\]
+then $\|L\|_{\varop\to\varop}\le \theta$.
+\end{proposition}
+
+\begin{proof}
+Because $L$ is unital, Proposition~\ref{prop:qot-dobrushin-duality} gives
+\[
+\|L\|_{\varop\to\varop}
+=
+\sup_{\substack{X=X^\ast\\ \tr(X)=0\\ \|X\|_1\le 1}}
+\|L^\ast(X)\|_1.
+\]
+If $\rho\neq \sigma$ are states, then
+\[
+X \eqdef \frac{\rho-\sigma}{\|\rho-\sigma\|_1}
+\]
+is Hermitian, traceless, and satisfies $\|X\|_1=1$, hence
+\[
+\frac{\|L^\ast(\rho)-L^\ast(\sigma)\|_1}{\|\rho-\sigma\|_1}
+=
+\|L^\ast(X)\|_1
+\le
+\|L\|_{\varop\to\varop}.
+\]
+Taking the supremum over $\rho\neq \sigma$ gives the inequality ``$\le$'' in \eqref{eq:qot-state-ratio}.
+
+Conversely, let $X=X^\ast$ with $\tr(X)=0$ and $\|X\|_1=1$.
+Writing the Jordan decomposition $X=X_+-X_-$, one has
+\[
+\tr(X_+)=\tr(X_-)=\frac12.
+\]
+Therefore
+\[
+\rho \eqdef 2X_+,
+\qquad
+\sigma \eqdef 2X_-
+\]
+are states with orthogonal supports, so $\rho\sigma=0$ and
+\[
+X=\frac12(\rho-\sigma).
+\]
+Hence
+\[
+\|L^\ast(X)\|_1
+=
+\frac12\|L^\ast(\rho)-L^\ast(\sigma)\|_1.
+\]
+Taking the supremum over unit trace-zero Hermitian $X$ yields \eqref{eq:qot-state-orthogonal}.
+
+Finally, if $\rho\sigma=0$, then $\|\rho-\sigma\|_1=2$, so \eqref{eq:qot-state-orthogonal} implies
+\[
+\|L\|_{\varop\to\varop}
+\le
+\sup_{\substack{\rho,\sigma\in \Ss_n\\ \rho\neq \sigma}}
+\frac{\|L^\ast(\rho)-L^\ast(\sigma)\|_1}{\|\rho-\sigma\|_1},
+\]
+which completes the proof of \eqref{eq:qot-state-ratio}.
+\end{proof}
+
+\begin{corollary}[Reduction to orthogonal pure states]
+\label{cor:qot-pure-state-reduction}
+Let $L:\Hh_n\to\Hh_n$ be linear, Hermiticity-preserving, and unital.
+Then
+\begin{equation}
+\label{eq:qot-pure-state-reduction}
+\|L\|_{\varop\to\varop}
+=
+\frac12
+\sup_{\substack{u,v\in \CC^n\\ \|u\|=\|v\|=1\\ \langle u,v\rangle=0}}
+\Bigl\|
+L^\ast(uu^\ast)-L^\ast(vv^\ast)
+\Bigr\|_1.
+\end{equation}
+In particular, to prove local spectral-variation non-expansiveness of the exact sweep, it is enough to prove trace-distance contraction for the preadjoint on orthogonal pure states.
+\end{corollary}
+
+\begin{proof}
+By Proposition~\ref{prop:qot-local-state-contraction}, it is enough to consider orthogonal state pairs $(\rho,\sigma)$ with $\rho\sigma=0$.
+Fix such a pair.
+Because the supports of $\rho$ and $\sigma$ are orthogonal, one may write spectral decompositions
+\[
+\rho=\sum_i a_i u_i u_i^\ast,
+\qquad
+\sigma=\sum_j b_j v_j v_j^\ast,
+\]
+where $a_i,b_j\ge 0$, $\sum_i a_i=\sum_j b_j=1$, and $\langle u_i,v_j\rangle=0$ for all $(i,j)$.
+Then
+\[
+\rho-\sigma
+=
+\sum_{i,j} a_i b_j \bigl(u_i u_i^\ast-v_j v_j^\ast\bigr).
+\]
+Applying $L^\ast$ and using the triangle inequality for the trace norm gives
+\[
+\|L^\ast(\rho)-L^\ast(\sigma)\|_1
+\le
+\sum_{i,j} a_i b_j
+\bigl\|
+L^\ast(u_i u_i^\ast)-L^\ast(v_j v_j^\ast)
+\bigr\|_1.
+\]
+Therefore
+\[
+\frac12\|L^\ast(\rho)-L^\ast(\sigma)\|_1
+\le
+\frac12
+\sup_{\substack{u,v\in \CC^n\\ \|u\|=\|v\|=1\\ \langle u,v\rangle=0}}
+\Bigl\|
+L^\ast(uu^\ast)-L^\ast(vv^\ast)
+\Bigr\|_1.
+\]
+Taking the supremum over orthogonal state pairs and using \eqref{eq:qot-state-orthogonal} yields the inequality ``$\le$'' in \eqref{eq:qot-pure-state-reduction}.
+The reverse inequality is immediate because orthogonal pure states are a special case of orthogonal states.
+\end{proof}
+
+\begin{proposition}[Effect-test formulation of the local coefficient]
+\label{prop:qot-effect-test}
+Let $L:\Hh_n\to\Hh_n$ be linear, Hermiticity-preserving, and unital.
+Then
+\begin{equation}
+\label{eq:qot-effect-test}
+\|L\|_{\varop\to\varop}
+=
+\sup_{0\preceq E\preceq \Id_n}
+\Bigl(\lambda_{\max}(L(E))-\lambda_{\min}(L(E))\Bigr)
+=
+2\sup_{0\preceq E\preceq \Id_n}\|L(E)\|_{\varop}.
+\end{equation}
+Consequently, if there exists $\theta\ge 0$ such that
+\begin{equation}
+\label{eq:qot-effect-band}
+\lambda_{\max}(L(E))-\lambda_{\min}(L(E))
+\le \theta
+\qquad
+\forall\, E \text{ with } 0\preceq E\preceq \Id_n,
+\end{equation}
+then $\|L\|_{\varop\to\varop}\le \theta$.
+\end{proposition}
+
+\begin{proof}
+By Corollary~\ref{cor:qot-pure-state-reduction},
+\[
+\|L\|_{\varop\to\varop}
+=
+\frac12
+\sup_{\substack{u,v\in \CC^n\\ \|u\|=\|v\|=1\\ \langle u,v\rangle=0}}
+\Bigl\|
+L^\ast(uu^\ast)-L^\ast(vv^\ast)
+\Bigr\|_1.
+\]
+For any Hermitian traceless matrix $X$, the Helstrom variational formula gives
+\[
+\frac12\|X\|_1
+=
+\sup_{0\preceq E\preceq \Id_n}\tr(EX).
+\]
+Applying this to
+\[
+X=L^\ast(uu^\ast)-L^\ast(vv^\ast)
+\]
+and using duality,
+\[
+\frac12
+\Bigl\|
+L^\ast(uu^\ast)-L^\ast(vv^\ast)
+\Bigr\|_1
+=
+\sup_{0\preceq E\preceq \Id_n}
+\Bigl(
+u^\ast L(E)u - v^\ast L(E)v
+\Bigr).
+\]
+Therefore
+\[
+\|L\|_{\varop\to\varop}
+=
+\sup_{0\preceq E\preceq \Id_n}
+\sup_{\substack{u,v\in \CC^n\\ \|u\|=\|v\|=1\\ \langle u,v\rangle=0}}
+\Bigl(
+u^\ast L(E)u - v^\ast L(E)v
+\Bigr).
+\]
+Since $L(E)$ is Hermitian, the inner supremum is attained by eigenvectors associated with
+$\lambda_{\max}(L(E))$ and $\lambda_{\min}(L(E))$, hence equals
+\[
+\lambda_{\max}(L(E))-\lambda_{\min}(L(E)).
+\]
+This proves \eqref{eq:qot-effect-test}; the sufficient condition \eqref{eq:qot-effect-band} is immediate.
+\end{proof}
+
+\begin{corollary}[Reduction from effects to projections]
+\label{cor:qot-projection-reduction}
+Let $L:\Hh_n\to\Hh_n$ be linear, Hermiticity-preserving, and unital.
+Then
+\begin{equation}
+\label{eq:qot-projection-reduction}
+\|L\|_{\varop\to\varop}
+=
+\sup_{\substack{P=P^\ast=P^2}}
+\Bigl(\lambda_{\max}(L(P))-\lambda_{\min}(L(P))\Bigr).
+\end{equation}
+Consequently, local spectral-variation non-expansiveness of the exact sweep is equivalent to the bound
+\[
+\lambda_{\max}\!\Bigl(D\Psi_F(F_\star)[P]\Bigr)
+-
+\lambda_{\min}\!\Bigl(D\Psi_F(F_\star)[P]\Bigr)
+\le 1
+\qquad \forall\, P=P^\ast=P^2,
+\]
+and similarly on the $G$-side.
+\end{corollary}
+
+\begin{proof}
+Set
+\[
+f(E)\eqdef \lambda_{\max}(L(E))-\lambda_{\min}(L(E))
+\qquad \text{for } 0\preceq E\preceq \Id_n.
+\]
+Because $E\mapsto L(E)$ is linear, $E\mapsto \lambda_{\max}(L(E))$ is convex and
+$E\mapsto -\lambda_{\min}(L(E))=\lambda_{\max}(-L(E))$ is also convex.
+Hence $f$ is convex on the compact convex effect set
+\[
+\mathcal E_n \eqdef \{E\in \Hh_n : 0\preceq E\preceq \Id_n\}.
+\]
+In finite dimension, a convex function on a compact convex set attains its maximum at an extreme point.
+The extreme points of $\mathcal E_n$ are exactly the orthogonal projections.
+Combining this with Proposition~\ref{prop:qot-effect-test} gives \eqref{eq:qot-projection-reduction}.
+The application to the exact local sweep is immediate by taking $L=D\Psi_F(F_\star)$ or $L=D\Psi_G(G_\star)$.
+\end{proof}
+
+\begin{proposition}[Projection-strip criterion for local contraction]
+\label{prop:qot-projection-strip}
+Let $L:\Hh_n\to\Hh_n$ be linear, Hermiticity-preserving, and unital.
+Assume there exists $\theta\ge 0$ such that for every orthogonal projection $P$ there is a scalar $a_P\in\RR$ with
+\begin{equation}
+\label{eq:qot-projection-strip}
+a_P\Id_n \preceq L(P)\preceq a_P\Id_n+\theta \Id_n.
+\end{equation}
+Then
+\[
+\|L\|_{\varop\to\varop}\le \theta.
+\]
+In particular, if
+\[
+L(P)\succeq 0
+\qquad \forall\, P=P^\ast=P^2,
+\]
+then $\|L\|_{\varop\to\varop}\le 1$.
+\end{proposition}
+
+\begin{proof}
+The strip condition \eqref{eq:qot-projection-strip} implies
+\[
+\lambda_{\min}(L(P))\ge a_P,
+\qquad
+\lambda_{\max}(L(P))\le a_P+\theta,
+\]
+hence
+\[
+\lambda_{\max}(L(P))-\lambda_{\min}(L(P))\le \theta
+\qquad \forall\, P=P^\ast=P^2.
+\]
+Corollary~\ref{cor:qot-projection-reduction} therefore yields
+\[
+\|L\|_{\varop\to\varop}\le \theta.
+\]
+
+For the second claim, assume $L(P)\succeq 0$ for every projection $P$.
+Since $L$ is unital, one also has
+\[
+L(\Id_n-P)=\Id_n-L(P)\succeq 0.
+\]
+Therefore
+\[
+0\preceq L(P)\preceq \Id_n
+\qquad \forall\, P=P^\ast=P^2,
+\]
+which is exactly \eqref{eq:qot-projection-strip} with $a_P=0$ and $\theta=1$.
+\end{proof}
+
+\begin{proposition}[Scalar-shifted positivity implies projection-strip]
+\label{prop:qot-shifted-positive}
+Let $L:\Hh_n\to\Hh_n$ be linear, Hermiticity-preserving, and unital.
+Assume there exist a linear map $K:\Hh_n\to\Hh_n$ and a real linear functional $\eta:\Hh_n\to\RR$ such that
+\begin{equation}
+\label{eq:qot-shifted-positive-decomp}
+L(X)=K(X)+\eta(X)\Id_n
+\qquad \forall X\in \Hh_n,
+\end{equation}
+with
+\begin{equation}
+\label{eq:qot-shifted-positive-assumptions}
+K(X)\succeq 0 \ \text{for all } X\succeq 0,
+\qquad
+K(\Id_n)=\theta \Id_n
+\end{equation}
+for some $\theta\ge 0$.
+Then
+\[
+\|L\|_{\varop\to\varop}\le \theta.
+\]
+In particular, if $\theta\le 1$, then $L$ is non-expansive in spectral variation.
+\end{proposition}
+
+\begin{proof}
+Let $P$ be an orthogonal projection.
+By positivity of $K$,
+\[
+K(P)\succeq 0.
+\]
+Since $\Id_n-P\succeq 0$, one also has
+\[
+K(\Id_n-P)\succeq 0.
+\]
+Using $K(\Id_n)=\theta \Id_n$, this rewrites as
+\[
+\theta \Id_n-K(P)\succeq 0,
+\]
+so
+\[
+0\preceq K(P)\preceq \theta \Id_n.
+\]
+Hence
+\[
+\eta(P)\Id_n
+\preceq
+L(P)
+\preceq
+\eta(P)\Id_n+\theta \Id_n.
+\]
+This is exactly the projection-strip condition \eqref{eq:qot-projection-strip}, with $a_P=\eta(P)$.
+Proposition~\ref{prop:qot-projection-strip} now gives
+\[
+\|L\|_{\varop\to\varop}\le \theta.
+\]
+\end{proof}
+
+\begin{remark}[Why this is weaker than positivity]
+\label{rem:qot-shifted-positive-weaker}
+Proposition~\ref{prop:qot-shifted-positive} isolates a genuinely weaker sufficient condition than positivity of $L$ itself.
+Indeed, the scalar part $\eta(X)\Id_n$ is invisible to the quotient seminorm:
+\[
+\|L(X)\|_{\varop}
+=
+\|K(X)+\eta(X)\Id_n\|_{\varop}
+=
+\|K(X)\|_{\varop}.
+\]
+Thus only the non-scalar component matters for spectral-variation contraction.
+The map $L$ may fail positivity because of the scalar shift, while still satisfying the projection-strip criterion through a positive, sub-unital part $K$.
+For the exact local sweep, this suggests a concrete new target:
+find a decomposition
+\[
+M_F^{-1}N_F P_F^{-1}N_F^\ast
+=
+K_F+\eta_F(\cdot)\Id_n
+\]
+with $K_F$ positive and $K_F(\Id_n)\preceq \theta \Id_n$ uniformly near the fixed point.
+\end{remark}
+
+\begin{proposition}[Projection positivity is full positivity]
+\label{prop:qot-projection-positivity}
+Let $L:\Hh_n\to\Hh_n$ be linear and Hermiticity-preserving.
+The following are equivalent:
+\begin{enumerate}[label=\textnormal{(\roman*)}]
+\item $L(X)\succeq 0$ for every $X\succeq 0$;
+\item $L(P)\succeq 0$ for every orthogonal projection $P$;
+\item $L(uu^\ast)\succeq 0$ for every unit vector $u\in \CC^n$.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+The implication (i)$\Rightarrow$(ii)$\Rightarrow$(iii) is immediate.
+Assume (iii), and let $X\succeq 0$.
+Writing a spectral decomposition,
+\[
+X=\sum_{j=1}^r \lambda_j u_j u_j^\ast
+\qquad
+(\lambda_j\ge 0),
+\]
+linearity gives
+\[
+L(X)=\sum_{j=1}^r \lambda_j L(u_j u_j^\ast).
+\]
+By (iii), each term in the sum is positive semidefinite, hence so is $L(X)$.
+Thus (iii)$\Rightarrow$(i).
+\end{proof}
+
+\begin{remark}[Why Hessian contraction still does not imply projection positivity]
+\label{rem:qot-weighted-spectrum-not-enough}
+Proposition~\ref{prop:qot-projection-positivity} shows that the shortcut
+``$L_F(P)\succeq 0$ for all projections $P$'' is \emph{not} weaker than full positivity of $L_F$ on the PSD cone.
+Therefore projection positivity cannot be deduced merely from spectral information about the superoperator.
+
+Indeed, there exist unital Hermiticity-preserving maps with real spectrum in $[0,1]$ and self-adjointness for some positive definite inner product, yet which are not positive.
+On $\Hh_2$, write
+\[
+X=x_0 \Id_2 + x_1 \sigma_1 + x_2 \sigma_2 + x_3 \sigma_3
+\]
+in the Pauli basis, and define
+\[
+L(\Id_2)=\Id_2,\qquad
+L(\sigma_1)=\sigma_1,\qquad
+L(\sigma_2)=2\sigma_1+\tfrac12\sigma_2,\qquad
+L(\sigma_3)=0.
+\]
+On the traceless subspace this is represented by the real matrix
+\[
+T=
+\begin{pmatrix}
+1 & 2 & 0\\
+0 & \tfrac12 & 0\\
+0 & 0 & 0
+\end{pmatrix},
+\]
+whose spectrum is $\{1,\tfrac12,0\}$.
+Since $T$ is diagonalizable with real eigenvalues, there exists a positive definite matrix $G$ such that
+\[
+GT=T^\top G,
+\]
+so $L$ is self-adjoint for the weighted inner product induced by $G$.
+Nevertheless,
+\[
+\rho \eqdef \frac12(\Id_2+\sigma_2)\succeq 0
+\]
+is a pure state, while
+\[
+L(\rho)=\frac12(\Id_2+2\sigma_1+\tfrac12\sigma_2)
+\]
+has Bloch vector $(2,\tfrac12,0)$ of Euclidean norm $>\!1$, hence is not positive semidefinite.
+So neither unitality, nor real spectrum in $[0,1]$, nor self-adjointness in a weighted metric is sufficient to imply projection positivity or the projection-strip condition.
+\end{remark}
+
+\begin{remark}[Exact local proof target]
+\label{rem:qot-local-proof-target}
+Applied to $L=D\Psi_F(F_\star)$ or $L=D\Psi_G(G_\star)$, Proposition~\ref{prop:qot-local-state-contraction}
+recasts local non-expansiveness of the exact sweep as a pure trace-distance statement on \emph{differences of states}:
+one does not need positivity of the linearized sweep itself, only a bound of the form
+\[
+\bigl\|
+\bigl(D\Psi_F(F_\star)\bigr)^\ast(\rho)
+-
+\bigl(D\Psi_F(F_\star)\bigr)^\ast(\sigma)
+\bigr\|_1
+\le
+\theta \|\rho-\sigma\|_1.
+\]
+Because positivity of $(D\Psi_F(F_\star))^\ast$ appears to fail in the genuinely noncommutative case, this isolates the right weaker target:
+trace-distance contraction on the state simplex, or equivalently on orthogonal state pairs.
+Corollary~\ref{cor:qot-pure-state-reduction} sharpens this one notch further:
+it is enough to test the preadjoint on orthogonal \emph{pure} states.
+Proposition~\ref{prop:qot-effect-test} gives an equivalent primal-side target:
+it is enough to prove that for every quantum effect $0\preceq E\preceq \Id$,
+the explicit local sweep derivative
+\[
+D\Psi_F(F_\star)=M_\star^{-1}N_\star P_\star^{-1}N_\star^\ast
+\]
+maps $E$ to an operator whose spectral spread is at most $1$.
+Equivalently, local non-expansiveness follows from the concrete estimate
+\[
+\lambda_{\max}\!\Bigl(M_\star^{-1}N_\star P_\star^{-1}N_\star^\ast(E)\Bigr)
+-
+\lambda_{\min}\!\Bigl(M_\star^{-1}N_\star P_\star^{-1}N_\star^\ast(E)\Bigr)
+\le 1
+\qquad
+\forall\, 0\preceq E\preceq \Id_n.
+\]
+Corollary~\ref{cor:qot-projection-reduction} sharpens the test class from arbitrary effects to orthogonal projections.
+By contrast, a further reduction from all projections to rank-one projections does \emph{not} follow from the same convexity argument, because the extreme points of the effect set are all projections, not only the rank-one ones.
+Moreover, since spectral diameter is convex rather than affine, decomposing a projection into rank-one projectors does not by itself reduce the maximization to rank one.
+So the next explicit target is now genuinely:
+\[
+\lambda_{\max}\!\Bigl(M_\star^{-1}N_\star P_\star^{-1}N_\star^\ast(P)\Bigr)
+-
+\lambda_{\min}\!\Bigl(M_\star^{-1}N_\star P_\star^{-1}N_\star^\ast(P)\Bigr)
+\le 1
+\qquad
+\forall\, P=P^\ast=P^2.
+\]
+Proposition~\ref{prop:qot-projection-strip} isolates a concrete sufficient route:
+it would be enough to prove that for every projection $P$, the operator
+\[
+M_\star^{-1}N_\star P_\star^{-1}N_\star^\ast(P)
+\]
+lies in some scalar strip of width $1$, i.e. between $a_P\Id_n$ and $a_P\Id_n+\Id_n$.
+Proposition~\ref{prop:qot-shifted-positive} gives a genuinely weaker way to obtain such a strip:
+it is enough to decompose the derivative as a scalar part plus a positive sub-unital map.
+The strongest special case would be projection-positivity:
+\[
+M_\star^{-1}N_\star P_\star^{-1}N_\star^\ast(P)\succeq 0
+\qquad
+\forall\, P=P^\ast=P^2,
+\]
+which, by unitality, would imply the desired contraction immediately.
+However, Proposition~\ref{prop:qot-projection-positivity} shows that this is already equivalent to full positivity on the PSD cone, so it is not a genuinely weaker route.
+Remark~\ref{rem:qot-weighted-spectrum-not-enough} further shows that the currently available Hessian-metric information on the sweep derivative does not suffice to obtain it.
+\end{remark}
+
+\begin{remark}[What this does and does not prove]
+\label{rem:qot-hessian-vs-varop}
+Proposition~\ref{prop:qot-local-hessian-contraction} is a genuine positive result: even if a single block map can be locally expansive in the spectral-variation seminorm, the \emph{full exact sweep} is always locally non-expansive in the Hessian metric induced by the dual objective at a fixed point.
+However, this does \emph{not} yet imply
+\[
+\|D\Psi_F(F_\star)\|_{\varop \to \varop}\le 1
+\]
+or the analogous estimate on the $G$-side.
+The next proposition gives such a comparison under spectral confinement, but the resulting constants remain too crude to force non-expansiveness in full generality.
+
+On the other hand, a direct finite-difference search on random noncommutative $2 \times 2$ instances gives encouraging evidence for the exact sweep in the spectral-variation seminorm itself.
+Across $382$ successful tests with $\gamma \in \{0.2,0.4,0.8,1.5\}$, the largest observed local quotient Lipschitz constant of the sweep stayed below $1$, with a maximal observed value around
+\[
+0.866112.
+\]
+So the present picture is:
+\begin{itemize}[leftmargin=1.5em]
+\item the \emph{single block map} can be locally expansive in $\|\cdot\|_{\varop}$;
+\item the \emph{full sweep} is provably locally non-expansive in the Hessian metric;
+\item the Hessian metric can be compared explicitly to spectral variation under spectral confinement;
+\item and it is numerically plausible, though still unproved, that the full sweep might remain non-expansive in the spectral-variation seminorm itself.
+\end{itemize}
+\end{remark}
+
+\begin{proposition}[Spectral confinement compares the Hessian and quotient norms]
+\label{prop:qot-hessian-vs-varop-bounds}
+Assume that at a fixed point $(F_\star,G_\star)$ one has the spectral confinement
+\[
+a \Id_{nm} \preceq T_\star \preceq b \Id_{nm}
+\qquad \text{for some } 0<a\le b<+\infty.
+\]
+Then for every trace-zero Hermitian $H \in \Hh_n$ and $K \in \Hh_m$,
+\begin{align}
+\frac{am}{\gamma}\|H\|_{\mathrm{HS}}^2
+\le
+\dotp{H}{M_\star H}
+\le
+\frac{bm}{\gamma}\|H\|_{\mathrm{HS}}^2,
+\label{eq:Mstar-HS}\\
+\frac{an}{\gamma}\|K\|_{\mathrm{HS}}^2
+\le
+\dotp{K}{P_\star K}
+\le
+\frac{bn}{\gamma}\|K\|_{\mathrm{HS}}^2.
+\label{eq:Pstar-HS}
+\end{align}
+Consequently,
+\begin{align}
+\frac{2am}{\gamma}\|H\|_{\varop}^2
+\le
+\dotp{H}{M_\star H}
+\le
+\frac{bnm}{\gamma}\|H\|_{\varop}^2,
+\label{eq:Mstar-varop}\\
+\frac{2an}{\gamma}\|K\|_{\varop}^2
+\le
+\dotp{K}{P_\star K}
+\le
+\frac{bnm}{\gamma}\|K\|_{\varop}^2.
+\label{eq:Pstar-varop}
+\end{align}
+Hence the local sweep satisfies the explicit quotient-norm bounds
+\begin{equation}
+\label{eq:qot-local-varop-lipschitz}
+\|D\Psi_F(F_\star)\|_{\varop \to \varop}
+\le
+\sqrt{\frac{bn}{2a}},
+\qquad
+\|D\Psi_G(G_\star)\|_{\varop \to \varop}
+\le
+\sqrt{\frac{bm}{2a}}.
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+For $Z \in \Hh_{nm}$, define
+\[
+\mathcal Q_{X_\star}(Z)
+\eqdef
+\dotp{Z}{\mathcal L_{X_\star}(Z)}
+=
+\int_0^1 \|T_\star^{\frac{1-s}{2}} Z T_\star^{\frac{s}{2}}\|_{\mathrm{HS}}^2\,\mathrm ds.
+\]
+The spectral bounds on $T_\star$ imply
+\[
+a \|Z\|_{\mathrm{HS}}^2
+\le
+\mathcal Q_{X_\star}(Z)
+\le
+b \|Z\|_{\mathrm{HS}}^2.
+\]
+Taking $Z=H \otimes \Id_m/\sqrt{\gamma}$ gives
+\[
+\dotp{H}{M_\star H}
+=
+\frac1\gamma \mathcal Q_{X_\star}(H \otimes \Id_m)
+\]
+and
+\[
+\|H \otimes \Id_m\|_{\mathrm{HS}}^2
+=
+m\|H\|_{\mathrm{HS}}^2,
+\]
+which yields \eqref{eq:Mstar-HS}. The proof of \eqref{eq:Pstar-HS} is identical.
+Now on the trace-zero slice,
+\[
+\sqrt{2}\,\|H\|_{\varop}\le \|H\|_{\mathrm{HS}}\le \sqrt{n}\,\|H\|_{\varop},
+\]
+and similarly
+\[
+\sqrt{2}\,\|K\|_{\varop}\le \|K\|_{\mathrm{HS}}\le \sqrt{m}\,\|K\|_{\varop}.
+\]
+Indeed, if $\lambda_1,\dots,\lambda_n$ are the eigenvalues of a trace-zero Hermitian matrix $H$, then
+\[
+\|H\|_{\mathrm{HS}}^2=\sum_i \lambda_i^2
+\ge \lambda_{\max}^2+\lambda_{\min}^2
+\ge \frac{(\lambda_{\max}-\lambda_{\min})^2}{2}
+= 2\|H\|_{\varop}^2,
+\]
+while Popoviciu's inequality for zero-mean variables in an interval of length $2\|H\|_{\varop}$ gives
+\[
+\frac{1}{n}\sum_i \lambda_i^2 \le \|H\|_{\varop}^2.
+\]
+The proof for $K$ is identical.
+Combining these inequalities with \eqref{eq:Mstar-HS}--\eqref{eq:Pstar-HS} gives \eqref{eq:Mstar-varop}--\eqref{eq:Pstar-varop}.
+Finally, Proposition~\ref{prop:qot-local-hessian-contraction} gives contraction in the $M_\star$- and $P_\star$-norms, and the norm comparison above transfers it to the quotient norm with constants \eqref{eq:qot-local-varop-lipschitz}.
+\end{proof}
+
+\begin{remark}[The comparison is explicit but still crude]
+\label{rem:qot-varop-comparison-crude}
+The estimate \eqref{eq:qot-local-varop-lipschitz} is stronger than the previous draft, but it is not yet enough to prove spectral-variation non-expansiveness except in extremely rigid situations.
+Even when $b/a \approx 1$, the dimensional factor $\sqrt{n/2}$ (or $\sqrt{m/2}$) remains.
+So the present comparison is best viewed as a bridge between the exact Hessian-metric contraction and the desired quotient-operator geometry, not as the final sharp estimate.
+\end{remark}
+
+\begin{proposition}[Local Loewner monotonicity would force a positive derivative]
+\label{prop:qot-local-monotone-derivative}
+Let $T:\Hh_n \to \Hh_n$ be Fr\'echet differentiable at $X_\star$.
+If $T$ is Loewner monotone in a neighborhood of $X_\star$, then for every $H \succeq 0$ one has
+\[
+DT(X_\star)[H] \succeq 0.
+\]
+\end{proposition}
+
+\begin{proof}
+For $H \succeq 0$ and $\eps>0$ small enough, Loewner monotonicity gives
+\[
+T(X_\star+\eps H)-T(X_\star)\succeq 0.
+\]
+Dividing by $\eps$ and sending $\eps \downarrow 0$ yields the claim.
+\end{proof}
+
+\begin{remark}[A serious noncommutative obstruction to the monotone-map route]
+\label{rem:qot-sweep-not-locally-monotone}
+Proposition~\ref{prop:qot-loewner-varop} shows that a Loewner-monotone and translation-equivariant exact sweep would immediately imply the desired spectral-variation contraction.
+So a natural hope is that the noncommutative sweep might still enjoy such a property, even though the raw exponential coupling does not.
+However, a dedicated numerical search around exact fixed points suggests that this route genuinely fails in the noncommutative setting.
+
+More precisely, for a $2\times 2$ exact Q-OT instance with $\gamma=0.2$, a fixed point $F_\star$ of $\Psi_F$, and a PSD direction $H \succeq 0$, the finite-difference derivative
+\[
+\frac{\Psi_F(F_\star+\eps H)-\Psi_F(F_\star)}{\eps}
+\]
+has a negative eigenvalue of size approximately $-1.57\times 10^{-2}$ for $\eps=10^{-4}$.
+By Proposition~\ref{prop:qot-local-monotone-derivative}, this rules out local Loewner monotonicity of the exact sweep at that point.
+
+So the present diagnosis is now sharper:
+\begin{itemize}[leftmargin=1.5em]
+\item in the commuting/diagonal case, order is the right explanation and yields exact contraction;
+\item in the genuinely noncommutative case, the Hilbert--Schmidt comparison is too crude;
+\item but the monotone-map route also appears to fail locally, so the eventual proof must use a subtler structural property of the sweep than plain Loewner monotonicity.
+\end{itemize}
+\end{remark}
+
+\begin{proposition}[The raw coupling map is not Loewner monotone]
+\label{prop:qot-raw-not-monotone}
+There exists an exact entropic Q-OT instance with $n=m=2$, $\gamma=1$, $Z=\Id_4$, a positive semidefinite cost $C \in \Hh_{4,+}$, and a positive semidefinite increment $\Delta G \in \Hh_{2,+}$ such that
+\[
+\Delta G \succeq 0
+\qquad\text{but}\qquad
+T(0,\Delta G)-T(0,0)\not\succeq 0.
+\]
+Hence the map $G \mapsto T(F,G)$ is not Loewner monotone in full noncommutative generality.
+\end{proposition}
+
+\begin{proof}
+Take
+\[
+C=
+\begin{pmatrix}
+ 1.810947 & -0.638479 &  0.065926 &  1.385146 \\
+-0.638479 &  0.855834 &  0.439623 &  0.009170 \\
+ 0.065926 &  0.439623 &  1.022433 & -0.072201 \\
+ 1.385146 &  0.009170 & -0.072201 &  2.099198
+\end{pmatrix}
+\]
+whose eigenvalues are approximately
+\[
+0.053205,\ 0.896734,\ 1.416739,\ 3.421734,
+\]
+so $C \succeq 0$, and let
+\[
+\Delta G=
+\begin{pmatrix}
+ 0.313425 & -0.444257 \\
+-0.444257 &  1.164827
+\end{pmatrix}
+\]
+whose eigenvalues are approximately $0.123833$ and $1.354419$, so $\Delta G \succeq 0$.
+Set $L \eqdef 2\Id_4-C$. Then
+\[
+T(0,0)=e^{-C}=e^{-2}e^L,
+\qquad
+T(0,\Delta G)=e^{-C+\Id_2\otimes \Delta G}=e^{-2}e^{L+\Id_2\otimes \Delta G}.
+\]
+A direct eigenvalue computation gives
+\[
+\lambda_{\min}\!\bigl(e^{L+\Id_2\otimes \Delta G}-e^L\bigr)\approx -0.066253<0,
+\]
+hence
+\[
+\lambda_{\min}\!\bigl(T(0,\Delta G)-T(0,0)\bigr)\approx -0.008966<0.
+\]
+Therefore $T(0,\Delta G)-T(0,0)$ is not positive semidefinite.
+\end{proof}
+
+\begin{remark}[What the obstruction means]
+\label{rem:qot-raw-monotone-obstacle}
+Proposition~\ref{prop:qot-raw-not-monotone} does \emph{not} disprove non-expansiveness of the implicit block maps $\Phi_1,\Phi_2$ or of the exact sweeps $\Psi_F,\Psi_G$.
+What it does show is that the scalar proof strategy cannot be transplanted literally: the first order-theoretic step already fails for the raw exponential coupling map.
+So if the exact sweep is non-expansive in spectral variation, the proof will have to use a subtler metric or a subtler operator inequality than bare Loewner monotonicity of $T(F,G)$.
+\end{remark}
+
+\begin{proposition}[Commuting diagonal case]
+\label{prop:qot-commuting-contract}
+In the fully commuting case where $Z,C,A,B$ are diagonal in a common tensor-product basis, the exact block equations reduce to the scalar Sinkhorn equations.
+On this diagonal subalgebra, the exact sweep maps are non-expansive for the seminorm $\|\cdot\|_{\varop}$.
+\end{proposition}
+
+\begin{proof}
+Write
+\[
+K_{ij}=\exp((\log Z-C/\gamma)_{ij}),\qquad A=\mathrm{diag}(a_i),\qquad G=\mathrm{diag}(g_j).
+\]
+Then
+\[
+(\Phi_1(G))_{ii}
+=
+\gamma \log a_i
+-\gamma \log \sum_j K_{ij} e^{g_j/\gamma},
+\]
+and similarly for $\Phi_2$.
+So on the diagonal algebra one recovers exactly the classical Sinkhorn block maps.
+The classical topical-map argument therefore yields non-expansiveness of the scalar sweep in variation seminorm.
+Since
+\[
+\| \mathrm{diag}(f)\|_{\varop}
+=
+\frac{\max_i f_i-\min_i f_i}{2},
+\]
+this is exactly the seminorm \eqref{eq:spectral-variation} restricted to diagonal matrices.
+\end{proof}
+
+\section{Where the exact KL-projection blueprint still breaks}
+
+The exact route now fits the \emph{formal} general-Bregman template rather well:
+\begin{enumerate}[label=\textnormal{(\roman*)}]
+\item the primal object is a genuine Bregman projection problem;
+\item the exact dual is concave and the block maps are exact implicit maximizers;
+\item the primal norm / dual norm pairing is naturally Schatten-$1$ versus operator norm;
+\item the generalized Pinsker constant appears to be $\eta_\gamma=1/(2X_\gamma)$ on the fixed-trace slice;
+\item the decomposition constant entering the one-block blueprint satisfies $\kappa_{\rm q}\le 1$;
+\item conditionally on spectral-variation non-expansiveness of the exact sweep and on finiteness of $H_\gamma^{\rm q}$, the abstract dual-boundedness step goes through with dimension-free $\kappa_{\rm q}$.
+\end{enumerate}
+So the remaining issues are more specific.
+
+\paragraph{Status before the remaining obstacles.}
+Propositions~\ref{prop:qot-blueprint-dictionary} and \ref{prop:qot-blueprint-checklist} show that the generic theorem is now fully specialized on the variational side.
+Theorem~\ref{thm:qot-global-proof-status} shows that the full exact blueprint is now reduced to two analytic inputs:
+\begin{enumerate}[label=\textnormal{(\alph*)}]
+\item a proof that the exact sweep is non-expansive in $\|\cdot\|_{\varop}$ (or any equivalent orbit-confinement statement);
+\item a proof that $H_\gamma^{\rm q}$ is finite, or any alternative direct fixed-point bound.
+\end{enumerate}
+Theorem~\ref{thm:qot-concrete-global-route} shows one concrete way these two inputs would be verified simultaneously: prove a global scalar-shifted positive structure for the sweep derivative and a spectral lower bound on $T_\gamma$.
+Theorem~\ref{thm:qot-global-from-pair-bound} gives another strong route: a global pair quotient bound on a maximizer is now enough to produce the spectral lower bound and hence the full fixed-point side explicitly.
+Theorem~\ref{thm:qot-local-proof-status} gives the corresponding local statement with all constants explicit on a neighborhood of a fixed point.
+So the remaining issues are no longer about identifying the right constants, but only about proving the last operator-theoretic and spectral inputs.
+
+\paragraph{Obstacle 1: exact control of $H_\gamma^{\rm q}$.}
+The trace constraint controls only the top eigenvalue of $T_\gamma$.
+To control $\log T_\gamma$ in operator norm one needs a lower bound on $\lambda_{\min}(T_\gamma)$.
+This must come from the exact optimality system in a spectral, not entrywise, way.
+Proposition~\ref{prop:qot-alpha-from-dual} now gives one half of this story: any quotient dual bound on $(F_\gamma,G_\gamma)$ immediately yields a lower spectral bound on $T_\gamma$.
+So the remaining difficulty on the fixed-point side is no longer to invent the bridge, but rather to obtain a usable quotient dual bound in the first place.
+
+\paragraph{Obstacle 2: quotient non-expansiveness.}
+In the scalar theory, monotonicity plus translation equivariance implies non-expansiveness in variation seminorm because the order is a lattice order on vectors.
+For Hermitian matrices, Loewner order is \emph{not} a lattice, and the quotient norm \eqref{eq:quotient-pair} is not obviously controlled by simple order intervals.
+So PSD/Loewner monotonicity alone is unlikely to be enough.
+
+\paragraph{A first disproof at the level of a single block map.}
+The linearization formula \eqref{eq:DPhi1} shows that the right local quantity is the operator norm of $-\mathcal M_G^{-1}\mathcal N_G$ on the quotient space.
+A direct numerical search on $2 \times 2$ blocks with $\gamma=0.8$ found Hermitian data for which the local spectral-variation Lipschitz constant of $\Phi_1$ is about
+\[
+\|D\Phi_1(G_0)\|_{\varop \to \varop} \approx 3.371588 > 1.
+\]
+More precisely, for an explicit quadruple $(C,A,G_0,Y)$ and perturbation direction $Y$ normalized by $\|Y\|_{\varop}=1$, the finite-difference quotients
+\[
+\frac{\|\Phi_1(G_0+\eps Y)-\Phi_1(G_0-\eps Y)\|_{\varop}}{2\eps}
+\]
+stabilize near $3.371588$ for $\eps$ between $10^{-3}$ and $5 \cdot 10^{-5}$.
+This is strong evidence that the \emph{individual} block map $\Phi_1$ is \emph{not} universally non-expansive in the spectral variation seminorm.
+What remains open is whether the \emph{sweep} $\Phi_2 \circ \Phi_1$ could still enjoy a non-expansiveness property in some quotient operator geometry.
+
+\paragraph{Obstacle 3: what replaces the topical-map argument.}
+The best candidate replacements seem to be:
+\begin{itemize}[leftmargin=1.5em]
+\item a projection-strip bound for the exact local derivative $D\Psi_F(F)$;
+\item a scalar-shifted positive decomposition
+\[
+D\Psi_F(F)=K_F+\eta_F(\cdot)\Id_n
+\]
+with $K_F$ positive and sub-unital;
+\item or a direct strong-concavity / cocoercivity estimate for the exact block maps in the quotient operator norm.
+\end{itemize}
+At the moment, I do not see a clean argument showing that Loewner monotonicity alone implies non-expansiveness for \eqref{eq:quotient-pair}, but Corollaries~\ref{cor:qot-local-projection-strip-blueprint} and \ref{cor:qot-local-shifted-positive-blueprint} make the exact missing estimate very concrete.
+
+\paragraph{Obstacle 4: exact block solves versus explicit formulas.}
+There is still no closed form for the exact $\Phi_1,\Phi_2$ maps, but this is secondary.
+The general-Bregman theorem does not truly require explicit formulas; it requires exact block solves and quantitative control of the sweep.
+So the real bottleneck is not ``closed form or not'', but rather ``which noncommutative metric/order makes the sweep tame''.
+
+\section{Short next-step list}
+
+The next useful version of the draft should try to establish, in this order:
+\begin{enumerate}[label=\textnormal{(\arabic*)}]
+\item a spectral bound on $H_\gamma^{\rm q}$ from lower/upper operator bounds on $C$ and the marginals;
+\item a projection-strip or scalar-shifted positivity estimate for
+\[
+D\Psi_F(F)=M_F^{-1}N_F P_F^{-1}N_F^\ast
+\]
+on a neighborhood of a fixed point;
+\item a globalization argument turning the local contraction/confinement theorem into a global one;
+\item a direct spectral proof of the fixed-point bound that bypasses $H_\gamma^{\rm q}$ altogether.
+\end{enumerate}
+
+\begin{remark}[Surrogate route kept only as background]
+The surrogate/operator-scaling route from the separate quantum draft may still be useful as a comparison point or as a source of metric ideas, but it should not replace the exact variational object in the present draft.
+\end{remark}
+
+\end{document}

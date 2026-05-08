@@ -4,10 +4,10 @@ Flow-based Sinkhorn algorithm for W1 optimal transport on graphs.
 This module implements the Sinkhorn-flow algorithm for approximating the
 Wasserstein-1 distance on a graph using entropic regularization.
 
-References
-----------
-Gabriel Peyré, "Robust Sublinear Convergence Rates for Iterative Bregman
-Projections on Affine Spaces", arXiv preprint, 2026.
+Reference
+---------
+Gabriel Peyre, "Robust Sublinear Convergence Rates for Iterative Bregman
+Projections", preprint, 2026.
 """
 
 import numpy as np

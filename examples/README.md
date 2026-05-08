@@ -14,7 +14,7 @@ Main demonstration notebook showcasing:
   - Dense implementation for small/dense graphs
   - Sparse implementation for large sparse graphs
 - **Convergence analysis**: Monitoring error evolution over iterations
-- **Regularization study**: Effect of the epsilon parameter
+- **Regularization study**: Effect of the regularization parameter
 - **Visualization**: Flow patterns on graphs
 
 ### `mesh.ipynb`
@@ -27,8 +27,8 @@ Advanced 3D mesh example demonstrating:
 - **Source/sink selection**: Automatic selection based on geometry (top/bottom vertices)
 - **Exact transport**: Computing optimal flow using CVXPY
 - **Flow Sinkhorn**: Comparing results with different regularization levels:
-  - Large ε for faster, more diffuse flows
-  - Small ε for accurate, sparse flows
+  - Large γ for faster, more diffuse flows
+  - Small γ for accurate, sparse flows
 - **Flow visualization**: Displaying transport paths on 3D mesh
 - **Performance comparison**: Timing and accuracy analysis
 
@@ -44,8 +44,8 @@ This example uses the `data/moomoo.off` mesh file and showcases optimal transpor
 - **Corner-to-corner transport**: Source at top-left, sink at bottom-right
 - **Exact transport**: Computing optimal paths using CVXPY
 - **Flow Sinkhorn**: Comparing results with different regularization levels:
-  - Large ε for diffuse, multi-path flows
-  - Small ε for sparse, concentrated paths
+  - Large γ for diffuse, multi-path flows
+  - Small γ for sparse, concentrated paths
 - **2D flow visualization**: Line thickness proportional to flow intensity
 - **Heatmap overlays**: Cost field visualization with flow paths
 
@@ -88,9 +88,7 @@ For GPU acceleration (gpu-benchmark.ipynb):
 
 ### Google Colab
 
-Click the badge in the main README to open directly in Colab:
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gpeyre/flow-sinkhorn/blob/main/examples/planar-graph.ipynb)
+For supplementary use, upload the supplementary archive to Colab and run notebooks from the extracted `examples/` folder.
 
 ## Dependencies
 

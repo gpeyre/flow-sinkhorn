@@ -1,0 +1,165 @@
+\begin{tikzpicture}[x=1mm,y=-1mm,
+  font=\scriptsize,
+  boxblue/.style={draw=none,rounded corners=1.1mm,fill=blue!28,inner sep=.75mm,align=center,text=blue!45!black},
+  boxgray/.style={draw=black!70,rounded corners=1.9mm,fill=gray!18,line width=.55pt,inner sep=.75mm,align=center,text=black},
+  boxred/.style={draw=none,rounded corners=1.8mm,fill=red!23,inner sep=.8mm,align=center,text=black},
+  boxorange/.style={draw=none,rounded corners=1.8mm,fill=orange!20,inner sep=.8mm,align=center,text=black},
+  bluearr/.style={-{Stealth[length=2.30mm,width=1.80mm]},blue!58,line width=.82pt},
+  redarr/.style={-{Stealth[length=2.30mm,width=1.80mm]},red!55,line width=.82pt},
+  header/.style={font=\bfseries\normalsize,text=green!42!black,align=center},
+  helper/.style={font=\bfseries\normalsize,align=center}
+]
+\path[use as bounding box] (0,0) rectangle (160,90);
+
+% Background regions with mirrored left-to-right flow.
+\begin{scope}[on background layer]
+  \fill[green!17,rounded corners=9mm] (132.8,.0) rectangle (159.7,18.7);
+  \fill[yellow!25,rounded corners=9mm] (73.8,.0) rectangle (132.4,21.4);
+  \fill[cyan!17,rounded corners=8mm] (40.6,21.6) rectangle (85.0,62.3);
+  \fill[green!17,rounded corners=9mm] (0,.0) rectangle (40.0,50.4);
+  \fill[red!15,rounded corners=12mm] (97.3,53.0) rectangle (160.0,90.0);
+  \fill[orange!18,rounded corners=10mm] (0.0,64.5) rectangle (97.3,90.0);
+\end{scope}
+
+% Region titles.
+\node[header,anchor=north east,text width=26.0mm,font=\bfseries\small] at (158.4,1.2) {Specific for KL};
+\node[helper,text=yellow!55!black,anchor=north,text width=42mm] at (103.2,1.1) {Primal bound helper};
+\node[helper,text=teal!70!black,anchor=north,text width=36mm] at (63.0,23.1) {Dual bound helper};
+\node[header,anchor=north west,text width=14.8mm] at (2.6,1.5) {Specific\\for $W_1$};
+\node[font=\bfseries\normalsize,text=red!72!black] at (130.5,86.5) {Main results};
+\node[font=\bfseries\normalsize,text=orange!70!black] at (51.0,86.6) {Non-expansiveness helpers};
+
+% KL and primal helper.
+\node[boxgray,text width=18.9mm,minimum width=20.0mm,minimum height=9.2mm] (pinsker) at (147.0,11.2) {Lemma~\ref{app-lem:pinsker-nonnormalized}\\$\eta_\gamma=1/(2X_\gamma)$};
+\node[boxblue,text width=18.8mm,minimum width=20.0mm,minimum height=9.0mm] (dphi) at (146.5,44.1) {$D_\phi<=\eta_\gamma\lvert\cdot\rvert^2$};
+\node[boxgray,text width=28.2mm,minimum width=29.6mm,minimum height=12.0mm] (prop41) at (114.8,12.8) {Prop.~\ref{prop:mass-bound-block}\\[-.4mm]$X_\gamma=\dfrac{\lVert b\rVert_1U_\gamma}{\gamma}+de^{-C_{\min}/\gamma}$};
+\node[boxblue,text width=24.0mm,minimum width=24.4mm,minimum height=7.1mm] (xbound) at (131.6,32.2) {$\lVert x^{(k)}\rVert_1\leq X_\gamma$};
+\node[boxblue,text width=15.8mm,minimum width=16.8mm,minimum height=7.1mm] (ubound) at (109.4,32.2) {$\lVert u^{(k)}\rVert_\infty\leq U_\gamma$};
+\node[boxblue,text width=14.6mm,minimum width=15.6mm,minimum height=6.4mm] (cminineq) at (84.8,13.0) {$C_i\geq C_{\min}$};
+\node[boxblue,text width=16.2mm,minimum width=17.6mm,minimum height=7.2mm] (abound) at (95.9,45.7) {$\lvert A\rvert_{1\to1}$ bound};
+
+% Main-result panel.
+\node[boxgray,text width=12.2mm,minimum width=13.5mm,minimum height=6.4mm] (thm32) at (139.6,60.8) {Thm~\ref{thm:approx-linprog}};
+\node[boxred,text width=22.5mm,minimum width=23.5mm,minimum height=11.6mm] (eps) at (146.5,73.3) {$\Delta_k=O(\varepsilon)$\\[.7mm]$k=O(M_\gamma X_0/\varepsilon^2)$};
+\node[boxgray,text width=12.5mm,minimum width=13.4mm,minimum height=6.4mm] (thm31) at (112.7,60.8) {Thm~\ref{thm:kl-dual-rate}};
+\node[boxred,text width=28.0mm,minimum width=29.5mm,minimum height=11.8mm] (deltak) at (117.0,73.3) {$\Delta_k=O(M_\gamma/\gamma k)$\\[.7mm]$M_\gamma:=2U_\gamma^2\lvert A\rvert_{1\to1}^{2}/\eta_\gamma$};
+
+% Dual-bound helper.
+\node[boxblue,text width=25.0mm,minimum width=26.0mm,minimum height=6.4mm] (logbound) at (61.5,31.7) {$\lvert\log(x_\gamma/z)\rvert_\infty\leq H_\gamma$};
+\node[boxgray,text width=25.2mm,minimum width=26.5mm,minimum height=9.6mm] (prop42) at (61.3,44.0) {Prop.~\ref{prop:uniform-iter-final}\\$U_\gamma=2\kappa(\lvert C\rvert_\infty+\gamma H_\gamma)$};
+\node[boxblue,text width=20.0mm,minimum width=21.0mm,minimum height=8.9mm] (psiNE) at (71.5,58.0) {$\Psi$\\non-expansive};
+\node[boxblue,text width=15.6mm,minimum width=16.5mm,minimum height=8.9mm] (kappa) at (50.8,58.0) {$\kappa(A_1,A_2)$\\def.~\eqref{eq:kappa}};
+
+% Non-expansiveness helper (light-orange panel).
+\node[boxgray,text width=13.4mm,minimum width=14.5mm,minimum height=6.4mm] (propG1) at (88.4,74.7) {Prop.~\ref{app-prop:topical-nonexpansive}};
+\node[boxblue,text width=24.5mm,minimum width=25.4mm,minimum height=6.5mm] (psimono) at (62.4,69.4) {$\Psi$ monotone};
+\node[boxblue,text width=25.0mm,minimum width=25.5mm,minimum height=6.6mm] (psitrans) at (62.4,80.2) {$\Psi(x+\mathbf{1})=\Psi(x)+\mathbf{1}$};
+\node[boxgray,text width=13.6mm,minimum width=14.6mm,minimum height=6.5mm] (propG2) at (36.3,69.2) {Prop.~\ref{app-prop:block-monotone}};
+\node[boxgray,text width=13.6mm,minimum width=14.6mm,minimum height=6.5mm] (propG3) at (36.3,80.2) {Prop.~\ref{app-prop:translation-equivariance}};
+\node[boxblue,text width=16.0mm,minimum width=17.0mm,minimum height=6.7mm] (sigma) at (14.5,69.4) {$\Sigma$-signature};
+\node[boxblue,text width=16.0mm,minimum width=17.0mm,minimum height=6.7mm] (taub) at (14.5,80.2) {$\tau$-balance};
+
+% W1 panel.
+\node[boxgray,text width=15.2mm,minimum width=16.5mm,minimum height=7.8mm] (wmin) at (27.2,5.5) {$C_{\min}=W_{\min}$};
+\node[boxgray,text width=15.4mm,minimum width=16.6mm,minimum height=7.8mm] (aone) at (27.2,14.7) {$\lvert A\rvert_{1\to1}=1$};
+\node[boxgray,text width=30.9mm,minimum width=32.5mm,minimum height=9.9mm] (propF5) at (19.7,25.0) {Prop.~\ref{app-prop:hgamma-graphw1}\\$H_\gamma=\log(\cdots/W_{\min})+2W_{\max}/\gamma$};
+\node[boxgray,text width=25.2mm,minimum width=26.5mm,minimum height=8.5mm] (propF6) at (19.7,36.2) {Prop.~\ref{app-prop:kappa-graph-diameter}\\$\kappa=2\operatorname{diam}(E)$};
+\node[boxgray,text width=16.0mm,minimum width=17.0mm,minimum height=7.0mm] (sigmaid) at (27.2,45.0) {$\Sigma=(\mathrm{Id},-\mathrm{Id})$};
+\node[boxgray,text width=10.8mm,minimum width=12.2mm,minimum height=7.0mm] (tauplus) at (9.0,45.0) {$\tau=+1$};
+
+% Edge coordinates: arrows attach to the side facing their source/target after mirroring.
+% KL / primal-bound helper anchors.
+\coordinate (cminE) at ($(cminineq.north east)!0.50!(cminineq.south east)$);
+\coordinate (prop41W) at ($(prop41.north west)!0.50!(prop41.south west)$);
+\coordinate (prop41Sleft) at ($(prop41.south west)!0.34!(prop41.south east)$);
+\coordinate (prop41Sright) at ($(prop41.south west)!0.66!(prop41.south east)$);
+\coordinate (xboundN) at ($(xbound.north west)!0.50!(xbound.north east)$);
+\coordinate (xboundS) at ($(xbound.south west)!0.58!(xbound.south east)$);
+\coordinate (uboundN) at ($(ubound.north west)!0.50!(ubound.north east)$);
+\coordinate (uboundS) at ($(ubound.south west)!0.50!(ubound.south east)$);
+\coordinate (uboundW) at ($(ubound.north west)!0.55!(ubound.south west)$);
+\coordinate (dphiS) at ($(dphi.south west)!0.45!(dphi.south east)$);
+\coordinate (thm31E) at ($(thm31.north east)!0.42!(thm31.south east)$);
+\coordinate (thm31Nleft) at ($(thm31.north west)!0.25!(thm31.north east)$);
+\coordinate (thm31Nmid) at ($(thm31.north west)!0.50!(thm31.north east)$);
+\coordinate (thm31Nright) at ($(thm31.north west)!0.75!(thm31.north east)$);
+\coordinate (aboundN) at ($(abound.north west)!0.50!(abound.north east)$);
+\coordinate (aboundS) at ($(abound.south west)!0.55!(abound.south east)$);
+\coordinate (thm32W) at ($(thm32.north west)!0.55!(thm32.south west)$);
+\coordinate (deltakNE) at ($(deltak.north west)!0.78!(deltak.north east)$);
+
+% Dual-bound helper anchors.
+\coordinate (logS) at ($(logbound.south west)!0.50!(logbound.south east)$);
+\coordinate (logW) at ($(logbound.north west)!0.52!(logbound.south west)$);
+\coordinate (prop42N) at ($(prop42.north west)!0.50!(prop42.north east)$);
+\coordinate (prop42E) at ($(prop42.north east)!0.52!(prop42.south east)$);
+\coordinate (prop42Sleft) at ($(prop42.south west)!0.36!(prop42.south east)$);
+\coordinate (prop42Sright) at ($(prop42.south west)!0.70!(prop42.south east)$);
+\coordinate (psiNEN) at ($(psiNE.north west)!0.55!(psiNE.north east)$);
+\coordinate (psiNES) at ($(psiNE.south west)!0.55!(psiNE.south east)$);
+\coordinate (kappaN) at ($(kappa.north west)!0.50!(kappa.north east)$);
+\coordinate (kappaW) at ($(kappa.north west)!0.50!(kappa.south west)$);
+
+% Non-expansiveness helper anchors, left-to-right inside the orange panel.
+\coordinate (sigmaE) at ($(sigma.north east)!0.50!(sigma.south east)$);
+\coordinate (taubE) at ($(taub.north east)!0.50!(taub.south east)$);
+\coordinate (sigmaN) at ($(sigma.north west)!0.45!(sigma.north east)$);
+\coordinate (taubN) at ($(taub.north west)!0.50!(taub.north east)$);
+\coordinate (propG2W) at ($(propG2.north west)!0.50!(propG2.south west)$);
+\coordinate (propG3W) at ($(propG3.north west)!0.50!(propG3.south west)$);
+\coordinate (propG2E) at ($(propG2.north east)!0.50!(propG2.south east)$);
+\coordinate (propG3E) at ($(propG3.north east)!0.50!(propG3.south east)$);
+\coordinate (psimonoW) at ($(psimono.north west)!0.50!(psimono.south west)$);
+\coordinate (psitransW) at ($(psitrans.north west)!0.50!(psitrans.south west)$);
+\coordinate (psimonoE) at ($(psimono.north east)!0.50!(psimono.south east)$);
+\coordinate (psitransE) at ($(psitrans.north east)!0.50!(psitrans.south east)$);
+\coordinate (propG1Wupper) at ($(propG1.north west)!0.35!(propG1.south west)$);
+\coordinate (propG1Wlower) at ($(propG1.north west)!0.67!(propG1.south west)$);
+\coordinate (propG1N) at ($(propG1.north west)!0.45!(propG1.north east)$);
+
+% W1-instantiation anchors.
+\coordinate (wminE) at ($(wmin.north east)!0.60!(wmin.south east)$);
+\coordinate (wminW) at ($(wmin.north west)!0.60!(wmin.south west)$);
+\coordinate (aoneW) at ($(aone.north west)!0.50!(aone.south west)$);
+\coordinate (aoneE) at ($(aone.north east)!0.50!(aone.south east)$);
+\coordinate (propF5E) at ($(propF5.north east)!0.52!(propF5.south east)$);
+\coordinate (propF5Nleft) at ($(propF5.north west)!0.28!(propF5.north east)$);
+\coordinate (propF6E) at ($(propF6.north east)!0.50!(propF6.south east)$);
+\coordinate (propF6S) at ($(propF6.south west)!0.78!(propF6.south east)$);
+\coordinate (sigmaidS) at ($(sigmaid.south west)!0.45!(sigmaid.south east)$);
+\coordinate (tauS) at ($(tauplus.south west)!0.50!(tauplus.south east)$);
+
+% Blue arrows: local proof inputs point into the propositions they support.
+\draw[bluearr] (cminE) -- (prop41W);
+\draw[bluearr] (uboundN) -- (prop41Sleft);
+\draw[bluearr] (xboundS) -- (thm31Nright);
+\draw[bluearr] (uboundS) -- (thm31Nmid);
+\draw[bluearr] (aboundS) -- (thm31Nleft);
+\draw[bluearr] (dphiS) -- (thm31E);
+\draw[bluearr] (deltakNE) -- (thm32W);
+\draw[bluearr] (logS) -- (prop42N);
+\draw[bluearr] (psiNEN) -- (prop42Sright);
+\draw[bluearr] (kappaN) -- (prop42Sleft);
+\draw[bluearr] (sigmaE) -- (propG2W);
+\draw[bluearr] (taubE) -- (propG3W);
+\draw[bluearr] (psimonoE) -- (propG1Wupper);
+\draw[bluearr] (psitransE) -- (propG1Wlower);
+\draw[bluearr] (wmin.south west) to[out=230,in=102,looseness=.92] (propF5Nleft);
+
+% Red arrows: instantiated propositions feed the corresponding helper quantities and final rates.
+\draw[redarr] (pinsker.south) -- (dphi.north);
+\draw[redarr] (prop41Sright) -- (xboundN);
+\draw[redarr] (thm32.south) -- (eps.north);
+\draw[redarr] (thm31.south) -- (deltak.north);
+\draw[redarr] (wminE) -- (cminineq.west);
+\draw[redarr] (aoneE) to[out=0,in=105] (abound.north);
+\draw[redarr] (propF5E) -- (logW);
+\draw[redarr] (prop42E) -- (uboundW);
+\draw[redarr] (propF6E) -- (kappaW);
+\draw[redarr] (sigmaidS) -- (sigmaN);
+\draw[redarr] (tauS) -- (taubN);
+\draw[redarr] (propG1N) -- (psiNES);
+\draw[redarr] (propG2E) -- (psimonoW);
+\draw[redarr] (propG3E) -- (psitransW);
+
+\end{tikzpicture}

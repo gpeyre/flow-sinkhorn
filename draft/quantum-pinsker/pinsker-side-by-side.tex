@@ -1,0 +1,56 @@
+\documentclass[11pt,varwidth=18cm,border=2pt]{standalone}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{graphicx}
+\usepackage{microtype}
+
+\DeclareMathOperator{\Tr}{Tr}
+\newcommand{\KL}{\operatorname{KL}}
+
+\begin{document}
+
+\noindent
+\setlength{\abovedisplayskip}{0.25em}
+\setlength{\belowdisplayskip}{0.25em}
+
+\begin{minipage}[c]{11.4cm}
+\raggedright
+\normalsize
+\[
+\renewcommand{\arraystretch}{1.5}
+\begin{array}{@{}r@{\qquad}l@{}}
+\textbf{Classical}
+&
+\begin{aligned}[t]
+\KL(p\|q) &:= \sum_i p_i \log\!\frac{p_i}{q_i}
+\\
+|x|_1 &:= \sum_i |x_i|
+\\
+\KL(p\|q) &\ge \frac12\,|p-q|_1^2
+\end{aligned}
+\\[0.8em]
+\textbf{Quantum}
+&
+\begin{aligned}[t]
+\KL(P\|Q) &:= \Tr\!\bigl(P(\log P-\log Q)\bigr)
+\\
+|X|_* &:= |\operatorname{svd}(X)|_1
+\\
+\KL(P\|Q) &\ge \frac12\,|P-Q|_*^2
+\end{aligned}
+\end{array}
+\]
+\end{minipage}
+\hspace{0.55cm}
+\begin{minipage}[c]{4.5cm}
+\centering
+\includegraphics[width=\linewidth]{mark-pinsker-face.jpg}
+
+\vspace{0.4em}
+{\small\bfseries M.\ Pinsker}
+\end{minipage}
+
+\end{document}

@@ -1,0 +1,5 @@
+import FlowSinkhorn.KLProjection.Legacy.Foundation
+import FlowSinkhorn.KLProjection.Legacy.Section2Duality
+import FlowSinkhorn.KLProjection.Legacy.Section3
+import FlowSinkhorn.KLProjection.Legacy.Section4
+import FlowSinkhorn.KLProjection.Applications

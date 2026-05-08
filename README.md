@@ -4,14 +4,16 @@
   <img src="logo/flow-sinkhorn.jpg" alt="Flow Sinkhorn logo" width="60%">
 </p>
 
-This repository contains the reference implementation of the **Flow Sinkhorn** algorithm for computing approximate Wasserstein-1 distances on graphs.
+This repository contains:
+- the reference implementation of **Flow Sinkhorn** for approximate Wasserstein-1 on graphs,
+- benchmark and example code for reproducing the numerical experiments,
+- and a Lean formalization of the main convergence/complexity blueprint.
 
 The algorithm is introduced and analyzed in the paper:
 
-> **Robust Sublinear Convergence Rates for Iterative Bregman Projections on Affine Spaces**
+> **Robust Sublinear Convergence Rates for Iterative Bregman Projections**
 > Gabriel Peyré
-> *arXiv preprint, 2026*
-> https://arxiv.org/abs/2602.01372
+> *Preprint, 2026*
 
 Flow Sinkhorn can be seen as a flow-based interpretation and implementation of Sinkhorn-type iterations, with strong robustness and convergence guarantees derived from the theory of iterative Bregman projections.
 
@@ -19,42 +21,55 @@ Flow Sinkhorn can be seen as a flow-based interpretation and implementation of S
 
 ## Installation
 
-### Basic installation
+For a local checkout, install the package in editable mode from the repository root:
 
 ```bash
 pip install -e .
 ```
 
-### With optional dependencies
+Optional dependency groups can be installed depending on what you want to run:
 
-For sparse graph support:
 ```bash
-pip install -e ".[sparse]"
+pip install -e ".[sparse]"      # sparse graph support via sparse.COO
+pip install -e ".[exact]"       # exact LP references via CVXPY
+pip install -e ".[gpu]"         # PyTorch implementation
+pip install -e ".[examples]"    # notebooks and plotting dependencies
+pip install -e ".[benchmarks]"  # benchmark runner dependencies
+pip install -e ".[all]"         # everything above
 ```
 
-For exact solver (linear programming):
+For benchmark reproduction, the equivalent explicit install is:
+
 ```bash
-pip install -e ".[exact]"
+pip install -r requirements.txt
+pip install -r benchmarks/requirements.txt
 ```
 
-For **GPU acceleration** with PyTorch:
-```bash
-pip install -e ".[gpu]"
-```
+For CUDA runs, install the PyTorch wheel matching the target machine before running GPU benchmarks. On macOS/Apple Silicon, a conda environment is often the most robust option:
 
-For running examples and notebooks:
 ```bash
-pip install -e ".[examples]"
-```
-
-Install everything (including GPU support):
-```bash
+conda create -n flowsinkhorn python=3.10
+conda activate flowsinkhorn
 pip install -e ".[all]"
 ```
 
----
+Quick installation check:
+
+```bash
+python - <<'PY'
+import numpy as np
+from flowsinkhorn import sinkhorn_w1
+A = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]])
+W = 1 / (A + 1e-9)
+z = np.array([1.0, 0.0, -1.0])
+f, err, h = sinkhorn_w1(W, z, epsilon=0.1, niter=100)
+print(f"Final error: {err[-1]:.2e}")
+PY
+```
 
 ## Quick Start
+
+A minimal dense example on a three-node chain:
 
 ```python
 import numpy as np
@@ -72,33 +87,54 @@ f, err, h = sinkhorn_w1(W, z, epsilon=0.1, niter=100)
 F, obj_val, status = solve_w1_exact(W, z)
 ```
 
+Use the dense solver for small dense cost matrices, `sinkhorn_w1_sparse` for large sparse graphs such as K-NN graphs or meshes, and `solve_w1_exact` only for small ground-truth references because it solves a linear program.
+
 ---
 
 ## Package Structure
 
 ```
 flow-sinkhorn/
-├── flowsinkhorn/           # Main Python package
-│   ├── __init__.py        # Package initialization with main exports
-│   ├── sinkhorn.py        # Sinkhorn algorithms (NumPy/SciPy, CPU)
-│   ├── sinkhorn_torch.py  # GPU-accelerated Sinkhorn (PyTorch)
-│   └── exact.py           # Exact LP solver (CVXPY)
+├── benchmarks/            # Benchmark scripts
+├── data/                  # Local datasets (ignored by git)
 ├── examples/              # Example notebooks
-│   ├── planar-graph.ipynb   # K-NN graph example
-│   ├── mesh.ipynb # 3D mesh example
-│   ├── grid.ipynb # 2D grid with obstacles
-│   └── gpu-benchmark.ipynb  # GPU acceleration benchmark
-├── paper/                 # LaTeX paper
-│   └── flow-sinkhorn.tex
-├── setup.py              # Installation script
-└── README.md             # This file
+├── flowsinkhorn/          # Main Python package
+├── lean/                  # Lean formalization
+├── setup.py               # Installation script
+└── README.md              # This file
 ```
+
+---
+
+## Formal Verification (Lean)
+
+The machine-checked formalization is in `lean/`.
+
+- Canonical umbrella import: `FlowSinkhorn.KLProjection`
+- Full certification-chain import: `FlowSinkhorn.KLProjection.Certification`
+- Status and audit map: [`lean/README.md`](lean/README.md)
+
+Quick verification:
+
+```bash
+cd lean
+lake build
+rg '^\s*theorem\b' FlowSinkhorn/KLProjection | wc -l
+rg '^\s*(def|structure)\b' FlowSinkhorn/KLProjection | wc -l
+rg '^\s*(sorry|admit|axiom)\b' FlowSinkhorn/KLProjection
+```
+
+The paper appendix explains the paper-label to Lean-constant map and the
+certification workflow. The paper source itself is not required to run the code
+or verify the Lean project.
 
 ---
 
 ## Documentation
 
 ### Main Functions
+
+The Python API keeps the historical keyword `epsilon`; it is the regularization parameter denoted $\gamma$ in the paper.
 
 #### `sinkhorn_w1(W, z, epsilon, niter)`
 Entropic regularized W1 optimal transport solver (dense matrices).
@@ -161,7 +197,7 @@ Four complete example notebooks are provided:
 - Effect of regularization parameter
 - Visualization of flows
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gpeyre/flow-sinkhorn/blob/main/examples/planar-graph.ipynb)
+Run locally from `examples/planar-graph.ipynb` or upload the supplementary archive to Colab.
 
 #### 2. **3D Mesh Example** (`mesh.ipynb`)
 - Loading and visualizing 3D meshes (OFF format)
@@ -173,7 +209,7 @@ Four complete example notebooks are provided:
 
 This example showcases optimal transport on real 3D geometry using the `data/moomoo.off` mesh.
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gpeyre/flow-sinkhorn/blob/main/examples/mesh.ipynb)
+Run locally from `examples/mesh.ipynb` or upload the supplementary archive to Colab.
 
 #### 3. **2D Grid with Obstacles** (`grid.ipynb`)
 - Creating regular 30×30 square grid graphs
@@ -185,7 +221,7 @@ This example showcases optimal transport on real 3D geometry using the `data/moo
 
 This example illustrates **path planning** and **obstacle avoidance** in optimal transport.
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gpeyre/flow-sinkhorn/blob/main/examples/grid.ipynb)
+Run locally from `examples/grid.ipynb` or upload the supplementary archive to Colab.
 
 #### 4. **GPU Benchmark** (`gpu-benchmark.ipynb`)
 - GPU/CPU device detection (CUDA, MPS, CPU)
@@ -197,7 +233,7 @@ This example illustrates **path planning** and **obstacle avoidance** in optimal
 
 This example validates the PyTorch implementation and demonstrates GPU acceleration benefits.
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gpeyre/flow-sinkhorn/blob/main/examples/gpu-benchmark.ipynb)
+Run locally from `examples/gpu-benchmark.ipynb` or upload the supplementary archive to Colab.
 
 **Run the notebooks:**
 
@@ -219,34 +255,34 @@ jupyter notebook gpu-benchmark.ipynb
 The Flow Sinkhorn algorithm solves the entropic regularized W1 optimal transport problem:
 
 $$
-\min_{f \geq 0} \langle f, W \rangle + \varepsilon \cdot \text{KL}(f | 1) \quad \text{s.t.} \quad f^\top \mathbf{1} - f \mathbf{1} = z
+\min_{f \geq 0} \langle f, W \rangle + \gamma \cdot \text{KL}(f | 1) \quad \text{s.t.} \quad f^\top \mathbf{1} - f \mathbf{1} = z
 $$
 
 where:
 - $f_{i,j}$ is the flow from node $j$ to node $i$
 - $W_{i,j}$ is the cost of transporting mass along edge $(j,i)$
 - $z_i$ is the source/sink at node $i$ (sum to 0)
-- $\varepsilon > 0$ is the entropic regularization parameter
+- $\gamma > 0$ is the entropic regularization parameter
 
 ### Iterative Updates
 
 The algorithm iteratively computes the flow from dual potentials $h$:
 
 $$
-f_{i,j} = \exp\left(\frac{-W_{i,j} + h_i - h_j}{\varepsilon}\right)
+f_{i,j} = \exp\left(\frac{-W_{i,j} + h_i - h_j}{\gamma}\right)
 $$
 
 The potentials are updated using:
 
 $$
-h \leftarrow \frac{h}{2} - \frac{\varepsilon}{2} m
+h \leftarrow \frac{h}{2} - \frac{\gamma}{2} m
 $$
 
 where the update vector $m$ is computed from auxiliary variables:
 
 $$
-a_i = \sum_j \exp\left(\frac{-W_{i,j} - h_i}{\varepsilon}\right), \quad
-b_i = \sum_j \exp\left(\frac{-W_{i,j} + h_i}{\varepsilon}\right)
+a_i = \sum_j \exp\left(\frac{-W_{i,j} - h_i}{\gamma}\right), \quad
+b_i = \sum_j \exp\left(\frac{-W_{i,j} + h_i}{\gamma}\right)
 $$
 
 For numerical stability, $m$ is computed differently depending on the node type (with $r = z/2$):
@@ -259,7 +295,8 @@ For numerical stability, $m$ is computed differently depending on the node type 
 
 These formulas ensure numerical stability and enforce the flow conservation constraint $f^\top \mathbf{1} - f \mathbf{1} = z$.
 
-See the paper for complete derivation, convergence analysis, and theoretical guarantees.
+See the submitted manuscript for the complete derivation, convergence analysis,
+and theoretical guarantees.
 
 ---
 
@@ -272,16 +309,50 @@ The sparse implementation is particularly efficient for graphs with $O(n)$ edges
 
 ---
 
+## Troubleshooting
+
+- `ModuleNotFoundError: No module named 'sparse'`: install sparse support with `pip install -e ".[sparse]"` or `pip install sparse`.
+- `ModuleNotFoundError: No module named 'cvxpy'`: install exact-solver support with `pip install -e ".[exact]"` or `pip install cvxpy`.
+- Slow convergence: increase the regularization parameter (`epsilon` in the Python API, $\gamma$ in the paper), increase `niter`, or switch to the sparse solver when the graph is sparse.
+- Numerical issues: check that the cost matrix has finite, well-scaled values on valid edges; the implementation uses stabilized log-sum-exp updates but extremely small regularization can still be ill-conditioned.
+- Uninstall with `pip uninstall flowsinkhorn`.
+
+---
+
+## Development and Contributing
+
+Contributions are welcome. A typical development setup is:
+
+```bash
+git clone https://github.com/gpeyre/flow-sinkhorn.git
+cd flow-sinkhorn
+pip install -e ".[all]"
+git checkout -b feature/your-feature-name
+```
+
+Guidelines:
+
+- Keep functions focused and documented with NumPy-style docstrings.
+- Prefer descriptive variable names and type hints where they clarify intent.
+- Preserve backward compatibility of the public Python API when possible.
+- Before opening a pull request, run a small Python smoke test, check relevant notebooks or benchmarks, and verify Lean changes with `lake build` from `lean/` when touching formalization files.
+- Pull requests should explain the motivation, summarize the change, and mention any relevant numerical or formal verification checks.
+
+Areas especially useful for contribution include performance improvements, additional graph/OT examples, stronger tests, documentation, benchmark extensions, and Lean formalization cleanup.
+
+---
+
 ## Citation
 
-If you use this code in your research, please cite:
+Please cite the paper once the public bibliographic entry is available. For now,
+refer to:
 
 ```bibtex
-@article{peyre2026flowsinkhorn,
-  title={Robust Sublinear Convergence Rates for Iterative Bregman Projections on Affine Spaces},
+@misc{peyre2026flowsinkhorn,
+  title={Robust Sublinear Convergence Rates for Iterative Bregman Projections},
   author={Peyr{\'e}, Gabriel},
-  journal={arXiv preprint arXiv:2602.01372},
-  year={2026}
+  year={2026},
+  note={Preprint}
 }
 ```
 
@@ -289,12 +360,10 @@ If you use this code in your research, please cite:
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+See `LICENSE`.
 
 ---
 
 ## Contact
 
-Gabriel Peyré
-CNRS and ENS, Université PSL
-gabriel.peyre@ens.fr
+Gabriel Peyré, `gabriel.peyre@ens.fr`.

@@ -5,10 +5,10 @@ This module provides GPU-accelerated versions of the Flow Sinkhorn algorithm
 using PyTorch. It supports automatic device selection (CPU/CUDA/MPS) and
 provides significant speedup on compatible hardware.
 
-References
-----------
-Gabriel Peyré, "Robust Sublinear Convergence Rates for Iterative Bregman
-Projections on Affine Spaces", arXiv preprint, 2026.
+Reference
+---------
+Gabriel Peyre, "Robust Sublinear Convergence Rates for Iterative Bregman
+Projections", preprint, 2026.
 """
 
 import numpy as np

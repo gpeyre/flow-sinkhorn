@@ -4,10 +4,10 @@ Exact (unregularized) W1 optimal transport solver using linear programming.
 This module provides the exact solution to the Wasserstein-1 optimal transport
 problem on graphs using the Beckmann (transshipment) linear program formulation.
 
-References
-----------
-Gabriel Peyré, "Robust Sublinear Convergence Rates for Iterative Bregman
-Projections on Affine Spaces", arXiv preprint, 2026.
+Reference
+---------
+Gabriel Peyre, "Robust Sublinear Convergence Rates for Iterative Bregman
+Projections", preprint, 2026.
 """
 
 import numpy as np

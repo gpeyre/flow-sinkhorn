@@ -1,0 +1,6 @@
+import FlowSinkhorn.KLProjection.Variation
+import FlowSinkhorn.KLProjection.BlockQuotient
+import FlowSinkhorn.KLProjection.Sweep
+import FlowSinkhorn.KLProjection.UniformBound
+import FlowSinkhorn.KLProjection.Topical
+import FlowSinkhorn.KLProjection.Setup

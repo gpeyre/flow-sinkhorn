@@ -1,0 +1,707 @@
+\documentclass[10pt]{article}
+\pdfoutput=1
+
+% ------------------------------------------------------------------
+% Packages
+% ------------------------------------------------------------------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{fullpage}
+
+% Maths
+\usepackage{amsmath,amssymb,amsfonts,amsthm}
+\usepackage{mathtools}          % for \coloneqq
+\usepackage{bm}                 % bold maths
+\usepackage{xcolor}             % colours for \todo
+\usepackage{enumerate}
+\usepackage{tabularx}
+\usepackage{subcaption}
+\usepackage{url}
+
+% ------------------------------------------------------------------
+% Macros
+% ------------------------------------------------------------------
+\newcommand{\KL}{\operatorname{KL}}
+
+% Basic spaces and sets
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\CC}{\mathbb{C}}
+\newcommand{\Ss}{\mathcal{S}}
+\newcommand{\Mm}{\mathcal{M}}
+
+\newcommand{\Ee}{\mathcal{E}}
+\newcommand{\tEe}{\tilde\Ee}
+
+
+\newcommand{\Id}{\operatorname{Id}}
+\newcommand{\tr}{\operatorname{tr}}
+\newcommand{\argmax}{\operatorname{argmax}}
+\renewcommand{\epsilon}{\varepsilon}
+\newcommand{\eqdef}{\coloneqq}
+
+% Quantum-specific abbreviations
+\newcommand{\To}{\widetilde{T}}
+\newcommand{\Ko}{\widetilde{K}}
+
+% Inner product
+\providecommand{\dotp}[2]{\langle #1, #2\rangle}
+
+% Shortcuts
+\newcommand{\foralls}{\forall\,}
+
+% ------------------------------------------------------------------
+% Theorem styles
+% ------------------------------------------------------------------
+\theoremstyle{plain}
+\newtheorem{thm}{Theorem}
+\newtheorem{prop}{Proposition}
+\newtheorem{lem}{Lemma}
+\theoremstyle{definition}
+\newtheorem{defn}{Definition}
+\theoremstyle{remark}
+\newtheorem{rem}{Remark}
+
+% ------------------------------------------------------------------
+% Todo (kept for open questions)
+% ------------------------------------------------------------------
+\newcommand{\todo}[1]{\textbf{\textcolor{red}{[TODO: #1]}}}
+
+% ------------------------------------------------------------------
+% Title data
+% ------------------------------------------------------------------
+\title{Non-commutative Sinkhorn Approximation \\ of Quantum Optimal Transport}
+\author{Gabriel Peyr\'e\\CNRS and ENS, PSL Universit\'e\\\url{gabriel.peyre@ens.fr}} 
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Quantum optimal transport (Q-OT) extends classical OT to the noncommutative setting by coupling density operators through a positive semidefinite operator on the product space; the classical OT case is recovered when all operators are diagonal. As in classical OT, one can regularize Q-OT with a von~Neumann (quantum) entropy, but the classical Sinkhorn scheme—alternate KL projections, equivalently block maximization of the entropic dual—becomes intractable in the quantum regime due to the lack of closed forms beyond the commuting case.
+%
+We introduce a nonconvex surrogate for the regularized dual built from a symmetric (Strang/Golden--Thompson) approximation of the log-partition term. We show that alternating maximization of this surrogate is \emph{exactly} the Quantum–Sinkhorn (operator scaling) iteration of Gurvits. This variational view yields: (i) monotone ascent and convergence to a block-stationary point; (ii) at any limit point, the associated symmetric coupling satisfies the two marginal constraints; and (iii) quantitative bounds that control the gap to the true entropic model by commutators, with a symmetric factorization error of order $O(\epsilon^{-3})$ (commuting case: zero error). Finally, we prove a zero-temperature limit: as $\epsilon\to 0^+$, maximizers (and, under mild boundedness, block-stationary sequences) of the surrogate dual converge to dual solutions of unregularized Q-OT, thereby linking Quantum–Sinkhorn fixed points to solutions of the original problem.
+\end{abstract}
+\section{Introduction}
+
+Quantum optimal transport (Q-OT) extends classical optimal transport to the noncommutative setting: probability vectors are replaced by density operators and couplings are positive semidefinite (PSD) operators on the tensor product space. This leads to a convex program over PSD cones that reduces to the classical Kantorovich problem when all operators are diagonal. Beyond its conceptual appeal, Q-OT offers a principled way to compare quantum states and matrix-valued signals, with potential impact in signal processing, quantum information, and machine learning.
+
+\subsection{Previous works}
+
+\paragraph{Classical OT and entropic regularization.}
+In the Kantorovich formulation, classical OT is a linear program that searches for a coupling of minimal cost between two probability distributions; see \cite{santambrogio2015optimal}. A widely used approximation adds an entropic penalty and solves the problem by alternating Kullback--Leibler (KL) projections, yielding the Sinkhorn algorithm \cite{Sinkhorn64}. This scheme enjoys strong properties (e.g., contraction in the Hilbert projective metric), scales well on modern hardware, and was advocated for large-scale learning in \cite{Cuturi13}.
+
+\paragraph{Quantum OT.}
+A static Q-OT formulation as a semidefinite program generalizing Kantorovich was proposed in \cite{ning2014matrix}, with applications to mean-field limits of the Schr\"odinger equation \cite{golse2016mean,caglioti2019quantum}. Entropic regularization with a von~Neumann penalty has been considered to obtain smooth and computationally tractable surrogates \cite{chakrabarti2019quantum,peyre2019quantum}.
+
+\paragraph{Quantum Sinkhorn (operator scaling).}
+Independently of Q-OT, the operator scaling iteration was developed by Gurvits \cite{gurvits2000deterministic,gurvits2003classical,gurvits2004classical} and later studied via the Hilbert metric on the cone of positive operators \cite{georgiou2015positive,idel2013structure}; see also the survey \cite{garg2018recent}. Convergence is established in the bistochastic case (identity marginals), but unlike the classical setting, the map is not a contraction in general, and global convergence for arbitrary marginals is open.
+
+Q-Sinkhorn convergence and question about uniqueness of fixed point it related to the question of operator scaling. 
+%
+See G. Aubrun, S.J. Szarek, Two proofs of Størmer's theorem, arXiv:1512.03293.
+
+
+%--- --- --- --- --- 
+\subsection{Contributions}
+
+This work connects entropic Q-OT with Quantum-Sinkhorn beyond the diagonal (classical) regime. While the entropic dual \eqref{eq:dual-entropy} admits a clean form, its block maximisations lead to the nonlinear equations \eqref{eq:alt-max-F}--\eqref{eq:alt-max-G} with no closed-form outside the commuting case (Section~\ref{sec:entropy}); this is the main obstacle to a direct quantum analogue of classical Sinkhorn (see Section~\ref{sec:qsinkhorn}). We address this by introducing the symmetric coupling parametrisation \eqref{eq:symm-factorization}, which yields a tractable iteration.
+
+\paragraph{Summary of results.}
+\begin{itemize}
+\item \textbf{Entropic Q-OT dual and primal--dual map.} We recall in Section~\ref{sec:entropy} that entropic Q-OT amounts to maximising the concave dual $\Ee_\epsilon(F,G)$ in \eqref{eq:dual-entropy}, with the primal--dual link $T^\star=T_e(F^\star,G^\star)$ in \eqref{eq:primal-dual}.
+\item \textbf{Symmetric parametrisation and accuracy.} In Section~\ref{sec:approx-factor} we re-derive Quantum-Sinkhorn from the symmetric parametrisation $T_s$ \eqref{eq:symm-factorization} and prove in Proposition~\ref{prop:Ts-bound-only} that $T_s$ approximates the entropic coupling $T_e$ with an $O(\epsilon^{-3})$ error controlled by commutators of $C$ and $Z=F\otimes\Id_m+\Id_n\otimes G$.
+\item \textbf{Variational interpretation of Q-Sinkhorn.} Section~\ref{sec:qsinkhorn-variational} introduces the surrogate dual $\tEe_\epsilon$ and shows in Proposition~\ref{prop:tildeE-properties} that $\tEe_\epsilon\le \Ee$ (equality in the commuting case), that alternating maximisation of $\tEe_\epsilon$ is \emph{exactly} Quantum-Sinkhorn, and that $\tEe_\epsilon$ is strictly concave in each block ($F$ or $G$) though not jointly concave.
+\item \textbf{Convergence of Quantum-Sinkhorn.} Theorem~\ref{thm:qsinkhorn-convergence} proves monotone ascent of $\tEe_\epsilon$ and convergence to a block-stationary point; Lemma~\ref{lem:block-stationary} shows that any limit point satisfies both marginal constraints for the symmetric coupling $T_s$.
+\item \textbf{Zero-temperature limit.} In Section~\ref{sec:limit-eps0}, Proposition~\ref{prop:epi-limit} establishes epi-convergence of both $\Ee_\epsilon$ and $\tEe_\epsilon$ to the unregularised dual $\Ee_0$ as $\epsilon\to0^+$, and Theorem~\ref{thm:conv-maximizers} shows that maximisers (and bounded blockwise maximisers) of $\tEe_\epsilon$ converge to dual solutions of the original Q-OT problem.
+\end{itemize}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{States, joint states, partial traces}\label{sec:states}
+
+Let $\Mm_n$ be the set of real (or complex) matrices of size $n\times n$ and let
+\[
+\Ss_n \supset \Ss_n^{+} \supset \Ss_n^{+,1}
+\]
+denote respectively the symmetric (Hermitian), positive semidefinite (PSD) and \emph{density} matrices (PSD with unit trace).  
+A quantum state is an element $A\in\Ss_n^{+,1}$.
+
+\paragraph{Joint states.}
+For spaces of dimensions $n$ and $m$, a joint state is $T\in\Ss_{nm}^{+}$, indexed as
+\[
+T=(T_{(i,k),(j,\ell)})_{1\le i,j\le n\; , \; 1\le k,\ell\le m},
+\]
+and acts on $\RR^{n}\otimes\RR^{m}\simeq\RR^{nm}$.
+
+\paragraph{From a coupling to a channel.}
+A four-tensor $T$ may also be viewed as a linear map
+\[
+\To:\Mm_m \longrightarrow \Mm_n,\qquad 
+\bigl[\To(B)\bigr]_{i,j} \coloneqq \sum_{k,\ell}T_{(i,k),(j,\ell)}\,B_{k,\ell}.
+\]
+If $T$ is PSD then $\To$ sends $\Ss_m^{+}$ to $\Ss_n^{+}$, and $\tr(T)=1$ implies $\To(\Ss_m^{+,1})\subseteq\Ss_n^{+,1}$.  
+Its Hilbert‐Schmidt adjoint is
+\[
+\To^{*}(A)_{k,\ell} = \sum_{i,j}T_{(i,k),(j,\ell)}^{*}\,A_{i,j},\qquad A\in\Mm_n.
+\]
+
+\paragraph{Kraus representation.}
+There exist $(H_r)_{r=1}^{nm}$ with $H_r\in\RR^{n\times m}$ and weights $\sigma_r\ge 0$, $\sum_r\sigma_r=1$, such that
+\[
+\To(B)=\sum_{r}\sigma_r\,H_rBH_r^{*},
+\]
+obtained from the singular value decomposition $T=\sum_{r}\sigma_r h_rh_r^{*}$ by reshaping $h_r$ into $H_r$.  
+Orthogonality yields $\sum_r H_rH_r^{*}=m\,\Id_n$ and $\sum_r H_r^{*}H_r=n\,\Id_m$.
+
+\paragraph{Tensor product and partial traces.}
+For $A\in\Ss_n^{+,1}$, $B\in\Ss_m^{+,1}$, the tensor product $(A\otimes B)_{(i,k),(j,\ell)}=A_{i,j}B_{k,\ell}$ belongs to $\Ss_{nm}^{+,1}$ and satisfies $\widetilde{A\otimes B}D=\dotp{B}{D}\,A$.  
+Marginals of a joint state $T$ are given by the \emph{partial traces}
+\[
+\tr_1(T)\coloneqq\To(\Id_m),\qquad
+\tr_2(T)\coloneqq\To^{*}(\Id_n).
+\]
+The adjoints act as $\tr_1^{*}(A)=A\otimes\Id_m$ and $\tr_2^{*}(B)=\Id_n\otimes B$.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Quantum optimal transport}\label{sec:qot}
+
+\subsection{Unregularised problem}
+
+Given a cost matrix $C\in\Ss_{nm}$ and two states $A\in\Ss_n^{+,1}$, $B\in\Ss_m^{+,1}$, the static Q-OT reads
+\begin{equation}\label{eq:primal}
+\mathrm{W}_C(A,B)\coloneqq
+\min_{T\in\Ss_{nm}^{+}}
+\Bigl\{\dotp{C}{T}\;\Bigm|\;
+\To(\Id_m)=A,\;\To^{*}(\Id_n)=B\Bigr\}.
+\end{equation}
+This semidefinite programme generalises the classical Kantorovich formulation; see \cite{golse2016mean,caglioti2019quantum}.  
+Its dual is
+\begin{equation}\label{eq:dual}
+\mathrm{W}_C(A,B) \eqdef
+\max_{F\in\Ss_n,\,G\in\Ss_m}
+\Bigl\{
+\dotp{F}{A}+\dotp{G}{B}\;\Bigm|\;
+F\otimes\Id_m+\Id_n\otimes G\le C
+\Bigr\}.
+\end{equation}
+
+\subsection{Entropic regularisation}\label{sec:entropy}
+
+Following~\cite{chakrabarti2019quantum,peyre2019quantum} we add a von~Neumann entropy term
+\begin{equation}\label{eq:primal-entropy}
+\mathrm{W}_C^\epsilon(A,B) \eqdef 
+\min_{T\in\Ss_{nm}^{+}}
+\Bigl\{\dotp{C}{T}+\epsilon\,H(T)\;\Bigm|\;
+\To(\Id_m)=A,\;\To^{*}(\Id_n)=B\Bigr\},
+\end{equation}
+where
+\[
+H(T)\coloneqq\tr(T(\log T-\Id_{nm})),\qquad 
+\nabla H(T)=\log T.
+\]
+
+\begin{prop}
+The dual of \eqref{eq:primal-entropy} reads
+\begin{equation}\label{eq:dual-entropy}
+\mathrm{W}_C^\epsilon(A,B) = \max_{F\in\Ss_n,\;G\in\Ss_m} \Ee_\epsilon(F,G)\coloneqq
+\dotp{F}{A}+\dotp{G}{B}
+-\epsilon\,\tr\!\Bigl[\exp\tfrac{F\otimes\Id_m+\Id_n\otimes G-C}{\epsilon}\Bigr]
+\end{equation}
+The unique primal solution $T^\star$ and dual solutions $(F^\star,G^\star)$ are linked by $T^\star = T_e(F^\star,G^\star)$ where
+\begin{equation}\label{eq:primal-dual}
+T_e(F,G) \eqdef \exp(\tfrac{F\otimes\Id_m+\Id_n\otimes G-C}{\epsilon}).
+\end{equation}
+\end{prop}
+
+\paragraph{Alternate maximization.}
+
+A simple algorithm to solve \eqref{eq:dual-entropy} and hence \eqref{eq:primal-entropy} is to perform alternate maximization on $F$ and $G$. In the diagonal case, i.e. for classical OT, it is exactly the celebrated Sinkhorn's algorithm. 
+%
+Define an initial pair $(F^{(0)},G^{(0)})$.  
+For $k\ge 0$ perform
+\[
+	F^{(k+1)} =\argmax_{F\in\Ss_n}\Ee_\epsilon(F,G^{(k)}), 
+\quad
+G^{(k+1)} =\argmax_{G\in\Ss_m}\Ee_\epsilon(F^{(k+1)},G). 
+\]
+Because $\Ee_\epsilon$ is strictly concave in each argument, the first‐order conditions give
+\begin{align}
+	A &=\tr_1(T_e(F^{(k+1)},G^{(k)})), \label{eq:alt-max-F}\\
+	B &=\tr_2(T_e(F^{(k+1)},G^{(k+1)})). \label{eq:alt-max-G}
+\end{align}
+Setting
+\[
+	T^{(k+\tfrac12)} \coloneqq T_e(F^{(k+1)},G^{(k)}),\qquad
+	T^{(k+1)} \coloneqq T_e(F^{(k+1)},G^{(k+1)}),
+\]
+step \eqref{eq:alt-max-F} enforces the \emph{first} marginal on $T^{(k+\frac12)}$, and
+step \eqref{eq:alt-max-G} enforces the \emph{second} on $T^{(k+1)}$.
+
+\paragraph{Iterative Bregman projections interpretation.}
+
+Let
+\[
+\mathcal{M}_1=\bigl\{T\in\Ss_{nm}^{+}\mid\tr_1(T)=A\bigr\},\qquad
+\mathcal{M}_2=\bigl\{T\in\Ss_{nm}^{+}\mid\tr_2(T)=B\bigr\}
+\]
+be the affine sets encoding the two primal constraints.
+The Quantum Kullback–Leibler divergence
+\[
+\KL(T|S) \eqdef \tr(T(\log T-\log S))
+\]
+is the Bregman divergence generated by $H$.  
+Maximising $\Ee_\epsilon$ with respect to $F$ (resp.\ $G$) while keeping $G$ (resp.\ $F$) fixed
+is equivalent to projecting the current coupling onto $\mathcal{M}_1$ (resp.\ $\mathcal{M}_2$)
+in the KL geometry.  
+Hence the alternation $(F^{(k)},G^{(k)})$ performs the classical
+\emph{iterative Bregman projection} scheme
+\[
+T^{(k)}\;\xrightarrow{\text{proj on }\mathcal{M}_1}\;
+T^{(k+\frac12)}\;\xrightarrow{\text{proj on }\mathcal{M}_2}\;
+T^{(k+1)},
+\]
+whose convergence to the unique minimiser of \eqref{eq:primal-entropy}
+follows from general results on alternating KL projections onto convex sets.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Quantum Sinkhorn}\label{sec:qsinkhorn}
+
+A major issue with quantum entropic regularization is that, in the non-diagonal case (i.e., beyond the classical OT setting), there is no closed form for the alternate maximizations; equivalently, the nonlinear equations~\eqref{eq:alt-max-F} and~\eqref{eq:alt-max-G} do not admit explicit solutions. The bottleneck is the lack of commutativity between the cost $C$ and $F\otimes \Id_m+\Id_n\otimes G$. We address this by introducing an alternative parametrization of the coupling $T$. This leads naturally to the Q\mbox{-}Sinkhorn algorithm.
+
+%---- ---- ---- ---- ---- ---- ---- ---- ----
+\subsection{Alternative Coupling Parameterization}\label{sec:approx-factor}
+
+Recall the entropic coupling
+\[
+T_e(F,G)=\exp\Big(\tfrac{F\otimes \Id_m+\Id_n\otimes G - C}{\epsilon}\Big),
+\qquad
+K=\exp\Big(-\tfrac{C}{\epsilon}\Big),
+\]
+and define the \emph{symmetric} (Strang) factorisation (because of its similarity with the Strang-Marchuk splitting)
+\begin{equation}\label{eq:symm-factorization}
+T_s(F,G)=(U\otimes V)\,K\,(U\otimes V)
+=e^{\tfrac{1}{2\epsilon}(F\otimes \Id_m+\Id_n\otimes G)}\,e^{-C/\epsilon}\,e^{\tfrac{1}{2\epsilon}(F\otimes \Id_m+\Id_n\otimes G)},
+\end{equation}
+with $U\coloneqq e^{F/(2\epsilon)}$ and $V\coloneqq e^{G/(2\epsilon)}$. 
+
+\begin{prop}[Error of the symmetric factorisation]\label{prop:Ts-bound-only}
+Set
+\[
+Z\coloneqq F\otimes \Id_m+\Id_n\otimes G,
+\qquad
+\Lambda \coloneqq  \|Z\|+\|C\|,
+\]
+and write $\|\cdot\|$ for the operator norm and $\|\cdot\|_F$ for the Frobenius norm.
+%
+One has
+\begin{equation}\label{eq:Ts-bound-only}
+\|T_e(F,G)-T_s(F,G)\|_F
+\;\le\;
+\frac{e^{\Lambda/\epsilon}}{\epsilon^{3}}
+\Big(\tfrac{1}{12}\,\|[Z,[Z,C]]\|_F
++\tfrac{1}{24}\,\|[C,[Z,C]]\|_F\Big)
+\;+\;O(\epsilon^{-4}) \qquad (\epsilon\to\infty).
+\end{equation}
+In particular, $\|T_e-T_s\|_F=O(\epsilon^{-3})$. If $[Z,C]=0$ then $T_e=T_s$ exactly.
+\end{prop}
+
+\begin{proof}
+Set $A\coloneqq Z/\epsilon$ and $B\coloneqq -C/\epsilon$. Then $T_e=e^{A+B}$ and $T_s=e^{A/2}e^{B}e^{A/2}$. The symmetric Baker--Campbell--Hausdorff (Strang) expansion gives
+\[
+e^{A/2}e^{B}e^{A/2}
+=\exp\Big(A+B+\tfrac{1}{12}[A,[A,B]]-\tfrac{1}{24}[B,[A,B]]+R_5\Big),
+\]
+where $R_5$ is a norm--convergent series of nested commutators of total degree $\ge 5$ in $(A,B)$. Hence
+\[
+T_e-T_s=e^{A+B}\big(I-e^{-\Delta}\big),
+\qquad
+\Delta\coloneqq \tfrac{1}{12}[A,[A,B]]-\tfrac{1}{24}[B,[A,B]]+R_5.
+\]
+Using $\|e^{A+B}\|\le e^{\Lambda/\epsilon}$ and $\|I-e^{-\Delta}\|_F\le \|\Delta\|_F\,e^{\|\Delta\|}$, and noting that each commutator introduces one factor $1/\epsilon$, we get
+\[
+\|T_e-T_s\|_F
+\le e^{\Lambda/\epsilon}\Big(
+\tfrac{1}{12}\,\|[A,[A,B]]\|_F
++\tfrac{1}{24}\,\|[B,[A,B]]\|_F\Big)+\|R_5\|_F\,e^{\Lambda/\epsilon+\|\Delta\|}.
+\]
+Substituting $A=Z/\epsilon$ and $B=-C/\epsilon$ yields
+\[
+\|[A,[A,B]]\|_F=\frac{1}{\epsilon^{3}}\|[Z,[Z,C]]\|_F,
+\qquad
+\|[B,[A,B]]\|_F=\frac{1}{\epsilon^{3}}\|[C,[Z,C]]\|_F,
+\]
+while $\|R_5\|_F=O(\epsilon^{-4})$ as $\epsilon\to\infty$. This proves \eqref{eq:Ts-bound-only}. If $[Z,C]=0$, then $\Delta=0$ and the two expressions coincide.
+\end{proof}
+
+\begin{rem}
+One might consider the asymmetric factorisation
+$T_a(F,G)=(e^{F/\epsilon}\otimes \Id_m)\,K\,(\Id_n\otimes e^{G/\epsilon})$.
+Although simpler to implement, it is less accurate: its error scales like $O(\epsilon^{-2})$ rather than $O(\epsilon^{-3})$.
+\end{rem}
+
+
+%---- ---- ---- ---- ---- ---- ---- ---- ----
+\subsection{Quantum Sinkhorn Algorithm}
+
+Assuming \eqref{eq:symm-factorization}, matching the first marginal $\tr_1(T_s(U,V))=A$ gives
+\[
+(\mathcal{D}_U\Ko\mathcal{D}_V)(\Id_m)=A
+\quad\Longleftrightarrow\quad
+(K_VUK_V)^2=K_VAK_V,\qquad 
+K_V\coloneqq\Ko(VV^{*})^{1/2},
+\]
+hence $U=K_V^{-1}(K_VAK_V)^{1/2}K_V^{-1}$.
+Similarly for $V$.  
+The resulting \emph{quantum Sinkhorn} iteration
+\[
+\begin{aligned}
+U &\leftarrow K_V^{-1}(K_VAK_V)^{1/2}K_V^{-1},\\
+V &\leftarrow K_U^{-1}(K_UBK_U)^{1/2}K_U^{-1},\qquad 
+K_U\coloneqq\Ko^{*}(UU^{*})^{1/2},
+\end{aligned}
+\]
+reduces to the Gurvits scaling when $A=B=\Id_n$ \cite{gurvits2003classical}.  
+Convergence for general $(A,B)$ is discussed in \cite{georgiou2015positive}.
+
+
+%---- ---- ---- ---- ---- ---- ---- ---- ----
+\subsection{Lack of Variational Formulation}
+\label{sec:no-gradient}
+
+In this subsection we fix $G$ and view
+\[
+\Phi(F)\;\eqdef\;A-\tr_1\!\Big(T_s(F,G)\Big),\qquad
+T_s(F,G)\;=\;S\,K\,S,\quad S\eqdef e^{\frac{Z}{2\epsilon}},\ Z\eqdef F\otimes\Id_m+\Id_n\otimes G,\ K\eqdef e^{-\frac{C}{\epsilon}}.
+\]
+We prove that, as a vector field in $F$ (with the Hilbert–Schmidt pairing on $\Ss_n$), $\Phi$ cannot be the gradient of any scalar functional as soon as $Z$ and $C$ do not commute. Equivalently, the Fr\'echet derivative $D_F\Phi(F)$ fails to be self-adjoint unless $[Z,C]=0$.
+
+\begin{prop}[Non-integrability beyond the commuting regime]\label{prop:not-gradient}
+Fix $G$ and $F$. Write $S=e^{\frac{Z}{2\epsilon}}$ and $K=e^{-\frac{C}{\epsilon}}$. For $H\in \Ss_n$ set
+\[
+\mathcal{J}_F(H)\;\eqdef\; -\,\tr_1\!\Big(\mathbf{D}S[H\otimes\Id_m]\;K\;S\;+\;S\;K\;\mathbf{D}S[H\otimes\Id_m]\Big),
+\qquad
+\mathbf{D}S[Y]=\frac{1}{2\epsilon}\!\int_{0}^{1}\! S^{1-\tau}\,Y\,S^{\tau}\,d\tau .
+\]
+Then, for all $H_1,H_2\in\Ss_n$,
+\begin{equation}\label{eq:skew-bilinear}
+\big\langle \mathcal{J}_F(H_1),H_2\big\rangle - \big\langle H_1,\mathcal{J}_F(H_2)\big\rangle
+=\frac{1}{2\epsilon}\int_{0}^{1}\tr\!\Big(\,\big[\,S^{1-\tau}(H_1\!\otimes\!\Id_m)S^{\tau},\,H_2\!\otimes\!\Id_m\,\big]\;\big[S,K\big]\Big)\,d\tau .
+\end{equation}
+Consequently, $D_F\Phi(F)=\mathcal{J}_F$ is self-adjoint (hence $\Phi$ is a gradient field locally) if and only if $[S,K]=0$, i.e. $[Z,C]=0$. In particular, if $[Z,C]\neq 0$ then there exist $H_1,H_2\in \Ss_n$ with
+\[
+\big\langle \mathcal{J}_F(H_1),H_2\big\rangle \;\neq\; \big\langle H_1,\mathcal{J}_F(H_2)\big\rangle ,
+\]
+so the field $F\mapsto A-\tr_1(T_s(F,G))$ cannot be a gradient.
+\end{prop}
+
+\begin{proof}
+Since $A$ is constant, $D_F\Phi(F)=\mathcal{J}_F$ as defined. Let $\langle X,Y\rangle\eqdef\tr(XY)$ be the Hilbert–Schmidt pairing on $\Ss_n$ and recall $\tr\big(\tr_1(Y)\,H\big)=\tr\big(Y\,(H\otimes\Id_m)\big)$ for all $Y\in \Mm_{nm}$, $H\in \Mm_n$.
+
+\smallskip\noindent
+\emph{Step 1: bilinear form for the derivative.}
+For $H_1,H_2\in \Ss_n$,
+\[
+\big\langle \mathcal{J}_F(H_1),H_2\big\rangle
+= -\frac{1}{2\epsilon}\!\int_{0}^{1}\!\tr\!\Big( (H_2\!\otimes\!\Id_m)\,S^{1-\tau}(H_1\!\otimes\!\Id_m)S^{\tau}\,K\,S\Big)\,d\tau 
+-\frac{1}{2\epsilon}\!\int_{0}^{1}\!\tr\!\Big( (H_2\!\otimes\!\Id_m)\,S\,K\,S^{1-\tau}(H_1\!\otimes\!\Id_m)S^{\tau}\Big)\,d\tau .
+\]
+Exchanging $H_1$ and $H_2$ gives $\langle \mathcal{J}_F(H_2),H_1\rangle$ with the same kernels.
+
+\smallskip\noindent
+\emph{Step 2: antisymmetric part.}
+Subtract the two expressions and use cyclicity of the full trace to move $S^{1-\tau}$ to the right in each integrand. A direct rearrangement yields
+\[
+\big\langle \mathcal{J}_F(H_1),H_2\big\rangle - \big\langle H_1,\mathcal{J}_F(H_2)\big\rangle
+= -\frac{1}{2\epsilon}\!\int_{0}^{1}\!\tr\!\Big(\big[(H_2\!\otimes\!\Id_m),\,S^{1-\tau}(H_1\!\otimes\!\Id_m)S^{\tau}\big]\;K\,S\Big)\,d\tau
+\]
+\[
+\hspace{10em}
+-\frac{1}{2\epsilon}\!\int_{0}^{1}\!\tr\!\Big(\big[S\,K,\;S^{1-\tau}(H_1\!\otimes\!\Id_m)S^{\tau}\big]\;(H_2\!\otimes\!\Id_m)\Big)\,d\tau .
+\]
+Apply cyclicity once more to put $(H_2\!\otimes\!\Id_m)$ on the left in the second integral; adding the two terms gives precisely \eqref{eq:skew-bilinear} with the commutator $[S,K]=SK-KS$.
+
+\smallskip\noindent
+\emph{Step 3: characterisation.}
+If $[S,K]=0$, the right-hand side of \eqref{eq:skew-bilinear} vanishes for all $H_1,H_2$, so $\mathcal{J}_F$ is self-adjoint. Conversely, assume $[S,K]\neq 0$. Then the bilinear form
+\[
+\mathcal{B}_\tau(X,Y)\;\eqdef\;\tr\!\Big(\,[S^{1-\tau} X S^{\tau},\,Y]\,[S,K]\Big)
+\]
+is not identically zero on the subspace $\{X=H\!\otimes\!\Id_m,\ Y=H'\!\otimes\!\Id_m:\ H,H'\in \Ss_n\}$ (otherwise $[S,K]$ would be orthogonal to all commutators generated by that subspace, which is impossible unless $[S,K]=0$ because conjugation by $S^{t}$ is invertible and $H\mapsto H\otimes\Id_m$ spans a full matrix subalgebra). Hence there exist $H_1,H_2$ and some $\tau\in(0,1)$ such that $\mathcal{B}_\tau(H_1\!\otimes\!\Id_m,H_2\!\otimes\!\Id_m)\neq 0$, making the integral in \eqref{eq:skew-bilinear} nonzero. Thus $\mathcal{J}_F$ is not self-adjoint and $\Phi$ is not a gradient field.
+\end{proof}
+
+\begin{rem}
+The statement already holds in the single-system case $m=1$, where $\tr_1$ is the identity and $T_s(F,G)=S K S$ with $S=e^{F/(2\epsilon)}$. Then \eqref{eq:skew-bilinear} reduces to
+\[
+\big\langle \mathcal{J}_F(H_1),H_2\big\rangle - \big\langle H_1,\mathcal{J}_F(H_2)\big\rangle
+=\frac{1}{2\epsilon}\int_{0}^{1}\tr\!\Big(\,[S^{1-\tau}H_1S^{\tau},\,H_2]\,[S,K]\Big)\,d\tau,
+\]
+so noncommutation of $F$ and $C$ (equivalently $[S,K]\neq 0$) already forces non-self-adjointness.
+\end{rem}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Small $\epsilon$ limit of Q--Sinkhorn fixed points}
+\label{sec:small-eps-fixedpoints}
+
+\paragraph{Goal.}
+We give a self-contained argument (not relying on any gradient identity) showing that, as $\epsilon\to0^+$, fixed points of the Quantum--Sinkhorn scaling produce primal/dual certificates that approach optimal solutions of the unregularised Q--OT problem.
+
+\medskip
+Recall $K_\epsilon\eqdef e^{-C/\epsilon}$ and, for $U,V\succ0$,
+\[
+T_s^\epsilon(U,V)\;\eqdef\;(U\otimes V)\,K_\epsilon\,(U\otimes V)
+\;=\;e^{\frac{Z}{2\epsilon}}\,e^{-\frac{C}{\epsilon}}\,e^{\frac{Z}{2\epsilon}},
+\qquad
+Z\eqdef F\otimes\Id_m+\Id_n\otimes G,\; F\eqdef2\epsilon\log U,\;G\eqdef2\epsilon\log V.
+\]
+A \emph{Q--Sinkhorn fixed point} at temperature $\epsilon>0$ is a pair $(U_\epsilon,V_\epsilon)$ such that
+\begin{equation}\label{eq:fixed-point-marginals}
+\tr_1\!\big(T_s^\epsilon(U_\epsilon,V_\epsilon)\big)=A,\qquad
+\tr_2\!\big(T_s^\epsilon(U_\epsilon,V_\epsilon)\big)=B.
+\end{equation}
+We write $T_\epsilon\eqdef T_s^\epsilon(U_\epsilon,V_\epsilon)$ and $Z_\epsilon$ for the associated $Z$.
+
+\subsection*{Dual feasibility at any fixed point}
+
+\begin{prop}[Dual feasibility from trace normalisation]\label{prop:dual-feas-fixed}
+Let $(U_\epsilon,V_\epsilon)$ be a Q--Sinkhorn fixed point and set $F_\epsilon\eqdef2\epsilon\log U_\epsilon$, $G_\epsilon\eqdef2\epsilon\log V_\epsilon$, $Z_\epsilon\eqdef F_\epsilon\otimes\Id_m+\Id_n\otimes G_\epsilon$. Then
+\[
+Z_\epsilon\ \le\ C\quad\text{(Loewner order)}.
+\]
+Hence $(F_\epsilon,G_\epsilon)$ is dual feasible for the unregularised dual \eqref{eq:dual}.
+\end{prop}
+
+\begin{proof}
+By Golden--Thompson/Lieb,
+\[
+\tr\!\exp\!\Big(\tfrac{Z_\epsilon-C}{\epsilon}\Big)\ \le\ \tr\!\Big(e^{\frac{Z_\epsilon}{2\epsilon}}e^{-\frac{C}{\epsilon}}e^{\frac{Z_\epsilon}{2\epsilon}}\Big)
+=\tr(T_\epsilon)=\tr\big(\tr_1(T_\epsilon)\big)=\tr(A)=1.
+\]
+Since $\tr(e^{M})\ge e^{\lambda_{\max}(M)}$ for Hermitian $M$, we get
+$e^{\lambda_{\max}((Z_\epsilon-C)/\epsilon)}\le 1$, hence $\lambda_{\max}(Z_\epsilon-C)\le 0$, i.e.\ $Z_\epsilon\le C$.
+\end{proof}
+
+\subsection*{Exponential concentration on the low-slack region}
+
+Let $S_\epsilon\eqdef C-Z_\epsilon\succeq0$ be the \emph{slack}. For $\delta>0$, denote by
+$P_\delta\eqdef\mathbf{1}_{[\delta,\infty)}(S_\epsilon)$ the spectral projector of $S_\epsilon$ onto eigenvalues $\ge \delta$.
+
+\begin{lem}[Mass bound on $\{S_\epsilon\ge\delta\}$]\label{lem:mass-high-slack}
+For every $\delta>0$ and every Q--Sinkhorn fixed point,
+\[
+\tr\!\big(P_\delta\,T_\epsilon\big)\ \le\ e^{-\delta/\epsilon}\;\tr(P_\delta).
+\]
+\end{lem}
+
+\begin{proof}
+On the invariant subspace $\mathrm{Ran}(P_\delta)$ we have $S_\epsilon\ge \delta\,\Id$, i.e.\ $C\ge Z_\epsilon+\delta\,\Id$. By operator monotonicity of the exponential,
+$e^{-C/\epsilon}\le e^{-(Z_\epsilon+\delta\,\Id)/\epsilon}=e^{-\delta/\epsilon}e^{-Z_\epsilon/\epsilon}$ on $\mathrm{Ran}(P_\delta)$. Congruence preserves Loewner order, hence
+\[
+P_\delta\,T_\epsilon\,P_\delta
+=P_\delta\,e^{\frac{Z_\epsilon}{2\epsilon}}e^{-C/\epsilon}e^{\frac{Z_\epsilon}{2\epsilon}}P_\delta
+\ \le\ e^{-\delta/\epsilon}\;P_\delta\,e^{\frac{Z_\epsilon}{2\epsilon}}e^{-\frac{Z_\epsilon}{\epsilon}}e^{\frac{Z_\epsilon}{2\epsilon}}P_\delta
+= e^{-\delta/\epsilon}\,P_\delta.
+\]
+Taking traces gives the claim.
+\end{proof}
+
+\begin{prop}[Vanishing primal--dual gap]\label{prop:gap-vanishes}
+Let $T_\epsilon$ and $Z_\epsilon$ be as above and $S_\epsilon\eqdef C-Z_\epsilon\succeq0$. Then
+\[
+0\ \le\ \dotp{S_\epsilon}{T_\epsilon}\ =\ \dotp{C}{T_\epsilon}-\dotp{F_\epsilon}{A}-\dotp{G_\epsilon}{B}
+\ \xrightarrow[\epsilon\to0^+]{}\ 0.
+\]
+\end{prop}
+
+\begin{proof}
+Fix $\delta>0$ and split with spectral projectors of $S_\epsilon$:
+\[
+\dotp{S_\epsilon}{T_\epsilon}
+=\tr\!\big(S_\epsilon P_{<\delta} T_\epsilon\big)+\tr\!\big(S_\epsilon P_{\delta} T_\epsilon\big)
+\le \delta\,\tr(P_{<\delta}T_\epsilon) + \|S_\epsilon\|\,\tr(P_\delta T_\epsilon).
+\]
+By Lemma~\ref{lem:mass-high-slack}, $\tr(P_\delta T_\epsilon)\le e^{-\delta/\epsilon}\tr(P_\delta)$. Thus
+\[
+\dotp{S_\epsilon}{T_\epsilon}\ \le\ \delta\ +\ \|S_\epsilon\|\,\tr(P_\delta)\,e^{-\delta/\epsilon}.
+\]
+Along any sequence $\epsilon\to0^+$ for which $\|S_\epsilon\|$ is bounded,\footnote{This holds, e.g., if $\{F_\epsilon,G_\epsilon\}$ is bounded under any fixed gauge such as $\tr F_\epsilon=\tr G_\epsilon=0$.} first let $\epsilon\to0$ to kill the exponential term, then $\delta\downarrow0$ to conclude $\dotp{S_\epsilon}{T_\epsilon}\to0$.
+\end{proof}
+
+\subsection*{Convergence to unregularised Q--OT}
+
+\begin{thm}[Fixed points approximate unregularised Q--OT]\label{thm:fixed-approximate-QOT}
+Assume $A\in\Ss_n^{+,1}$ and $B\in\Ss_m^{+,1}$ with full support, and let $\epsilon_k\downarrow0$.
+For each $k$, let $(U_k,V_k)$ be a Q--Sinkhorn fixed point at temperature $\epsilon_k$, with associated
+\[
+T_k\eqdef T_s^{\epsilon_k}(U_k,V_k),\qquad
+F_k\eqdef2\epsilon_k\log U_k,\quad G_k\eqdef2\epsilon_k\log V_k,\quad Z_k\eqdef F_k\otimes\Id_m+\Id_n\otimes G_k.
+\]
+Suppose $\{F_k,G_k\}$ is bounded under a fixed gauge (e.g.\ $\tr F_k=\tr G_k=0$). Then, up to subsequences,
+\begin{enumerate}[(i)]
+\item $Z_k\to Z_0$ with $Z_0\le C$ (dual feasibility) and $T_k\to T_0$ with $\tr_1(T_0)=A$, $\tr_2(T_0)=B$ (primal feasibility);
+\item the primal--dual gap vanishes: $\dotp{C}{T_k}-\dotp{F_k}{A}-\dotp{G_k}{B}\to0$;
+\item $T_0$ is an optimal coupling for the unregularised problem \eqref{eq:primal} and
+$(F_0,G_0)$ is optimal for the dual \eqref{eq:dual}; in particular,
+\[
+\dotp{C}{T_k}\ \xrightarrow[k\to\infty]{}\ \mathrm{W}_C(A,B).
+\]
+\end{enumerate}
+\end{thm}
+
+\begin{proof}
+Boundedness gives compactness; extract a convergent subsequence (not relabelled). By Prop.~\ref{prop:dual-feas-fixed}, $Z_k\le C$ for all $k$, hence $Z_0\le C$. By \eqref{eq:fixed-point-marginals} and continuity of $\tr_1,\tr_2$, $T_k\to T_0$ with the same marginals. Prop.~\ref{prop:gap-vanishes} yields
+\[
+0\ \le\ \dotp{C}{T_k}-\dotp{F_k}{A}-\dotp{G_k}{B}\ \longrightarrow\ 0.
+\]
+By weak duality,
+$\dotp{F_k}{A}+\dotp{G_k}{B}\le \mathrm{W}_C(A,B)\le \dotp{C}{T_k}$ for all $k$ (dual feasibility of $Z_k$ and primal feasibility of $T_k$). Passing to the limit shows
+\[
+\dotp{F_0}{A}+\dotp{G_0}{B}\ =\ \mathrm{W}_C(A,B)\ =\ \dotp{C}{T_0},
+\]
+so $T_0$ and $(F_0,G_0)$ are primal/dual optimisers and the costs $\dotp{C}{T_k}$ converge to $\mathrm{W}_C(A,B)$.
+\end{proof}
+
+\begin{rem}
+The boundedness assumption on $(F_\epsilon,G_\epsilon)$ under a gauge is standard in finite dimension and can be enforced in practice by re-centering the iterates so that $\tr F_\epsilon=\tr G_\epsilon=0$.
+\end{rem}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Stationary points and convergence of Q--Sinkhorn}
+\label{sec:qsinkhorn-stationary-convergence}
+
+We restart from first principles. Fix $\epsilon>0$ and set $K\eqdef e^{-C/\epsilon}\in \Ss_{nm}^{++}$.
+For $U\in \Ss_n^{++}$ and $V\in \Ss_m^{++}$ define the \emph{symmetric coupling}
+\[
+T_s(U,V)\;\eqdef\;(U\otimes V)\,K\,(U\otimes V),
+\]
+and say that $(U,V)$ is a \emph{Q--Sinkhorn fixed point for $(A,B)$} if
+\begin{equation}\label{eq:qs-fp}
+\tr_1\!\big(T_s(U,V)\big)=A,\qquad \tr_2\!\big(T_s(U,V)\big)=B.
+\end{equation}
+The iteration commonly called Q--Sinkhorn alternately enforces the two equations in \eqref{eq:qs-fp} by the congruence updates
+\[
+U \leftarrow K_V^{-1}\,(K_V A K_V)^{1/2}\,K_V^{-1}, \quad
+V \leftarrow K_U^{-1}\,(K_U B K_U)^{1/2}\,K_U^{-1},\quad
+K_V\eqdef \Ko(VV^\ast)^{1/2},\;K_U\eqdef \Ko^\ast(UU^\ast)^{1/2},
+\]
+where $\Ko$ is the completely positive map induced by $K$:
+\[
+\Ko(X)\;\eqdef\;\tr_1\!\big((\Id_n\otimes X)\,K\big),\qquad
+\Ko^\ast(Y)\;\eqdef\;\tr_2\!\big((Y\otimes \Id_m)\,K\big).
+\]
+
+\paragraph{Key points.}
+(1) Existence of a fixed point is not automatic; it is a feasibility question.  
+(2) Multiple fixed points may occur, already by symmetry.  
+(3) Convergence of the alternating scheme holds under standard operator-scaling conditions after a reduction that removes $(A,B)$.
+
+
+%------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ 
+\subsection{Multiplicity via symmetry}
+
+\begin{prop}[Symmetry-induced families of fixed points]
+\label{prop:symmetry-multiplicity}
+Assume $A,B\succ0$ and let $\widetilde{K}$ be as in Lemma~\ref{lem:whitening}. Suppose there exist unitaries $W\in \Mm_n$ and $Z\in \Mm_m$ such that
+\[
+WAW^\ast=A,\qquad ZBZ^\ast=B,\qquad (W\otimes Z)\,K\,(W\otimes Z)=K.
+\]
+If $(U,V)$ is a Q--Sinkhorn fixed point for $(A,B;K)$, then $(WU,VZ)$ is also a fixed point.  
+In particular, whenever the symmetry group
+\[
+\mathcal{G}\;\eqdef\;\Big\{(W,Z):\ WAW^\ast=A,\ ZBZ^\ast=B,\ (W\otimes Z)K(W\otimes Z)=K\Big\}
+\]
+is nontrivial, fixed points are not unique (modulo the scalar gauge $U\mapsto \alpha U$, $V\mapsto \alpha^{-1}V$).
+\end{prop}
+
+\begin{proof}
+Using the invariances and $\tr_1((W\otimes Z)X(W\otimes Z))=W\,\tr_1(X)\,W^\ast$, we get
+\[
+\tr_1\!\big(T_s(WU,VZ)\big)
+=\tr_1\!\big((W\otimes Z)(U\otimes V)K(U\otimes V)(W\otimes Z)\big)
+=W\,\tr_1(T_s(U,V))\,W^\ast
+=WAW^\ast=A.
+\]
+The second marginal is identical with $Z$ in place of $W$.
+\end{proof}
+
+\begin{rem}
+Nontrivial symmetry appears, for instance, when $C$ has degeneracies (hence $K$ commutes with a nontrivial unitary group) and $A,B$ share those symmetries. This yields families of fixed points even in commuting cases, and may persist in weakly noncommuting ones.
+\end{rem}
+
+\subsection{Existence of fixed points and convergence of Q-Sinkhorn}
+\label{sec:exist-conv-targeted}
+
+We phrase Q--Sinkhorn directly as a \emph{targeted} operator-scaling problem:
+\[
+\text{find }U,V\succ0\quad\text{s.t.}\quad
+U\,\Ko(VV^\ast)\,U=A,\qquad
+V\,\Ko^\ast(UU^\ast)\,V=B,
+\]
+where $\Ko:\Ss_m\to\Ss_n$ is the completely positive map induced by $K\succ0$ via
+$\Ko(X)=\tr_1\big((\Id_n\otimes X)K\big)$ and $\Ko^\ast$ is its Hilbert--Schmidt adjoint.  
+The Q--Sinkhorn updates are the \emph{congruence normalisations}
+\begin{equation}\label{eq:updates-target}
+U \leftarrow \Gamma_A\!\big(\Ko(VV^\ast)\big)\eqdef \Ko(VV^\ast)^{-1/2}\,\big(\Ko(VV^\ast)^{1/2}A\,\Ko(VV^\ast)^{1/2}\big)^{1/2}\,\Ko(VV^\ast)^{-1/2},
+\end{equation}
+and symmetrically for $V$ with $(\Ko^\ast, B)$.
+
+\paragraph{Hypotheses.}
+We will work under the following assumptions (each is standard in scaling theory but is \emph{not} automatic):
+\begin{itemize}
+\item[(H1)]  \textbf{Target scalability}. There exist $U_\star,V_\star\succ0$ with
+$U_\star\,\Ko(V_\star V_\star^\ast)\,U_\star=A$ and $V_\star\,\Ko^\ast(U_\star U_\star^\ast)\,V_\star=B$.
+(Feasibility.)
+\item[(H2) ]  \textbf{Primitivity}. $\Ko$ and $\Ko^\ast$ send $\Ss^{+}\setminus\{0\}$ into $\Ss^{++}$
+(strict positivity).
+\item[(H3)]  \textbf{No residual symmetry}. The only $(W,Z)$ with $WAW^\ast=A$, $ZBZ^\ast=B$ and
+$(W\otimes Z)K(W\otimes Z)=K$ are scalar phases; equivalently, the common commutant of $(A,B,K)$ is trivial.
+\item[(H4)]  \textbf{Finite projective diameter}. The sets $\Ko(\Ss^{++})$ and $\Ko^\ast(\Ss^{++})$ have finite Hilbert/Thompson projective diameters.\footnote{For the Thompson metric $d_T$, this means
+$\Delta(\Ko)\eqdef\sup\{d_T(\Ko(X),\Ko(Y)):\ X,Y\in\Ss^{++}\}<\infty$, and likewise for $\Ko^\ast$. Under (H2), this holds, for instance, if the Kraus family of $\Ko$ spans $\Mm_{n,m}$ with uniform bounds.}
+\end{itemize}
+
+\begin{thm}[Targeted scaling: existence and convergence]\label{thm:target-scaling}
+Let $A,B\in\Ss^{++}$ and $K\in\Ss_{nm}^{++}$, and let $\Ko$ be induced by $K$.
+\begin{enumerate}
+\item \emph{(Existence)} If \emph{(H1)} holds, then Q--Sinkhorn has at least one fixed point $(U_\star,V_\star)$ solving the target equations. If \emph{(H3)} also holds, this fixed point is unique up to the scalar gauge $(\alpha U_\star,\alpha^{-1}V_\star)$ with $\alpha>0$.
+\item \emph{(Global convergence under contraction)} Suppose \emph{(H1)}--\emph{(H4)}.  
+Consider the two-step map $\mathcal{F}=\mathcal{U}\circ\mathcal{V}$ on $\Ss_n^{++}$ defined by
+\[
+\mathcal{V}(U)\ \text{ computes }\ V^+=\Gamma_B\!\big(\Ko^\ast(UU^\ast)\big),\qquad
+\mathcal{U}(V)\ \text{ computes }\ U^+=\Gamma_A\!\big(\Ko(VV^\ast)\big),
+\]
+with $\Gamma_A$ as in \eqref{eq:updates-target}.  
+Then $\mathcal{F}$ is a strict contraction in the Thompson metric on the gauge slice $\{U\succ0:\ \det U=1\}$, with contraction factor $\tanh(\Delta/4)<1$ for some finite $\Delta$ determined by the projective diameters in \emph{(H4)}. Consequently, starting from any $U_0\succ0$ (and any $V_0\succ0$), the Q--Sinkhorn sequence converges to the unique fixed point modulo the scalar gauge. The same holds for the one-cycle map on $\Ss_m^{++}$ obtained by composing in the other order.
+\item \emph{Limit points without contraction} If \emph{(H1)}--\emph{(H2)} hold but \emph{(H4)} fails, every accumulation point of the Q--Sinkhorn sequence is a fixed point that satisfies both target equations; different initialisations may converge to different fixed points when \emph{(H3)} fails.
+\end{enumerate}
+\end{thm}
+
+\begin{proof}[Proof sketch]
+\emph{(Existence)} follows from \emph{(H1)}. Uniqueness modulo gauge under \emph{(H3)} is standard: if both $(U,V)$ and $(\widehat U,\widehat V)$ solve the target equations, then $W\eqdef \widehat U U^{-1}$ and $Z\eqdef \widehat V V^{-1}$ stabilise $(A,B,K)$; \emph{(H3)} forces $W=\alpha\Id_n$, $Z=\alpha^{-1}\Id_m$.
+
+For \emph{(Global convergence)}, fix $U\succ0$ and consider the $V$-update. The map
+$U\mapsto \Ko^\ast(UU^\ast)$ is order-preserving and positively homogeneous of degree $1$ by complete positivity; the congruence $\Gamma_B$ is order-preserving and homogeneous of degree $0$ (it normalises to the $B$-target via a positive square root and inverses). Hence $\mathcal{V}$ is order-preserving and homogeneous of degree $0$ on the cone, and similarly $\mathcal{U}$. Birkhoff’s theory then gives that each of $\mathcal{U}$ and $\mathcal{V}$ is nonexpansive in the Thompson metric and becomes strictly contractive when the projective diameter of the image is finite; \emph{(H4)} yields a strict contraction factor $\tanh(\Delta/4)<1$.  
+The composition $\mathcal{F}=\mathcal{U}\circ\mathcal{V}$ remains a strict contraction on the gauge slice (we fix $\det U=1$ to remove the scalar indeterminacy). Banach’s theorem gives global convergence to the unique fixed point of $\mathcal{F}$ on that slice, hence to a Q--Sinkhorn fixed point modulo gauge. The statement for the $V$-cycle is identical.
+
+For \emph{(Limit points without contraction)}, primitivity \emph{(H2)} keeps iterates in $\Ss^{++}$ and prevents degeneracy. As each block update exactly solves one target equation with the other block frozen, standard alternating-normalisation arguments show that any cluster point must be a common fixed point of both block maps, hence solves the target equations. Without a contraction, different basins (or symmetry orbits, when \emph{(H3)} fails) can lead to different fixed points.
+\end{proof}
+
+\begin{rem}[What is and is not assumed]
+\begin{itemize}
+\item The theorem \emph{does not} claim that one can conjugate $K$ once and for all to reduce to identity marginals; that move is generally false (already in the diagonal/classical case).
+\item Assumption \emph{(H4)} is the key extra condition for a clean convergence claim; it holds, for example, when $\Ko$ has a Kraus representation with full support and uniform bounds, which forces a finite projective diameter. Without \emph{(H4)}, convergence may still happen in practice but is not guaranteed by projective-metric tools.
+\item If \emph{(H3)} fails (e.g.\ $K$ or the targets have symmetries), multiple fixed points appear along the symmetry orbits; the limit may depend on the initial pair.
+\end{itemize}
+\end{rem}
+
+\paragraph{Summary.}
+Q--Sinkhorn should be analysed as \emph{operator scaling to prescribed targets} $(A,B)$, not as a one-shot reduction to the bistochastic case. Feasibility \emph{(H1)} and strict positivity \emph{(H2)} are baseline. A projective-metric contraction \emph{(H4)} upgrades existence to global convergence and uniqueness modulo the scalar gauge; otherwise one still gets fixed points as limit points, but multiplicity and dependence on initialisation can arise whenever \emph{(H3)} fails.
+
+
+
+\bibliographystyle{plain}
+\bibliography{biblio}
+
+\end{document}

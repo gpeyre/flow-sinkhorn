@@ -1,0 +1,358 @@
+\documentclass[11pt]{article}
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm,mathtools,bm}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\newtheorem{lemma}{Lemma}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\Tr}{Tr}
+\newcommand{\1}{\mathbf{1}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+\newcommand{\supp}{\mathrm{supp}}
+
+\begin{document}
+
+\title{Quantum Pinsker Inequality, the Reducing Kraus Map, and References}
+\author{}
+\date{}
+\maketitle
+
+\paragraph{Terminology.}
+The inequality
+\[
+D(X\|Y)\ge \frac12 \norm{X-Y}_1^2
+\]
+for trace-one positive semidefinite matrices is usually called the \emph{quantum Pinsker inequality}. One also sees the names \emph{noncommutative Pinsker inequality} or \emph{Pinsker inequality for quantum relative entropy}, but \emph{quantum Pinsker inequality} is the standard name.
+
+\paragraph{Convention.}
+All logarithms are natural. With this convention the constant is $1/2$. If one uses base-$2$ logarithms, the constant becomes $1/(2\ln 2)$.
+
+\section{Classical Pinsker}
+
+For probability vectors $p=(p_i)_{i=1}^m$ and $q=(q_i)_{i=1}^m$,
+\[
+D(p\|q):=\sum_{i=1}^m p_i\log\frac{p_i}{q_i}.
+\]
+Then
+\begin{equation}\label{eq:classical-pinsker}
+D(p\|q)\ge \frac12 \norm{p-q}_1^2.
+\end{equation}
+
+For arbitrary nonnegative vectors $x,y\in \mathbb{R}_+^m$, the appropriate unnormalized divergence is
+\[
+I(x\|y):=\sum_{i=1}^m\left(x_i\log\frac{x_i}{y_i}-x_i+y_i\right).
+\]
+If
+\[
+a:=\norm{x}_1,\qquad b:=\norm{y}_1,
+\qquad
+p:=\frac{x}{a},\qquad q:=\frac{y}{b},
+\]
+then
+\begin{equation}\label{eq:classical-splitting}
+I(x\|y)=a\,D(p\|q)+\left(a\log\frac{a}{b}-a+b\right),
+\end{equation}
+hence
+\begin{equation}\label{eq:classical-unnormalized-pinsker}
+I(x\|y)\ge \frac{1}{2a}\norm{x-\frac{a}{b}y}_1^2+\left(a\log\frac{a}{b}-a+b\right).
+\end{equation}
+
+\section{Matrix relative entropy}
+
+Let $X,Y\in \mathbb{C}^{n\times n}$ be positive semidefinite. Define
+\[
+D(X\|Y):=
+\begin{cases}
+\Tr\!\bigl[X(\log X-\log Y)-X+Y\bigr], & \supp(X)\subseteq \supp(Y),\\[0.4em]
++\infty, & \text{otherwise.}
+\end{cases}
+\]
+If $\Tr X=\Tr Y=1$, this reduces to
+\[
+D(X\|Y)=\Tr\!\bigl[X(\log X-\log Y)\bigr].
+\]
+The norm on matrices is the trace norm
+\[
+\norm{A}_1:=\Tr|A|.
+\]
+
+\section{Quantum Pinsker inequality}
+
+\begin{theorem}[Quantum Pinsker inequality]\label{thm:quantum-pinsker}
+If $X,Y\ge 0$ and $\Tr X=\Tr Y=1$, then
+\begin{equation}\label{eq:quantum-pinsker}
+D(X\|Y)\ge \frac12 \norm{X-Y}_1^2.
+\end{equation}
+\end{theorem}
+
+\begin{remark}
+With logarithms in base $2$, the same statement becomes
+\[
+D_2(X\|Y)\ge \frac{1}{2\ln 2}\norm{X-Y}_1^2.
+\]
+\end{remark}
+
+\section{The reducing two-point map}
+
+The clean way to prove Theorem \ref{thm:quantum-pinsker} is to reduce it to the classical two-point case.
+
+\subsection{Positive and negative parts}
+
+Let
+\[
+\Delta:=X-Y.
+\]
+Since $\Delta$ is Hermitian, there is an orthonormal basis of eigenvectors and real eigenvalues:
+\[
+\Delta=\sum_{j=1}^n \lambda_j u_j u_j^\ast.
+\]
+Define
+\[
+\Delta_+:=\sum_{\lambda_j>0}\lambda_j u_j u_j^\ast,
+\qquad
+\Delta_-:=\sum_{\lambda_j<0}(-\lambda_j) u_j u_j^\ast.
+\]
+Then
+\[
+\Delta=\Delta_+-\Delta_-,
+\qquad
+|\Delta|=\Delta_++\Delta_-.
+\]
+Let
+\[
+P:=\sum_{\lambda_j>0}u_j u_j^\ast,
+\]
+the orthogonal projector onto the positive spectral subspace of $\Delta$.
+
+\subsection{The map to a two-point distribution}
+
+\begin{lemma}[Reducing Kraus map]\label{lem:reducing-map}
+Let $X,Y\ge 0$ with $\Tr X=\Tr Y=1$, and let $P$ be the orthogonal projector onto the positive spectral subspace of $X-Y$. Define
+\begin{equation}\label{eq:def-phi-vector}
+\phi(A):=\bigl(\Tr(PA),\,\Tr((\1-P)A)\bigr),
+\qquad A\in \mathbb{C}^{n\times n}.
+\end{equation}
+Define also the matrix-valued map
+\begin{equation}\label{eq:def-phi-matrix}
+\Phi(A):=\Tr(PA)\,e_1e_1^\top+\Tr((\1-P)A)\,e_2e_2^\top,
+\end{equation}
+where $e_1,e_2$ are the standard basis vectors of $\mathbb{C}^2$.
+
+Then:
+\begin{enumerate}[label=(\roman*)]
+\item $\phi$ is linear;
+\item if $A\ge 0$, then $\phi(A)\in \mathbb{R}_+^2$;
+\item if $\Tr A=1$, then $\phi(A)$ is a probability vector;
+\item with
+\[
+p:=\phi(X),\qquad q:=\phi(Y),
+\]
+one has
+\begin{equation}\label{eq:l1-preserved}
+\norm{p-q}_1=\norm{X-Y}_1;
+\end{equation}
+\item $\Phi$ is completely positive and trace-preserving;
+\item $\Phi$ has a Kraus representation.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+Linearity of $\phi$ is immediate.
+
+If $A\ge 0$, then $P\ge 0$ and $\1-P\ge 0$, so
+\[
+\Tr(PA)\ge 0,\qquad \Tr((\1-P)A)\ge 0.
+\]
+Hence $\phi(A)\in \mathbb{R}_+^2$.
+
+If $\Tr A=1$, then
+\[
+\Tr(PA)+\Tr((\1-P)A)=\Tr(A)=1,
+\]
+so $\phi(A)$ is a probability vector.
+
+Now
+\[
+p-q=\bigl(\Tr(P\Delta),\,\Tr((\1-P)\Delta)\bigr),
+\qquad \Delta=X-Y.
+\]
+Because $P$ projects onto the positive spectral subspace of $\Delta$,
+\[
+\Tr(P\Delta)=\Tr(\Delta_+),
+\qquad
+\Tr((\1-P)\Delta)=-\Tr(\Delta_-).
+\]
+Therefore
+\begin{align*}
+\norm{p-q}_1
+&=
+\left|\Tr(P\Delta)\right|+\left|\Tr((\1-P)\Delta)\right| \\
+&=
+\Tr(\Delta_+)+\Tr(\Delta_-) \\
+&=
+\Tr|\Delta| \\
+&=
+\norm{\Delta}_1
+=
+\norm{X-Y}_1.
+\end{align*}
+This proves \eqref{eq:l1-preserved}.
+
+For the Kraus form, set
+\[
+K_1:=e_1P,\qquad K_2:=e_2(\1-P).
+\]
+Then
+\[
+K_1^\ast K_1=P,\qquad K_2^\ast K_2=\1-P,
+\qquad K_1^\ast K_1+K_2^\ast K_2=\1.
+\]
+Moreover, for every $A$,
+\[
+K_1AK_1^\ast=\Tr(PA)\,e_1e_1^\top,
+\qquad
+K_2AK_2^\ast=\Tr((\1-P)A)\,e_2e_2^\top.
+\]
+Hence
+\[
+\Phi(A)=K_1AK_1^\ast+K_2AK_2^\ast.
+\]
+So $\Phi$ is given by a Kraus representation, therefore it is completely positive; and the identity
+\[
+K_1^\ast K_1+K_2^\ast K_2=\1
+\]
+shows that it is trace-preserving.
+\end{proof}
+
+\begin{remark}
+The vector-valued map $\phi$ is the diagonal of the matrix-valued map $\Phi$. Complete positivity is naturally stated for $\Phi$, because its codomain is a matrix algebra. One then identifies the diagonal $2\times2$ matrix $\Phi(A)$ with its diagonal vector $\phi(A)$.
+\end{remark}
+
+\section{Proof of the quantum Pinsker inequality}
+
+The key input is monotonicity of matrix relative entropy under completely positive trace-preserving maps:
+\[
+D(X\|Y)\ge D(\Phi(X)\|\Phi(Y)).
+\]
+By Lemma \ref{lem:reducing-map}, the matrices $\Phi(X)$ and $\Phi(Y)$ are diagonal with diagonals
+\[
+p=\phi(X),\qquad q=\phi(Y).
+\]
+Therefore
+\[
+D(\Phi(X)\|\Phi(Y))=D(p\|q).
+\]
+Applying the classical Pinsker inequality \eqref{eq:classical-pinsker}, we obtain
+\[
+D(X\|Y)\ge D(p\|q)\ge \frac12 \norm{p-q}_1^2.
+\]
+Using again Lemma \ref{lem:reducing-map},
+\[
+\norm{p-q}_1=\norm{X-Y}_1.
+\]
+Hence
+\[
+D(X\|Y)\ge \frac12 \norm{X-Y}_1^2.
+\]
+This proves Theorem \ref{thm:quantum-pinsker}.
+
+\section{Extension to arbitrary positive semidefinite matrices}
+
+Now let $A,B\ge 0$ be arbitrary, and set
+\[
+a:=\Tr A,\qquad b:=\Tr B.
+\]
+Assume $a,b>0$ and define
+\[
+X:=\frac{A}{a},\qquad Y:=\frac{B}{b}.
+\]
+Then
+\begin{equation}\label{eq:matrix-splitting}
+D(A\|B)=a\,D(X\|Y)+\left(a\log\frac{a}{b}-a+b\right).
+\end{equation}
+Combining this with Theorem \ref{thm:quantum-pinsker} yields
+\begin{equation}\label{eq:PSD-extension}
+D(A\|B)\ge
+\frac{1}{2a}\norm{A-\frac{a}{b}B}_1^2
++
+\left(a\log\frac{a}{b}-a+b\right).
+\end{equation}
+If $\Tr A=\Tr B=a$, this simplifies to
+\begin{equation}\label{eq:equal-trace}
+D(A\|B)\ge \frac{1}{2a}\norm{A-B}_1^2.
+\end{equation}
+
+\section{Historical and bibliographic remarks}
+
+\begin{remark}
+Historically, the inequality \eqref{eq:quantum-pinsker} is commonly attributed to Hiai, Ohya, and Tsukada, who stated it in 1981 in their paper
+\emph{Sufficiency, KMS condition and relative entropy in von Neumann algebras}.
+A convenient modern source for this attribution is Watrous's textbook, which explicitly says that the quantum Pinsker inequality appears in that paper.
+\end{remark}
+
+\begin{remark}
+Watrous also notes that the same inequality can be obtained as a special case of a more general theorem due to Uhlmann from 1977. So there are two natural historical references:
+\begin{enumerate}[label=(\arabic*)]
+\item the direct 1981 reference of Hiai--Ohya--Tsukada;
+\item the earlier 1977 paper of Uhlmann containing a more general result from which quantum Pinsker follows.
+\end{enumerate}
+\end{remark}
+
+\begin{remark}
+For modern references, a very convenient textbook source is:
+\begin{enumerate}[label=(\arabic*)]
+\item J.~Watrous, \emph{The Theory of Quantum Information}, Cambridge University Press, 2018.
+\end{enumerate}
+For broader background on quantum entropy and relative entropy, one may also consult:
+\begin{enumerate}[label=(\arabic*)]
+\item M.~Ohya and D.~Petz, \emph{Quantum Entropy and Its Use}, Springer, 1993.
+\end{enumerate}
+For a modern set of lecture notes that states the inequality explicitly, see:
+\begin{enumerate}[label=(\arabic*)]
+\item M.~Wirth, \emph{Trace Inequalities and Quantum Entropy}, 2025 lecture notes.
+\end{enumerate}
+\end{remark}
+
+\section{References}
+
+\begin{thebibliography}{9}
+
+\bibitem{HOT1981}
+F.~Hiai, M.~Ohya, and M.~Tsukada,
+\emph{Sufficiency, KMS condition and relative entropy in von Neumann algebras},
+Pacific Journal of Mathematics \textbf{96} (1981), no.~1, 99--109.
+
+\bibitem{Uhlmann1977}
+A.~Uhlmann,
+\emph{Relative entropy and the Wigner--Yanase--Dyson--Lieb concavity in an interpolation theory},
+Communications in Mathematical Physics \textbf{54} (1977), no.~1, 21--32.
+
+\bibitem{Watrous2018}
+J.~Watrous,
+\emph{The Theory of Quantum Information},
+Cambridge University Press, 2018.
+
+\bibitem{OhyaPetz1993}
+M.~Ohya and D.~Petz,
+\emph{Quantum Entropy and Its Use},
+Springer, 1993.
+
+\bibitem{Wirth2025}
+M.~Wirth,
+\emph{Trace Inequalities and Quantum Entropy},
+lecture notes, 2025.
+
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,2 @@
+import FlowSinkhorn.KLProjection.Applications.OT
+import FlowSinkhorn.KLProjection.Applications.GraphW1

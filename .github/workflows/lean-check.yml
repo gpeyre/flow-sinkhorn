@@ -1,0 +1,34 @@
+name: Lean check
+
+on:
+  push:
+    paths:
+      - 'lean/**'
+      - '.github/workflows/lean-check.yml'
+  pull_request:
+    paths:
+      - 'lean/**'
+      - '.github/workflows/lean-check.yml'
+  workflow_dispatch:
+
+jobs:
+  lean-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install elan
+        run: |
+          curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Restore mathlib cache
+        working-directory: lean
+        run: lake exe cache get
+
+      - name: Check StatementMap sync with NeurIPS labels
+        run: python3 lean/scripts/check_statementmap_sync.py
+
+      - name: Build Lean project
+        working-directory: lean
+        run: lake build

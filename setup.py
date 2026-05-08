@@ -10,7 +10,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 setup(
     name="flowsinkhorn",
     version="0.1.0",
-    author="Gabriel Peyré",
+    author="Gabriel Peyre",
     author_email="gabriel.peyre@ens.fr",
     description="Flow-based Sinkhorn algorithm for W1 optimal transport on graphs",
     long_description=long_description,
@@ -46,6 +46,15 @@ setup(
             "jupyter>=1.0.0",
             "pandas>=1.0.0",
         ],
+        "benchmarks": [
+            "anndata>=0.10.0",
+            "pandas>=1.5.0",
+            "scikit-learn>=1.2.0",
+            "matplotlib>=3.6.0",
+            "gdown>=5.0.0",
+            "sparse>=0.13.0",
+            "torch>=1.13.0",
+        ],
         "all": [
             "sparse>=0.13.0",
             "cvxpy>=1.1.0",
@@ -55,6 +64,8 @@ setup(
             "scikit-learn>=0.22.0",
             "jupyter>=1.0.0",
             "pandas>=1.0.0",
+            "anndata>=0.10.0",
+            "gdown>=5.0.0",
         ],
     },
     keywords="optimal transport, wasserstein distance, sinkhorn, graphs, gpu, pytorch",
