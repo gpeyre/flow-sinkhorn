@@ -24,7 +24,7 @@ REPO = Path(__file__).resolve().parents[2]
 AUX = REPO / "neurips" / "paper.aux"
 STATEMENT_MAP = REPO / "lean" / "FlowSinkhorn" / "KLProjection" / "StatementMap.lean"
 LEAN_ROOT = REPO / "lean" / "FlowSinkhorn" / "KLProjection"
-GAP_LEDGER = REPO / "lean" / "AUDIT_INTERNALIZATION_GAPS.md"
+GAP_LEDGER = REPO / "lean" / "audit" / "internalization-gaps.md"
 
 LABEL_PREFIXES = ("prop:", "lem:", "thm:", "cor:", "app-prop:", "app-lem:", "app-cor:")
 ASSUMPTION_TARGET_SUFFIXES = ("_of_assumption", "_of_assumptions")
@@ -49,17 +49,37 @@ ASSUMPTION_SIGNAL_TOKENS = (
 # a paper proof step behind an `_of_assumption` wrapper.  The audit reports their long signatures as
 # `interface-hypotheses:n`, not as open internalization gaps.
 REVIEWED_INTERFACE_TARGETS = {
+    "dualGammaCorrect_primalDualCertificate",
     "dualRate_masterAbstractRateStatement",
+    "dualRate_KL_paperConstant_from_masterAbstractRate",
+    "dualRate_KL_paperConstant_from_ascentGapResidual",
     "regularizedApproximation_complexity_of_closedFormIterationThreshold",
+    "regularizedApproximation_paperEpsilon_of_KLRate_closedFormIterationThreshold",
+    "graphW1_projection_closedForm_maps",
+    "graphW1_projection_closedForm_maps_with_variationalCertificate",
     "graphW1_flowSinkhorn_update_as_stated_of_forward_nonneg",
+    "graphW1_flowSinkhorn_stableDualUpdate_from_code",
+    "graphW1_flowSinkhorn_stableDualUpdate_logsumexp",
+    "graphW1_flowSinkhorn_stableDualUpdate_concreteMap",
+    "graphW1_flowSinkhorn_stableDualUpdate_from_blockSweepCertificate",
+    "graphW1_sinkhornFlow_complexity_from_operationBounds",
     "graphW1_epsilonAccuracy_explicitLog_from_zeroFn_succ_of_twoStep_path_IsTopical_via_HGamma_at_ceil_index",
+    "primalMassBound_from_zeroStartFinitePairing_exactL1_card_quotientRadiusCertificate",
+    "perStepAscent_twoHalfSteps_paperConstants_of_gammaExactSupportBlockUpdateCertificates_commonMass",
+    "perStepAscent_twoHalfSteps_paperConstants_of_exactSupportBlockUpdateCertificates_commonMass",
     "perStepAscent_residualProxy_of_finiteMassShellExactSupportBlockUpdateCertificates_commonMass",
     "dualGap_le_twoUmax_of_pairingBound_quotientSup_lt_Umax",
     "normalizedPinsker_of_finiteProbabilityMeasure_klDiv_computed_mathlib_hoeffding",
     "pinsker_nonnormalized_of_massShell_finiteProbabilityMeasure_klDiv_computed_mathlib_hoeffding",
+    "ot_HGamma_formula_uniform_logRatio_bound_from_typedRightScaling",
     "ot_orbit_bound_from_separable_and_blockConditions_zeroStart",
+    "blockUpdate_antitoneRelation_then_sweep_monotone",
+    "momentMap_monotone_of_nonnegative_linear_layers",
     "graphW1_kappa_le_graphDiameter",
+    "graphW1_kappa_le_graphDiameter_from_rootedPathFamily",
     "graphW1_orbit_bound_explicitLog_from_zeroFn_of_twoStep_path_IsTopical_via_HGamma",
+    "graphW1_primalL1Bound_from_nonnegativeFeasibleSet_minCost_coordinateSumKL_posGamma",
+    "graphW1_HGamma_formula_uniform_logRatio_bound_from_positiveFields_oppositeLog_logEnvelope",
 }
 
 
@@ -315,8 +335,17 @@ def print_summary(audits: List[EndpointAudit], errors: List[str], warnings: List
 
 
 def main() -> int:
-    if not AUX.exists() or not STATEMENT_MAP.exists():
-        print("ERROR: missing required files", file=sys.stderr)
+    missing = [path for path in (AUX, STATEMENT_MAP) if not path.exists()]
+    if missing:
+        print("ERROR: missing required files:", file=sys.stderr)
+        for path in missing:
+            print(f"- {path}", file=sys.stderr)
+        if AUX in missing:
+            print(
+                "Hint: regenerate neurips/paper.aux with "
+                "`cd neurips && pdflatex -interaction=nonstopmode -halt-on-error paper.tex`.",
+                file=sys.stderr,
+            )
         return 2
 
     labels = parse_aux_labels(AUX.read_text(encoding="utf-8"))

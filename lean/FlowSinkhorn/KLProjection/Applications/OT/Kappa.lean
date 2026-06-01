@@ -4,7 +4,7 @@ import FlowSinkhorn.KLProjection.Applications.OT.HGamma
 # `κ` for balanced optimal transport
 
 This module is reserved for Proposition `prop:kappa_OT` from
-`papers/kl-projections/sections/sec-sinkhorn.tex`.
+the OT material in `neurips/paper.tex`.
 
 Intended theorem names:
 - `ot_kappa_eq_one`;

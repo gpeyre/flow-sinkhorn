@@ -1,3 +1,4 @@
+import FlowSinkhorn.KLProjection.TopicalVocabulary
 import FlowSinkhorn.KLProjection.Variation
 import FlowSinkhorn.KLProjection.UniformBound
 
@@ -31,19 +32,6 @@ namespace KLProjection
 set_option linter.style.longLine false
 
 variable {ι : Type*}
-
-/--
-A map on finite real-valued functions is **topical** if it is monotone and
-translation-equivariant.
-
-This bundles the two hypotheses of Proposition `prop:topical-nonexpansive`:
-monotone + translation-equivariant implies variation-seminorm-nonexpansive.
--/
-structure IsTopical (T : (ι → ℝ) → (ι → ℝ)) : Prop where
-  /-- The map is monotone with respect to the pointwise order. -/
-  mono : Monotone T
-  /-- The map commutes with adding a constant to all coordinates. -/
-  trans : TranslationEquivariant T
 
 /--
 The identity map is topical.
@@ -111,6 +99,115 @@ theorem isTopical_iterate_iterate
 section FiniteIndex
 
 variable [Fintype ι] [Nonempty ι]
+
+/-! ## Topical map nonexpansiveness -/
+
+/--
+Monotone, translation-equivariant maps are non-expansive for the oscillation seminorm.
+
+This is the finite-dimensional version of the abstract topical-map lemma used in
+the non-expansiveness material in `neurips/paper.tex`.
+-/
+theorem oscillation_sub_le_of_monotone_of_translationEquivariant
+    (T : (ι → ℝ) → (ι → ℝ))
+    (hmono : Monotone T)
+    (htrans : TranslationEquivariant T)
+    (x y : ι → ℝ) :
+    oscillation (T x - T y) ≤ oscillation (x - y) := by
+  let a : ℝ := coordMin (x - y)
+  let b : ℝ := coordMax (x - y)
+  have h_lower : (fun i => y i + a) ≤ x := by
+    intro i
+    have hmin : coordMin (x - y) ≤ (x - y) i := coordMin_le (x - y) i
+    dsimp [Pi.sub_apply] at hmin ⊢
+    linarith
+  have h_upper : x ≤ fun i => y i + b := by
+    intro i
+    have hmax : (x - y) i ≤ coordMax (x - y) := le_coordMax (x - y) i
+    dsimp [Pi.sub_apply] at hmax ⊢
+    linarith
+  have hTy_lower_raw : T (fun i => y i + a) ≤ T x := hmono h_lower
+  have hTx_upper_raw : T x ≤ T (fun i => y i + b) := hmono h_upper
+  have hTy_lower : (fun i => T y i + a) ≤ T x := by
+    simpa [htrans y a] using hTy_lower_raw
+  have hTx_upper : T x ≤ fun i => T y i + b := by
+    simpa [htrans y b] using hTx_upper_raw
+  have hmin' : a ≤ coordMin (T x - T y) := by
+    unfold coordMin
+    refine Finset.le_inf' (s := Finset.univ) Finset.univ_nonempty
+      (f := fun i => T x i - T y i) ?_
+    intro i hi
+    have h := hTy_lower i
+    dsimp at h ⊢
+    linarith
+  have hmax' : coordMax (T x - T y) ≤ b := by
+    unfold coordMax
+    refine Finset.sup'_le (s := Finset.univ) Finset.univ_nonempty
+      (f := fun i => T x i - T y i) ?_
+    intro i hi
+    have h := hTx_upper i
+    dsimp at h ⊢
+    linarith
+  calc
+    oscillation (T x - T y)
+        = coordMax (T x - T y) - coordMin (T x - T y) := rfl
+    _ ≤ b - a := sub_le_sub hmax' hmin'
+    _ = oscillation (x - y) := by
+      simp [oscillation, a, b]
+
+/--
+Paper-facing alias: monotone, translation-equivariant maps are non-expansive for oscillation.
+-/
+theorem oscillation_nonexpansive_of_monotone_of_translationEquivariant
+    (T : (ι → ℝ) → (ι → ℝ))
+    (hmono : Monotone T)
+    (htrans : TranslationEquivariant T)
+    (x y : ι → ℝ) :
+    oscillation (T x - T y) ≤ oscillation (x - y) :=
+  oscillation_sub_le_of_monotone_of_translationEquivariant T hmono htrans x y
+
+/-- Short alias matching the topical-map language of the paper. -/
+theorem oscillation_nonexpansive_of_topical
+    (T : (ι → ℝ) → (ι → ℝ))
+    (hmono : Monotone T)
+    (htrans : TranslationEquivariant T)
+    (x y : ι → ℝ) :
+    oscillation (T x - T y) ≤ oscillation (x - y) :=
+  oscillation_nonexpansive_of_monotone_of_translationEquivariant T hmono htrans x y
+
+/--
+Monotone, translation-equivariant maps are non-expansive for the variation seminorm.
+-/
+theorem variationSeminorm_sub_le_of_monotone_of_translationEquivariant
+    (T : (ι → ℝ) → (ι → ℝ))
+    (hmono : Monotone T)
+    (htrans : TranslationEquivariant T)
+    (x y : ι → ℝ) :
+    variationSeminorm (T x - T y) ≤ variationSeminorm (x - y) := by
+  unfold variationSeminorm
+  have h :=
+    oscillation_sub_le_of_monotone_of_translationEquivariant T hmono htrans x y
+  linarith
+
+/--
+Paper-facing alias: monotone, translation-equivariant maps are non-expansive for variation seminorm.
+-/
+theorem variationSeminorm_nonexpansive_of_monotone_of_translationEquivariant
+    (T : (ι → ℝ) → (ι → ℝ))
+    (hmono : Monotone T)
+    (htrans : TranslationEquivariant T)
+    (x y : ι → ℝ) :
+    variationSeminorm (T x - T y) ≤ variationSeminorm (x - y) :=
+  variationSeminorm_sub_le_of_monotone_of_translationEquivariant T hmono htrans x y
+
+/-- Short alias matching the topical-map language of the paper. -/
+theorem variationSeminorm_nonexpansive_of_topical
+    (T : (ι → ℝ) → (ι → ℝ))
+    (hmono : Monotone T)
+    (htrans : TranslationEquivariant T)
+    (x y : ι → ℝ) :
+    variationSeminorm (T x - T y) ≤ variationSeminorm (x - y) :=
+  variationSeminorm_nonexpansive_of_monotone_of_translationEquivariant T hmono htrans x y
 
 /--
 Topical maps are nonexpansive for the variation seminorm.

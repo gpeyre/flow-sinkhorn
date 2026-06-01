@@ -1,11 +1,12 @@
 import FlowSinkhorn.KLProjection.Applications.OT.HGamma
 import FlowSinkhorn.KLProjection.Applications.OT.Kappa
+import FlowSinkhorn.KLProjection.Applications.OT.ComplexityVocabulary
 import FlowSinkhorn.KLProjection.Applications.OT.Complexity
 
 /-!
 # Balanced optimal transport instantiation
 
-This section-level module mirrors `papers/kl-projections/sections/sec-sinkhorn.tex`.
+This section-level module mirrors the OT material in `neurips/paper.tex`.
 
 Planned paper-faithful order:
 1. `H_γ` bound;

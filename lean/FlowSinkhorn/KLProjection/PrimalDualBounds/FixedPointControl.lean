@@ -1,3 +1,4 @@
+import FlowSinkhorn.KLProjection.PrimalDualBounds.Vocabulary
 import FlowSinkhorn.KLProjection.PrimalDualBounds.PrimalFromDual
 import FlowSinkhorn.KLProjection.UniformBound
 import Mathlib.Analysis.Seminorm
@@ -29,16 +30,6 @@ open Function
 
 variable {𝕜 E : Type*}
 variable [NormedField 𝕜] [AddCommGroup E] [Module 𝕜 E]
-
-/--
-Paper-facing fixed-point budget from `H_γ` and `κ`.
-
-This packages the optimizer-specific control expected in Proposition 4.2:
-once one proves `p u_γ ≤ κ (cost + γ H_γ)` for the fixed point, it can be re-used as
-an explicit constant in every iterate bound.
--/
-def hGammaKappaBudget (kappa cost gamma hGamma : ℝ) : ℝ :=
-  kappa * (cost + gamma * hGamma)
 
 /--
 Paper-facing name for the optimizer-specific fixed-point estimate from `H_γ` and `κ`.

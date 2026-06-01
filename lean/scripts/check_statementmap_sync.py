@@ -95,6 +95,11 @@ def resolve_target_file(target: str) -> str:
 def main() -> int:
     if not AUX.exists():
         print(f"ERROR: missing {AUX}", file=sys.stderr)
+        print(
+            "Hint: regenerate it with "
+            "`cd neurips && pdflatex -interaction=nonstopmode -halt-on-error paper.tex`.",
+            file=sys.stderr,
+        )
         return 2
     if not STATEMENT_MAP.exists():
         print(f"ERROR: missing {STATEMENT_MAP}", file=sys.stderr)

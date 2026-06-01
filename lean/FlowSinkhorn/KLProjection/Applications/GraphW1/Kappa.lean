@@ -4,7 +4,7 @@ import FlowSinkhorn.KLProjection.Applications.GraphW1.HGamma
 # `κ` for graph `W₁`
 
 This module is reserved for Proposition `prop:kappa_diam` from
-`papers/kl-projections/sections/sec-w1-graphs.tex`.
+the graph-W1 material in `neurips/paper.tex`.
 
 Intended theorem names:
 - `graphW1_kappa_le_graphDiameter`;
@@ -301,6 +301,46 @@ theorem graphW1_kappa_le_graphDiameter
     kappa ≤ 2 * (graphDiam : ℝ) := by
   exact graphW1_kappa_le_twoGraphDiameter_from_path
     hB hBunit graphDiam yf yg hyf hyg steps hlen hsteps hkappa_from_path
+
+/--
+Rooted-path version of the graph-`W₁` `κ ≤ 2 * diam` estimate.
+
+This is the paper-facing certificate for the integration-along-shortest-paths proof: a rooted
+path family gives, for each vertex, a list of oriented edge certificates of length at most the
+graph diameter.  If `κ` is controlled by one of the corresponding rooted potentials, then the
+two-step edge-gradient estimate gives the displayed `2 * diameter` bound.
+
+The remaining graph-theoretic part of the paper proof is intentionally visible in the hypotheses:
+constructing `path` from graph connectivity/shortest paths and proving the `κ`-control premise
+from the quotient definition of `Aᵀ(v,U)`.
+-/
+theorem graphW1_kappa_le_graphDiameter_from_rootedPathFamily
+    {ι : Type*}
+    {kappa B : ℝ}
+    (hB : 0 ≤ B)
+    (hBunit : B ≤ 1)
+    (graphDiam : ℕ)
+    (yf yg : ι × ι → ℝ)
+    (path : ι → List (ι × ι))
+    (hyf : ∀ p : ι × ι, |yf p| ≤ B)
+    (hyg : ∀ p : ι × ι, |yg p| ≤ B)
+    (hlen : ∀ i : ι, (path i).length ≤ graphDiam)
+    (hkappa_from_rootedPath :
+      ∃ i : ι,
+        kappa ≤ |((path i).map (fun p : ι × ι => (yf + yg) p)).sum|) :
+    kappa ≤ 2 * (graphDiam : ℝ) := by
+  obtain ⟨i, hi⟩ := hkappa_from_rootedPath
+  let steps : List ℝ := (path i).map (fun p : ι × ι => (yf + yg) p)
+  have hlen_steps : steps.length ≤ graphDiam := by
+    dsimp [steps]
+    simpa only [List.length_map] using hlen i
+  have hsteps : ∀ x ∈ steps, ∃ p : ι × ι, x = (yf + yg) p := by
+    intro x hx
+    dsimp [steps] at hx
+    rcases List.mem_map.mp hx with ⟨p, _hp, rfl⟩
+    exact ⟨p, rfl⟩
+  exact graphW1_kappa_le_twoDiam_of_twoStep_path
+    hB hBunit graphDiam yf yg hyf hyg steps hlen_steps hsteps hi
 
 /--
 Direct split-potential control from the internally derived graph-`W₁` path witness.

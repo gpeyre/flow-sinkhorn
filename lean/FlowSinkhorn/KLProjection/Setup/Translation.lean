@@ -4,7 +4,7 @@ import FlowSinkhorn.KLProjection.Sweep
 # Signed paired-balance translation structure
 
 This module is the Lean-side home for the translation-equivariance material from
-`papers/kl-projections/sections/sec-nonexpansiveness.tex`.
+the non-expansiveness material in `neurips/paper.tex`.
 
 Paper targets:
 - Equation `eq:paired-balance-tau`;
@@ -76,6 +76,29 @@ theorem sweep_translationEquivariant
           rw [← mul_assoc, PairedSign.toReal_mul_self, one_mul]
     _ = sweep Ψ₁ Ψ₂ u₁ i + c := by
           rfl
+
+/--
+Paper-facing proof core for Proposition `app-prop:translation-equivariance`.
+
+The paper first derives the two block translation laws from the signed paired-balance
+identity, then composes those laws to obtain translation equivariance of the full sweep.
+Here `pairedBalance` is an abstract predicate standing for that concrete linear identity,
+while `hΨ₁` and `hΨ₂` are the certified derivations of the block laws from it.
+-/
+theorem translationEquivariance_of_pairedBalance_blockLaws
+    (τ : PairedSign)
+    (pairedBalance : Prop)
+    (Ψ₁ : (ι₂ → ℝ) → (ι₁ → ℝ))
+    (Ψ₂ : (ι₁ → ℝ) → (ι₂ → ℝ))
+    (hBalance : pairedBalance)
+    (hΨ₁ : pairedBalance → SignedBlockTranslationEquivariant1 τ Ψ₁)
+    (hΨ₂ : pairedBalance → SignedBlockTranslationEquivariant2 τ Ψ₂) :
+    SignedBlockTranslationEquivariant2 τ Ψ₂ ∧
+      SignedBlockTranslationEquivariant1 τ Ψ₁ ∧
+        TranslationEquivariant (sweep Ψ₁ Ψ₂) := by
+  have h1 : SignedBlockTranslationEquivariant1 τ Ψ₁ := hΨ₁ hBalance
+  have h2 : SignedBlockTranslationEquivariant2 τ Ψ₂ := hΨ₂ hBalance
+  exact ⟨h2, h1, sweep_translationEquivariant τ Ψ₁ Ψ₂ h1 h2⟩
 
 /--
 Concrete commutation form used in notebook-facing explanations:

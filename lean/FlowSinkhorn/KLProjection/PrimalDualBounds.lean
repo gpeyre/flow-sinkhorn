@@ -5,7 +5,7 @@ import FlowSinkhorn.KLProjection.PrimalDualBounds.Blueprint
 /-!
 # Primal/dual bounding layer
 
-This section-level module mirrors `papers/kl-projections/sections/sec-bounding-primaldual.tex`.
+This section-level module mirrors the primal-dual bounds material in `neurips/paper.tex`.
 
 Planned paper-faithful order:
 1. primal bound from a dual bound (`X_γ` side);

@@ -20,8 +20,8 @@ this module should eventually provide the exact certified setup needed by the ge
 blueprint without importing any application-specific constant.
 
 See also:
-- `lean/FORMALIZATION_PLAN.md`
-- `papers/kl-projections/sections/sec-lean-formalization.tex`
+- `lean/README.md`
+- `lean/audit/comparator.md`
 -/
 
 namespace FlowSinkhorn

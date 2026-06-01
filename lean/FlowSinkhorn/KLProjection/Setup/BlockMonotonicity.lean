@@ -8,7 +8,7 @@ import Mathlib.Order.Monotone.Basic
 # Block monotonicity and moment maps
 
 This module is reserved for the order-theoretic input from
-`papers/kl-projections/sections/sec-nonexpansiveness.tex`.
+the non-expansiveness material in `neurips/paper.tex`.
 
 Paper targets:
 - Proposition `prop:block-mono`;
@@ -27,6 +27,8 @@ files can simply import a certified topicality statement rather than re-proving 
 namespace FlowSinkhorn
 namespace KLProjection
 namespace Setup
+
+open scoped BigOperators
 
 -- Paper-facing theorem names are intentionally verbose for traceability.
 set_option linter.style.longLine false
@@ -64,6 +66,54 @@ theorem momentMap_monotone
   hmono hxy
 
 /--
+Finite moment-map monotonicity from nonnegative coefficients.
+
+This is the concrete summation step in Lemma `app-lem:moment-monotone`: once the signed
+coordinate contributions are ordered atom-by-atom, multiplying by a nonnegative incidence/moment
+matrix and summing preserves the componentwise order of the moment map.
+-/
+theorem momentMap_monotone_of_nonnegative_signed_contributions
+    {atom moment : Type*} [Fintype atom]
+    (B : atom → moment → ℝ)
+    (signedX signedY : atom → ℝ)
+    (hB : ∀ i j, 0 ≤ B i j)
+    (hxy : ∀ i, signedX i ≤ signedY i) :
+    (fun j : moment => ∑ i : atom, B i j * signedX i) ≤
+      (fun j : moment => ∑ i : atom, B i j * signedY i) := by
+  intro j
+  exact Finset.sum_le_sum fun i _hi =>
+    mul_le_mul_of_nonneg_left (hxy i) (hB i j)
+
+/--
+Two-layer finite nonnegative moment-map monotonicity.
+
+This strengthens the paper-facing Lemma `app-lem:moment-monotone`: instead of assuming the
+atomwise signed contributions are already ordered, it derives that order from a first finite
+nonnegative linear layer `A` applied to an ordered source vector, and then pushes it through the
+second nonnegative moment/incidence layer `B`.
+-/
+theorem momentMap_monotone_of_nonnegative_linear_layers
+    {source atom moment : Type*} [Fintype source] [Fintype atom]
+    (A : source → atom → ℝ)
+    (B : atom → moment → ℝ)
+    (x y : source → ℝ)
+    (hA : ∀ r i, 0 ≤ A r i)
+    (hB : ∀ i j, 0 ≤ B i j)
+    (hxy : ∀ r, x r ≤ y r) :
+    (fun j : moment => ∑ i : atom, B i j * (∑ r : source, A r i * x r)) ≤
+      (fun j : moment => ∑ i : atom, B i j * (∑ r : source, A r i * y r)) := by
+  have hsigned : ∀ i : atom,
+      (∑ r : source, A r i * x r) ≤ (∑ r : source, A r i * y r) := by
+    intro i
+    exact Finset.sum_le_sum fun r _hr =>
+      mul_le_mul_of_nonneg_left (hxy r) (hA r i)
+  exact momentMap_monotone_of_nonnegative_signed_contributions
+    B
+    (fun i : atom => ∑ r : source, A r i * x r)
+    (fun i : atom => ∑ r : source, A r i * y r)
+    hB hsigned
+
+/--
 If both block maps are monotone, then the composed sweep is monotone.
 -/
 theorem sweep_monotone_of_blockMonotone
@@ -72,6 +122,26 @@ theorem sweep_monotone_of_blockMonotone
     (hΨ₁ : Monotone Ψ₁)
     (hΨ₂ : Monotone Ψ₂) :
     Monotone (sweep Ψ₁ Ψ₂) := by
+  intro u v huv
+  exact hΨ₁ (hΨ₂ huv)
+
+/--
+Abstract signed-order core of Proposition `app-prop:block-monotone`.
+
+The paper proves monotonicity of the full sweep by showing that each block update is
+anti-monotone, with the second block ordered by the signed relation `R₂`.  The two
+order reversals compose to an ordinary monotone sweep.
+-/
+theorem blockUpdate_antitoneRelation_then_sweep_monotone
+    (R₂ : (ι₂ → ℝ) → (ι₂ → ℝ) → Prop)
+    (Ψ₁ : (ι₂ → ℝ) → (ι₁ → ℝ))
+    (Ψ₂ : (ι₁ → ℝ) → (ι₂ → ℝ))
+    (hΨ₁ : ∀ {u v : ι₂ → ℝ}, R₂ u v → Ψ₁ v ≤ Ψ₁ u)
+    (hΨ₂ : ∀ {u v : ι₁ → ℝ}, u ≤ v → R₂ (Ψ₂ v) (Ψ₂ u)) :
+    (∀ {u v : ι₂ → ℝ}, R₂ u v → Ψ₁ v ≤ Ψ₁ u) ∧
+      (∀ {u v : ι₁ → ℝ}, u ≤ v → R₂ (Ψ₂ v) (Ψ₂ u)) ∧
+        Monotone (sweep Ψ₁ Ψ₂) := by
+  refine ⟨hΨ₁, hΨ₂, ?_⟩
   intro u v huv
   exact hΨ₁ (hΨ₂ huv)
 

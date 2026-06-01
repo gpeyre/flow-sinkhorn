@@ -1,4 +1,5 @@
 import FlowSinkhorn.KLProjection.DualConvergence.PerStepAscent
+import FlowSinkhorn.KLProjection.DualConvergence.Vocabulary
 import FlowSinkhorn.KLProjection.BlockQuotient
 import Mathlib.Data.Real.Basic
 
@@ -6,7 +7,7 @@ import Mathlib.Data.Real.Basic
 # Gap versus residuals
 
 This module is reserved for the Lean formalization of Lemma `lem:gap-vs-res-quotient` from
-`papers/kl-projections/sections/sec-dual-convergence.tex`.
+the dual-convergence material in `neurips/paper.tex`.
 
 Intended theorem names:
 - `dualGap_le_residual_blockQuotient`;
@@ -62,15 +63,6 @@ theorem dualGap_le_residual_twoUmax
     gapNow ≤ residualNorm * (UStar + UNow) := hgap
     _ ≤ residualNorm * (Umax + Umax) := hmul
     _ = (2 * Umax) * residualNorm := by ring
-
-/-- Finite `ℓ¹` norm used in the quotient-gap Hölder bridge. -/
-noncomputable def finiteL1 {n : ℕ} (r : Fin n → ℝ) : ℝ :=
-  ∑ i, |r i|
-
-/-- Two-block finite `ℓ¹` norm used by the block-quotient A.2 bridge. -/
-noncomputable def finiteL1Pair {ι₁ ι₂ : Type*} [Fintype ι₁] [Fintype ι₂]
-    (r₁ : ι₁ → ℝ) (r₂ : ι₂ → ℝ) : ℝ :=
-  (∑ i, |r₁ i|) + ∑ j, |r₂ j|
 
 /-- Nonnegativity of the two-block finite `ℓ¹` norm. -/
 theorem finiteL1Pair_nonneg

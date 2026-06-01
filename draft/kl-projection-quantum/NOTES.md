@@ -1,12 +1,12 @@
-Current theory-agent note for `/Users/gpeyre/Dropbox/github/flow-sinkhorn/draft/kl-projection-quantum/`.
+Current theory-agent note for `draft/kl-projection-quantum/`.
 
 Files currently in scope:
-- `/Users/gpeyre/Dropbox/github/flow-sinkhorn/draft/kl-projection-quantum/kl-projection-quantum.tex`
-- `/Users/gpeyre/Dropbox/github/flow-sinkhorn/draft/kl-projection-quantum/NOTES.md`
+- `draft/kl-projection-quantum/kl-projection-quantum.tex`
+- `draft/kl-projection-quantum/NOTES.md`
 
 Current mathematical stance:
 - The draft now treats the **exact variational entropic Q-OT problem** as the main object.
-- The abstraction layer is the **general-Bregman extension** from `/Users/gpeyre/Dropbox/github/flow-sinkhorn/papers/kl-projections/sections/sec-dual-convergence.tex`, with
+- The abstraction layer is the **general-Bregman extension** from the dual-convergence material in `neurips/paper.tex`, with
   - primal variable `T` on the positive definite cone,
   - Bregman generator `phi(T) = tr(T log T - T)`,
   - Bregman divergence `D_phi(T|S) = tr(T(log T-log S)-T+S)`.

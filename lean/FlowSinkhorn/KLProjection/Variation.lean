@@ -1,3 +1,4 @@
+import FlowSinkhorn.KLProjection.VariationVocabulary
 import Mathlib.Data.Real.Basic
 import Mathlib.Order.ConditionallyCompleteLattice.Finset
 import Mathlib.Order.Monotone.Basic
@@ -24,38 +25,6 @@ namespace FlowSinkhorn
 namespace KLProjection
 
 variable {ι : Type*} [Fintype ι] [Nonempty ι]
-
-/-! ## Coordinate extrema -/
-
-/-- Maximum coordinate of a finite real vector. -/
-def coordMax (x : ι → ℝ) : ℝ :=
-  Finset.sup' Finset.univ Finset.univ_nonempty x
-
-/-- Minimum coordinate of a finite real vector. -/
-def coordMin (x : ι → ℝ) : ℝ :=
-  Finset.inf' Finset.univ Finset.univ_nonempty x
-
-/-! ## Oscillation -/
-
-/-- Oscillation of a finite real vector, i.e. `max(x) - min(x)`. -/
-def oscillation (x : ι → ℝ) : ℝ :=
-  coordMax x - coordMin x
-
-/-! ## Variation seminorm -/
-
-/-- Variation seminorm, equal to half the oscillation. -/
-def variationSeminorm (x : ι → ℝ) : ℝ :=
-  oscillation x / 2
-
-/-! ## Translation equivariance -/
-
-/-- Translation equivariance for pointwise addition of constants. -/
-def TranslationEquivariant (T : (ι → ℝ) → (ι → ℝ)) : Prop :=
-  ∀ x : ι → ℝ, ∀ c : ℝ, T (fun i => x i + c) = fun i => T x i + c
-
-/-- Shift placing the interval `[coordMin x, coordMax x]` symmetrically around the origin. -/
-def centeringShift (x : ι → ℝ) : ℝ :=
-  -((coordMax x + coordMin x) / 2)
 
 lemma coordMin_le (x : ι → ℝ) (i : ι) : coordMin x ≤ x i := by
   unfold coordMin
@@ -170,113 +139,6 @@ theorem variationSeminorm_le_of_shifted_supnorm_bound
     (hM : ∀ i, |x i + c| ≤ M) :
     variationSeminorm x ≤ M :=
   variationSeminorm_le_of_forall_abs_add_const_le x hM
-
-/-! ## Topical map nonexpansiveness (see also Topical.lean) -/
-
-/--
-Monotone, translation-equivariant maps are non-expansive for the oscillation seminorm.
-
-This is the finite-dimensional version of the abstract "topical map" lemma used in
-`papers/kl-projections/sections/sec-nonexpansiveness.tex`.
--/
-theorem oscillation_sub_le_of_monotone_of_translationEquivariant
-    (T : (ι → ℝ) → (ι → ℝ))
-    (hmono : Monotone T)
-    (htrans : TranslationEquivariant T)
-    (x y : ι → ℝ) :
-    oscillation (T x - T y) ≤ oscillation (x - y) := by
-  let a : ℝ := coordMin (x - y)
-  let b : ℝ := coordMax (x - y)
-  have h_lower : (fun i => y i + a) ≤ x := by
-    intro i
-    have hmin : coordMin (x - y) ≤ (x - y) i := coordMin_le (x - y) i
-    dsimp [Pi.sub_apply] at hmin ⊢
-    linarith
-  have h_upper : x ≤ fun i => y i + b := by
-    intro i
-    have hmax : (x - y) i ≤ coordMax (x - y) := le_coordMax (x - y) i
-    dsimp [Pi.sub_apply] at hmax ⊢
-    linarith
-  have hTy_lower_raw : T (fun i => y i + a) ≤ T x := hmono h_lower
-  have hTx_upper_raw : T x ≤ T (fun i => y i + b) := hmono h_upper
-  have hTy_lower : (fun i => T y i + a) ≤ T x := by
-    simpa [htrans y a] using hTy_lower_raw
-  have hTx_upper : T x ≤ fun i => T y i + b := by
-    simpa [htrans y b] using hTx_upper_raw
-  have hmin' : a ≤ coordMin (T x - T y) := by
-    unfold coordMin
-    refine Finset.le_inf' (s := Finset.univ) Finset.univ_nonempty (f := fun i => T x i - T y i) ?_
-    intro i hi
-    have h := hTy_lower i
-    dsimp at h ⊢
-    linarith
-  have hmax' : coordMax (T x - T y) ≤ b := by
-    unfold coordMax
-    refine Finset.sup'_le (s := Finset.univ) Finset.univ_nonempty (f := fun i => T x i - T y i) ?_
-    intro i hi
-    have h := hTx_upper i
-    dsimp at h ⊢
-    linarith
-  calc
-    oscillation (T x - T y)
-        = coordMax (T x - T y) - coordMin (T x - T y) := rfl
-    _ ≤ b - a := sub_le_sub hmax' hmin'
-    _ = oscillation (x - y) := by
-      simp [oscillation, a, b]
-
-/--
-Paper-facing alias: monotone, translation-equivariant maps are non-expansive for oscillation.
--/
-theorem oscillation_nonexpansive_of_monotone_of_translationEquivariant
-    (T : (ι → ℝ) → (ι → ℝ))
-    (hmono : Monotone T)
-    (htrans : TranslationEquivariant T)
-    (x y : ι → ℝ) :
-    oscillation (T x - T y) ≤ oscillation (x - y) :=
-  oscillation_sub_le_of_monotone_of_translationEquivariant T hmono htrans x y
-
-/-- Short alias matching the topical-map language of the paper. -/
-theorem oscillation_nonexpansive_of_topical
-    (T : (ι → ℝ) → (ι → ℝ))
-    (hmono : Monotone T)
-    (htrans : TranslationEquivariant T)
-    (x y : ι → ℝ) :
-    oscillation (T x - T y) ≤ oscillation (x - y) :=
-  oscillation_nonexpansive_of_monotone_of_translationEquivariant T hmono htrans x y
-
-/--
-Monotone, translation-equivariant maps are non-expansive for the variation seminorm.
--/
-theorem variationSeminorm_sub_le_of_monotone_of_translationEquivariant
-    (T : (ι → ℝ) → (ι → ℝ))
-    (hmono : Monotone T)
-    (htrans : TranslationEquivariant T)
-    (x y : ι → ℝ) :
-    variationSeminorm (T x - T y) ≤ variationSeminorm (x - y) := by
-  unfold variationSeminorm
-  have h :=
-    oscillation_sub_le_of_monotone_of_translationEquivariant T hmono htrans x y
-  linarith
-
-/--
-Paper-facing alias: monotone, translation-equivariant maps are non-expansive for variation seminorm.
--/
-theorem variationSeminorm_nonexpansive_of_monotone_of_translationEquivariant
-    (T : (ι → ℝ) → (ι → ℝ))
-    (hmono : Monotone T)
-    (htrans : TranslationEquivariant T)
-    (x y : ι → ℝ) :
-    variationSeminorm (T x - T y) ≤ variationSeminorm (x - y) :=
-  variationSeminorm_sub_le_of_monotone_of_translationEquivariant T hmono htrans x y
-
-/-- Short alias matching the topical-map language of the paper. -/
-theorem variationSeminorm_nonexpansive_of_topical
-    (T : (ι → ℝ) → (ι → ℝ))
-    (hmono : Monotone T)
-    (htrans : TranslationEquivariant T)
-    (x y : ι → ℝ) :
-    variationSeminorm (T x - T y) ≤ variationSeminorm (x - y) :=
-  variationSeminorm_nonexpansive_of_monotone_of_translationEquivariant T hmono htrans x y
 
 /-- The variation seminorm satisfies the triangle inequality. -/
 theorem variationSeminorm_add (x y : ι → ℝ) :

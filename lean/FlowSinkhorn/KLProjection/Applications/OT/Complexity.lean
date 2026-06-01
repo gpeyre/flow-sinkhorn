@@ -1,13 +1,15 @@
 import FlowSinkhorn.KLProjection.Applications.OT.Kappa
+import FlowSinkhorn.KLProjection.Applications.OT.ComplexityVocabulary
 
 /-!
 # Balanced OT complexity instantiation
 
 This module is reserved for Corollary `cor:OT-XmaxUmax` and the resulting complexity statements
-from `papers/kl-projections/sections/sec-sinkhorn.tex`.
+from the OT material in `neurips/paper.tex`.
 
 Intended theorem names:
 - `ot_explicit_XGamma_UGamma`;
+- `ot_XGamma_eq_one_and_UGamma_bound`;
 - `ot_dualRate`;
 - `ot_iterationComplexity`.
 -/
@@ -52,6 +54,60 @@ theorem ot_explicit_XGamma_UGamma
           nlinarith
     _ = 6 * C_max + 2 * gamma * |Real.log min_b| := by
           exact ot_Umax_twoTimesHGammaBudget hgamma hmin_b hC_max
+
+/--
+Paper-facing package for Corollary `app-cor:ot-xgamma-ugamma`.
+
+The witness records the classical OT choice `X_γ = 1`.  The second conjunct is the
+zero-start uniform dual-orbit bound with the corrected constant
+`U_γ = 6 * C_max + 2 * γ * |log(min_b)|`.
+-/
+theorem ot_XGamma_eq_one_and_UGamma_bound
+    {ι₁ : Type*} [Fintype ι₁] [Nonempty ι₁]
+    (Psi : (ι₁ → ℝ) → (ι₁ → ℝ))
+    (hPsi : SeminormNonexpansive variationSeminormAsSeminorm Psi)
+    {alphaStar : ι₁ → ℝ} (hfix : Psi alphaStar = alphaStar)
+    {gamma min_b C_max : ℝ}
+    (hgamma : 0 < gamma)
+    (hmin_b : 0 < min_b)
+    (hC_max : 0 ≤ C_max)
+    (hbound : variationSeminorm alphaStar ≤ PrimalDualBounds.hGammaKappaBudget 1 C_max gamma
+        (|Real.log min_b| + 2 * C_max / gamma))
+    {u₀ : ι₁ → ℝ} (hu₀ : variationSeminorm u₀ = 0) :
+    ∃ X_gamma : ℝ, X_gamma = 1 ∧
+      ∀ k : ℕ,
+        variationSeminorm ((Psi^[k]) u₀) ≤ 6 * C_max + 2 * gamma * |Real.log min_b| := by
+  refine ⟨1, rfl, ?_⟩
+  intro k
+  exact ot_explicit_XGamma_UGamma
+    Psi hPsi (u₀ := u₀) hfix hgamma hmin_b hC_max hbound hu₀ k
+
+/--
+Topical-map version of the paper-facing `X_γ/U_γ` package for balanced OT.
+
+This is the preferred certification endpoint for Corollary `app-cor:ot-xgamma-ugamma`: it
+derives the variation-seminorm nonexpansiveness hypothesis from the structural topicality
+predicate before applying the explicit orbit bound.
+-/
+theorem ot_XGamma_eq_one_and_UGamma_bound_from_topical
+    {ι₁ : Type*} [Fintype ι₁] [Nonempty ι₁]
+    (Psi : (ι₁ → ℝ) → (ι₁ → ℝ))
+    (hPsi : IsTopical Psi)
+    {alphaStar : ι₁ → ℝ} (hfix : Psi alphaStar = alphaStar)
+    {gamma min_b C_max : ℝ}
+    (hgamma : 0 < gamma)
+    (hmin_b : 0 < min_b)
+    (hC_max : 0 ≤ C_max)
+    (hbound : variationSeminorm alphaStar ≤ PrimalDualBounds.hGammaKappaBudget 1 C_max gamma
+        (|Real.log min_b| + 2 * C_max / gamma))
+    {u₀ : ι₁ → ℝ} (hu₀ : variationSeminorm u₀ = 0) :
+    ∃ X_gamma : ℝ, X_gamma = 1 ∧
+      ∀ k : ℕ,
+        variationSeminorm ((Psi^[k]) u₀) ≤ 6 * C_max + 2 * gamma * |Real.log min_b| := by
+  have hnonexp : SeminormNonexpansive variationSeminormAsSeminorm Psi :=
+    SeminormNonexpansive_variationSeminormAsSeminorm_of_isTopical hPsi
+  exact ot_XGamma_eq_one_and_UGamma_bound
+    Psi hnonexp (u₀ := u₀) hfix hgamma hmin_b hC_max hbound hu₀
 
 /--
 First-pass OT dual-rate API.
@@ -1414,6 +1470,72 @@ theorem ot_orbit_bound_from_separable_and_blockConditions_zeroStart_sweep
   ot_orbit_bound_from_separable_and_blockConditions_sweep
     τ Ψ₁ Ψ₂ hΨ₁_mono hΨ₂_mono hΨ₁_trans hΨ₂_trans hfix j₀ hY
     hgamma hmin_b hC_max hbudget (by simpa using (variationSeminorm_zero (ι := ι₁))) k
+
+/--
+Block-condition and separable-certificate version of Corollary
+`app-cor:ot-xgamma-ugamma`.
+
+Compared with `ot_XGamma_eq_one_and_UGamma_bound_from_topical`, this endpoint no longer asks the
+caller for a prepackaged topicality certificate or a prepackaged fixed-point budget.  It starts
+from the two Sinkhorn block maps, derives topicality of their sweep from the block monotonicity and
+signed translation-equivariance laws, and derives the fixed-point budget from the separable
+decomposition certificate used in the OT `κ=1` proof.
+-/
+theorem ot_XGamma_eq_one_and_UGamma_bound_from_blockConditions_separable
+    {ι₁ ι₂ : Type*} [Fintype ι₁] [Nonempty ι₁] [Fintype ι₂] [Nonempty ι₂]
+    (τ : PairedSign)
+    (Ψ₁ : (ι₂ → ℝ) → (ι₁ → ℝ))
+    (Ψ₂ : (ι₁ → ℝ) → (ι₂ → ℝ))
+    (hΨ₁_mono : Monotone Ψ₁) (hΨ₂_mono : Monotone Ψ₂)
+    (hΨ₁_trans : SignedBlockTranslationEquivariant1 τ Ψ₁)
+    (hΨ₂_trans : SignedBlockTranslationEquivariant2 τ Ψ₂)
+    {alphaStar : ι₁ → ℝ} (hfix : (sweep Ψ₁ Ψ₂) alphaStar = alphaStar)
+    {betaStar : ι₂ → ℝ} (j₀ : ι₂)
+    {Y : ι₁ × ι₂ → ℝ}
+    (hY : ∀ i j, alphaStar i + betaStar j = Y (i, j))
+    {gamma min_b C_max : ℝ}
+    (hgamma : 0 < gamma)
+    (hmin_b : 0 < min_b)
+    (hC_max : 0 ≤ C_max)
+    (hbudget : coordSupNorm Y ≤ PrimalDualBounds.hGammaKappaBudget 1 C_max gamma
+        (|Real.log min_b| + 2 * C_max / gamma)) :
+    ∃ X_gamma : ℝ, X_gamma = 1 ∧
+      ∀ k : ℕ,
+        variationSeminorm (((sweep Ψ₁ Ψ₂)^[k]) (fun _ : ι₁ => (0 : ℝ))) ≤
+          6 * C_max + 2 * gamma * |Real.log min_b| := by
+  refine ⟨1, rfl, ?_⟩
+  intro k
+  exact
+    ot_orbit_bound_from_separable_and_blockConditions_zeroStart_sweep
+      τ Ψ₁ Ψ₂ hΨ₁_mono hΨ₂_mono hΨ₁_trans hΨ₂_trans hfix j₀ hY
+      hgamma hmin_b hC_max hbudget k
+
+/--
+Structured-certificate version of Corollary `app-cor:ot-xgamma-ugamma`.
+
+This is the Comparator-facing endpoint for the paper statement: the block-map
+laws and the separable fixed-point/budget data are carried by named records,
+while the proof still unfolds them and derives the zero-start bound from the
+block-condition endpoint above.
+-/
+theorem ot_XGamma_eq_one_and_UGamma_bound_from_structuredCertificates
+    {ι₁ ι₂ : Type*} [Fintype ι₁] [Nonempty ι₁] [Fintype ι₂] [Nonempty ι₂]
+    (block : SignedBlockSweepData ι₁ ι₂)
+    {gamma min_b C_max : ℝ}
+    (scalars : ComplexityScalars gamma min_b C_max)
+    (cert : SeparableFixedPointCertificate ι₁ ι₂ block gamma min_b C_max) :
+    ∃ X_gamma : ℝ, X_gamma = 1 ∧
+      ∀ k : ℕ,
+        variationSeminorm (((sweep block.Ψ₁ block.Ψ₂)^[k]) (fun _ : ι₁ => (0 : ℝ))) ≤
+          6 * C_max + 2 * gamma * |Real.log min_b| := by
+  exact
+    ot_XGamma_eq_one_and_UGamma_bound_from_blockConditions_separable
+      (τ := block.τ) (Ψ₁ := block.Ψ₁) (Ψ₂ := block.Ψ₂)
+      block.mono₁ block.mono₂ block.trans₁ block.trans₂
+      (alphaStar := cert.alphaStar) cert.fixed
+      (betaStar := cert.betaStar) cert.j₀
+      (Y := cert.Y) cert.separable
+      scalars.gamma_pos scalars.min_b_pos scalars.C_max_nonneg cert.budget
 
 /--
 Concrete OT orbit bound from block conditions + separable decomposition at zero start

@@ -114,7 +114,6 @@ code/.ipynb_checkpoints/
 *.blg
 
 # Data files (user-specific)
-data/
 data/wot/
 benchmarks/data/
 benchmarks/results/figures/

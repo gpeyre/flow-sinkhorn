@@ -1,4 +1,5 @@
 import FlowSinkhorn.KLProjection.DualConvergence.GapResidual
+import FlowSinkhorn.KLProjection.DualConvergence.Vocabulary
 import Mathlib.Data.Real.Basic
 import Mathlib.Tactic
 
@@ -7,7 +8,7 @@ import Mathlib.Tactic
 
 This module is reserved for the Lean formalization of Theorem `thm:KL-dual-rate` and the
 regularization/complexity corollaries from
-`papers/kl-projections/sections/sec-dual-convergence.tex`.
+the dual-convergence material in `neurips/paper.tex`.
 
 Paper targets:
 - Theorem `thm:KL-dual-rate`;
@@ -21,10 +22,12 @@ Intended theorem names:
 - `dualRate_iterationThreshold_of_closedFormCeil`;
 - `regularizedApproximation_stoppingRule_of_closedFormIterationThreshold`;
 - `klBias_bound`;
+- `klBias_regularizedGap_and_constantReference`;
 - `regularizedApproximation_error_le_eps_of_closedFormIterationThreshold`;
 - `regularizedApproximation_finalEpsilon_of_stoppingRule`;
 - `regularizedApproximation_error_le_eps_of_iterationThreshold`;
 - `regularizedApproximation_complexity_of_closedFormIterationThreshold`;
+- `regularizedApproximation_paperEpsilon_of_KLRate_closedFormIterationThreshold`;
 - `regularizedApproximation_targetAccuracy_of_closedFormIterationThreshold`;
 - `regularizedApproximation_complexity`.
 
@@ -36,6 +39,8 @@ later discharged in `PrimalDualBounds` and the application modules.
 namespace FlowSinkhorn
 namespace KLProjection
 namespace DualConvergence
+
+open scoped BigOperators
 
 /--
 Sequence lemma behind an `O(1/k)` bound:
@@ -148,6 +153,401 @@ theorem dualRate_O_one_over_k_of_ascent_gap_control
     (phi := phi) (gap := gap) (residual := residual)
     (alpha := alpha) (B := B)
     halpha hgap_res hres_ascent hphi_bound hmono_gap n
+
+/--
+Paper-constant version of Theorem `thm:kl-dual-rate`.
+
+This theorem keeps the master-rate hypotheses explicit, but no longer hides the manuscript
+constant behind abstract symbols.  With the paper specialization
+`alpha = 2 * Umax` and
+`B = 4 * Xmax * Umax * Anorm^2 / gamma`, the master rate gives
+`8 * Xmax * Umax^2 * Anorm^2 / gamma`.
+
+The conclusion is written in zero-based Lean indexing:
+`gap n ≤ C / (n+1)`, corresponding to the paper's `1/k` rate for positive iteration indices.
+-/
+theorem dualRate_KL_paperConstant_from_masterAbstractRate
+    {phi gap residual : ℕ → ℝ}
+    {gamma Xmax Umax Anorm : ℝ}
+    (hgamma_pos : 0 < gamma)
+    (hUmax_nonneg : 0 ≤ Umax)
+    (hgap_nonneg : ∀ k : ℕ, 0 ≤ gap k)
+    (hgap_res : ∀ k : ℕ, gap k ≤ (2 * Umax) * residual k)
+    (hres_ascent : ∀ k : ℕ, residual k ≤ phi (k + 1) - phi k)
+    (hphi_bound :
+      ∀ n : ℕ, phi (n + 1) - phi 0 ≤ 4 * Xmax * Umax * Anorm ^ 2 / gamma)
+    (hmono_gap : Antitone gap)
+    (n : ℕ) :
+    0 ≤ gap n ∧
+      gap n ≤ (8 * Xmax * Umax ^ 2 * Anorm ^ 2 / gamma) / (n + 1 : ℝ) := by
+  have _hgamma_ne : gamma ≠ 0 := ne_of_gt hgamma_pos
+  refine ⟨hgap_nonneg n, ?_⟩
+  have halpha : 0 ≤ 2 * Umax := by nlinarith
+  have hrate :=
+    dualRate_masterAbstractRateStatement
+      (phi := phi) (gap := gap) (residual := residual)
+      (alpha := 2 * Umax) (B := 4 * Xmax * Umax * Anorm ^ 2 / gamma)
+      halpha hgap_res hres_ascent hphi_bound hmono_gap n
+  have hconst :
+      (2 * Umax) * (4 * Xmax * Umax * Anorm ^ 2 / gamma) =
+        8 * Xmax * Umax ^ 2 * Anorm ^ 2 / gamma := by
+    ring
+  simpa [hconst] using hrate
+
+/--
+One-step reciprocal-growth lemma used in the paper proof of Theorem `thm:kl-dual-rate`.
+
+If a positive gap sequence satisfies a quadratic descent step
+`alpha * a^2 ≤ a - b` and the next gap is no larger than the current one, then
+the reciprocal gap grows by at least `alpha`.
+-/
+theorem reciprocalStep_of_quadraticDescent
+    {a b alpha : ℝ}
+    (ha : 0 < a) (hb : 0 < b)
+    (hmono : b ≤ a)
+    (hdescent : alpha * a ^ 2 ≤ a - b) :
+    alpha ≤ 1 / b - 1 / a := by
+  have ha2_pos : 0 < a ^ 2 := sq_pos_of_pos ha
+  have hab_pos : 0 < a * b := mul_pos ha hb
+  have h_alpha_frac : alpha ≤ (a - b) / a ^ 2 := by
+    exact (le_div_iff₀ ha2_pos).2 hdescent
+  have hden_le : a * b ≤ a ^ 2 := by
+    nlinarith
+  have hfrac_mono : (a - b) / a ^ 2 ≤ (a - b) / (a * b) := by
+    rw [div_le_div_iff₀ ha2_pos hab_pos]
+    nlinarith
+  have hfrac_eq : (a - b) / (a * b) = 1 / b - 1 / a := by
+    field_simp [ne_of_gt ha, ne_of_gt hb]
+  exact h_alpha_frac.trans (hfrac_mono.trans_eq hfrac_eq)
+
+/--
+Telescoping form of the reciprocal-growth argument.
+
+This lemma is deliberately independent of KL geometry: it only says that if
+`1/gap` increases by at least `alpha` each iteration, then after `n` steps the
+reciprocal has increased by at least `n * alpha`.
+-/
+theorem reciprocalGrowth_of_step
+    {gap : ℕ → ℝ} {alpha : ℝ}
+    (hstep : ∀ k : ℕ, alpha ≤ 1 / gap (k + 1) - 1 / gap k) :
+    ∀ n : ℕ, (n : ℝ) * alpha ≤ 1 / gap n - 1 / gap 0 := by
+  intro n
+  induction n with
+  | zero => simp
+  | succ n ih =>
+      have hs := hstep n
+      have hsum : (n : ℝ) * alpha + alpha ≤
+          (1 / gap n - 1 / gap 0) + (1 / gap (n + 1) - 1 / gap n) :=
+        add_le_add ih hs
+      calc
+        ((n + 1 : ℕ) : ℝ) * alpha = (n : ℝ) * alpha + alpha := by
+          norm_num [Nat.cast_add, Nat.cast_one]
+          ring
+        _ ≤ (1 / gap n - 1 / gap 0) + (1 / gap (n + 1) - 1 / gap n) := hsum
+        _ = 1 / gap (n + 1) - 1 / gap 0 := by ring
+
+/--
+Rate theorem from the reciprocal-growth proof pattern.
+
+The conclusion is stated at iterate `n + 1`, exactly matching the manuscript's
+positive-index statement `k ≥ 1` after converting Lean's zero-based naturals.
+-/
+theorem dualRate_from_reciprocalStep
+    {gap : ℕ → ℝ} {alpha : ℝ}
+    (halpha_pos : 0 < alpha)
+    (hgap_pos : ∀ k : ℕ, 0 < gap k)
+    (hstep : ∀ k : ℕ, alpha ≤ 1 / gap (k + 1) - 1 / gap k)
+    (n : ℕ) :
+    gap (n + 1) ≤ (1 / alpha) / (n + 1 : ℝ) := by
+  have hgrowth := reciprocalGrowth_of_step (gap := gap) (alpha := alpha) hstep (n + 1)
+  have hgrowth' : alpha * (n + 1 : ℝ) ≤ 1 / gap (n + 1) - 1 / gap 0 := by
+    simpa [mul_comm] using hgrowth
+  have hinit_nonneg : 0 ≤ 1 / gap 0 := by
+    exact one_div_nonneg.mpr (le_of_lt (hgap_pos 0))
+  have halphaN_pos : 0 < alpha * (n + 1 : ℝ) := by
+    exact mul_pos halpha_pos (by exact_mod_cast Nat.succ_pos n)
+  have hmain : alpha * (n + 1 : ℝ) ≤ 1 / gap (n + 1) := by
+    linarith
+  have hmul : (alpha * (n + 1 : ℝ)) * gap (n + 1) ≤ 1 := by
+    have hg_nonneg : 0 ≤ gap (n + 1) := le_of_lt (hgap_pos (n + 1))
+    have h := mul_le_mul_of_nonneg_right hmain hg_nonneg
+    have hright : (gap (n + 1))⁻¹ * gap (n + 1) = 1 := by
+      field_simp [ne_of_gt (hgap_pos (n + 1))]
+    simpa [one_div, hright, mul_assoc] using h
+  have htarget : gap (n + 1) ≤ 1 / (alpha * (n + 1 : ℝ)) := by
+    exact (le_div_iff₀ halphaN_pos).2
+      (by simpa [mul_comm, mul_left_comm, mul_assoc] using hmul)
+  have heq : 1 / (alpha * (n + 1 : ℝ)) = (1 / alpha) / (n + 1 : ℝ) := by
+    field_simp [ne_of_gt halpha_pos,
+      ne_of_gt (by exact_mod_cast Nat.succ_pos n : 0 < (n + 1 : ℝ))]
+  simpa [heq] using htarget
+
+/--
+Finite-horizon variant of `reciprocalGrowth_of_step`.
+
+Only the reciprocal steps strictly before `N` are needed to telescope up to time `N`.
+-/
+theorem reciprocalGrowth_of_step_upto
+    {gap : ℕ → ℝ} {alpha : ℝ} (N : ℕ)
+    (hstep : ∀ k : ℕ, k < N → alpha ≤ 1 / gap (k + 1) - 1 / gap k) :
+    (N : ℝ) * alpha ≤ 1 / gap N - 1 / gap 0 := by
+  induction N with
+  | zero => simp
+  | succ N ih =>
+      have ih' : (N : ℝ) * alpha ≤ 1 / gap N - 1 / gap 0 := by
+        exact ih (by
+          intro k hk
+          exact hstep k (Nat.lt_trans hk (Nat.lt_succ_self N)))
+      have hs : alpha ≤ 1 / gap (N + 1) - 1 / gap N :=
+        hstep N (Nat.lt_succ_self N)
+      have hsum : (N : ℝ) * alpha + alpha ≤
+          (1 / gap N - 1 / gap 0) + (1 / gap (N + 1) - 1 / gap N) :=
+        add_le_add ih' hs
+      calc
+        ((N + 1 : ℕ) : ℝ) * alpha = (N : ℝ) * alpha + alpha := by
+          norm_num [Nat.cast_add, Nat.cast_one]
+          ring
+        _ ≤ (1 / gap N - 1 / gap 0) + (1 / gap (N + 1) - 1 / gap N) := hsum
+        _ = 1 / gap (N + 1) - 1 / gap 0 := by ring
+
+/--
+Finite-horizon reciprocal-rate theorem.
+
+This version only asks positivity of the gaps that appear in the telescoping proof.  It is used
+below to handle the paper-natural nonnegative-gap case by splitting on whether the target gap is
+zero.
+-/
+theorem dualRate_from_reciprocalStep_upto
+    {gap : ℕ → ℝ} {alpha : ℝ}
+    (halpha_pos : 0 < alpha)
+    (n : ℕ)
+    (hgap_pos : ∀ k : ℕ, k ≤ n + 1 → 0 < gap k)
+    (hstep : ∀ k : ℕ, k ≤ n → alpha ≤ 1 / gap (k + 1) - 1 / gap k) :
+    gap (n + 1) ≤ (1 / alpha) / (n + 1 : ℝ) := by
+  have hgrowth := reciprocalGrowth_of_step_upto (gap := gap) (alpha := alpha) (n + 1)
+    (by
+      intro k hk
+      exact hstep k (Nat.lt_succ_iff.mp hk))
+  have hgrowth' : alpha * (n + 1 : ℝ) ≤ 1 / gap (n + 1) - 1 / gap 0 := by
+    simpa [mul_comm] using hgrowth
+  have hinit_nonneg : 0 ≤ 1 / gap 0 := by
+    exact one_div_nonneg.mpr (le_of_lt (hgap_pos 0 (Nat.zero_le _)))
+  have halphaN_pos : 0 < alpha * (n + 1 : ℝ) := by
+    exact mul_pos halpha_pos (by exact_mod_cast Nat.succ_pos n)
+  have hmain : alpha * (n + 1 : ℝ) ≤ 1 / gap (n + 1) := by
+    linarith
+  have hmul : (alpha * (n + 1 : ℝ)) * gap (n + 1) ≤ 1 := by
+    have hg_nonneg : 0 ≤ gap (n + 1) := le_of_lt (hgap_pos (n + 1) le_rfl)
+    have h := mul_le_mul_of_nonneg_right hmain hg_nonneg
+    have hright : (gap (n + 1))⁻¹ * gap (n + 1) = 1 := by
+      field_simp [ne_of_gt (hgap_pos (n + 1) le_rfl)]
+    simpa [one_div, hright, mul_assoc] using h
+  have htarget : gap (n + 1) ≤ 1 / (alpha * (n + 1 : ℝ)) := by
+    exact (le_div_iff₀ halphaN_pos).2
+      (by simpa [mul_comm, mul_left_comm, mul_assoc] using hmul)
+  have heq : 1 / (alpha * (n + 1 : ℝ)) = (1 / alpha) / (n + 1 : ℝ) := by
+    field_simp [ne_of_gt halpha_pos,
+      ne_of_gt (by exact_mod_cast Nat.succ_pos n : 0 < (n + 1 : ℝ))]
+  simpa [heq] using htarget
+
+/--
+Paper-constant reciprocal-growth version of Theorem `thm:kl-dual-rate`.
+
+This is closer to Appendix A than the cumulative master-rate wrapper: the hypothesis
+is the reciprocal growth obtained after combining per-step ascent with the
+gap-vs-residual estimate, and the conclusion is the paper constant
+`8 * Xmax * Umax^2 * ||A||^2 / gamma` with positive iteration index.
+-/
+theorem dualRate_KL_paperConstant_from_reciprocalGapGrowth
+    {gap : ℕ → ℝ} {gamma Xmax Umax Anorm : ℝ}
+    (hgamma_pos : 0 < gamma)
+    (hXmax_pos : 0 < Xmax)
+    (hUmax_pos : 0 < Umax)
+    (hAnorm_pos : 0 < Anorm)
+    (hgap_pos : ∀ k : ℕ, 0 < gap k)
+    (hreciprocal_step :
+      ∀ k : ℕ,
+        gamma / (8 * Xmax * Umax ^ 2 * Anorm ^ 2) ≤
+          1 / gap (k + 1) - 1 / gap k)
+    (n : ℕ) :
+    0 ≤ gap (n + 1) ∧
+      gap (n + 1) ≤
+        (8 * Xmax * Umax ^ 2 * Anorm ^ 2 / gamma) / (n + 1 : ℝ) := by
+  have hden_pos : 0 < 8 * Xmax * Umax ^ 2 * Anorm ^ 2 := by positivity
+  have halpha_pos : 0 < gamma / (8 * Xmax * Umax ^ 2 * Anorm ^ 2) :=
+    div_pos hgamma_pos hden_pos
+  refine ⟨le_of_lt (hgap_pos (n + 1)), ?_⟩
+  have hrate := dualRate_from_reciprocalStep
+    (gap := gap) (alpha := gamma / (8 * Xmax * Umax ^ 2 * Anorm ^ 2))
+    halpha_pos hgap_pos hreciprocal_step n
+  have hconst : 1 / (gamma / (8 * Xmax * Umax ^ 2 * Anorm ^ 2)) =
+      8 * Xmax * Umax ^ 2 * Anorm ^ 2 / gamma := by
+    field_simp [ne_of_gt hgamma_pos, ne_of_gt hden_pos]
+  simpa [hconst] using hrate
+
+/--
+Quadratic-descent version of the paper dual-rate theorem.
+
+This theorem internalizes the final algebraic step of the appendix proof:
+from `Delta_k - Delta_{k+1} ≥ gamma/(8 Xmax Umax^2 ||A||^2) * Delta_k^2`,
+the reciprocal argument gives the advertised `O(1/k)` rate.
+-/
+theorem dualRate_KL_paperConstant_from_quadraticGapDescent
+    {gap : ℕ → ℝ} {gamma Xmax Umax Anorm : ℝ}
+    (hgamma_pos : 0 < gamma)
+    (hXmax_pos : 0 < Xmax)
+    (hUmax_pos : 0 < Umax)
+    (hAnorm_pos : 0 < Anorm)
+    (hgap_nonneg : ∀ k : ℕ, 0 ≤ gap k)
+    (hdescent :
+      ∀ k : ℕ,
+        (gamma / (8 * Xmax * Umax ^ 2 * Anorm ^ 2)) * gap k ^ 2 ≤
+          gap k - gap (k + 1))
+    (n : ℕ) :
+    0 ≤ gap (n + 1) ∧
+      gap (n + 1) ≤
+        (8 * Xmax * Umax ^ 2 * Anorm ^ 2 / gamma) / (n + 1 : ℝ) := by
+  have hden_pos : 0 < 8 * Xmax * Umax ^ 2 * Anorm ^ 2 := by positivity
+  have halpha_pos : 0 < gamma / (8 * Xmax * Umax ^ 2 * Anorm ^ 2) :=
+    div_pos hgamma_pos hden_pos
+  have hstep_mono : ∀ k : ℕ, gap (k + 1) ≤ gap k := by
+    intro k
+    have hterm_nonneg : 0 ≤ (gamma / (8 * Xmax * Umax ^ 2 * Anorm ^ 2)) * gap k ^ 2 := by
+      exact mul_nonneg (le_of_lt halpha_pos) (sq_nonneg (gap k))
+    have hdiff_nonneg : 0 ≤ gap k - gap (k + 1) := hterm_nonneg.trans (hdescent k)
+    exact sub_nonneg.mp hdiff_nonneg
+  have hmono : Antitone gap := antitone_nat_of_succ_le hstep_mono
+  refine ⟨hgap_nonneg (n + 1), ?_⟩
+  by_cases hzero : gap (n + 1) = 0
+  · have hconst_nonneg : 0 ≤ (8 * Xmax * Umax ^ 2 * Anorm ^ 2 / gamma) / (n + 1 : ℝ) := by
+      positivity
+    simpa [hzero] using hconst_nonneg
+  · have hpos_n1 : 0 < gap (n + 1) := lt_of_le_of_ne (hgap_nonneg (n + 1)) (Ne.symm hzero)
+    have hgap_pos_to : ∀ k : ℕ, k ≤ n + 1 → 0 < gap k := by
+      intro k hk
+      have hle : gap (n + 1) ≤ gap k := hmono hk
+      exact lt_of_lt_of_le hpos_n1 hle
+    have hrate := dualRate_from_reciprocalStep_upto
+      (gap := gap) (alpha := gamma / (8 * Xmax * Umax ^ 2 * Anorm ^ 2))
+      halpha_pos n hgap_pos_to
+      (by
+        intro k hk
+        have hk_to : k ≤ n + 1 := Nat.le_trans hk (Nat.le_succ n)
+        have hk1_to : k + 1 ≤ n + 1 := Nat.succ_le_succ hk
+        exact reciprocalStep_of_quadraticDescent
+          (a := gap k) (b := gap (k + 1))
+          (alpha := gamma / (8 * Xmax * Umax ^ 2 * Anorm ^ 2))
+          (hgap_pos_to k hk_to) (hgap_pos_to (k + 1) hk1_to)
+          (hstep_mono k) (hdescent k))
+    have hconst : 1 / (gamma / (8 * Xmax * Umax ^ 2 * Anorm ^ 2)) =
+        8 * Xmax * Umax ^ 2 * Anorm ^ 2 / gamma := by
+      field_simp [ne_of_gt hgamma_pos, ne_of_gt hden_pos]
+    simpa [hconst] using hrate
+
+/--
+Algebraic bridge from the two paper proof ingredients to quadratic gap descent.
+
+The appendix combines the gap-vs-residual estimate
+`Delta_k <= 2 * Umax * residual_k` with the per-step ascent inequality
+`gamma/(2*Xmax*||A||^2) * residual_k^2 <= Delta_k - Delta_{k+1}`.  This theorem
+formalizes the scalar algebra that turns those two inequalities into
+`gamma/(8*Xmax*Umax^2*||A||^2) * Delta_k^2 <= Delta_k - Delta_{k+1}`.
+-/
+theorem quadraticGapDescent_of_gapResidual_ascent
+    {gap residual : ℕ → ℝ} {gamma Xmax Umax Anorm : ℝ}
+    (hgamma_pos : 0 < gamma)
+    (hXmax_pos : 0 < Xmax)
+    (hUmax_pos : 0 < Umax)
+    (hAnorm_pos : 0 < Anorm)
+    (hgap_nonneg : ∀ k : ℕ, 0 ≤ gap k)
+    (hgap_res : ∀ k : ℕ, gap k ≤ (2 * Umax) * residual k)
+    (hascent : ∀ k : ℕ,
+      (gamma / (2 * Xmax * Anorm ^ 2)) * residual k ^ 2 ≤ gap k - gap (k + 1))
+    (k : ℕ) :
+    (gamma / (8 * Xmax * Umax ^ 2 * Anorm ^ 2)) * gap k ^ 2 ≤
+      gap k - gap (k + 1) := by
+  have halpha_nonneg : 0 ≤ gamma / (8 * Xmax * Umax ^ 2 * Anorm ^ 2) := by
+    positivity
+  have hsq : gap k ^ 2 ≤ ((2 * Umax) * residual k) ^ 2 := by
+    nlinarith [hgap_nonneg k, hUmax_pos, hgap_res k]
+  have hscaled :
+      (gamma / (8 * Xmax * Umax ^ 2 * Anorm ^ 2)) * gap k ^ 2 ≤
+        (gamma / (8 * Xmax * Umax ^ 2 * Anorm ^ 2)) *
+          ((2 * Umax) * residual k) ^ 2 :=
+    mul_le_mul_of_nonneg_left hsq halpha_nonneg
+  have hconst :
+      (gamma / (8 * Xmax * Umax ^ 2 * Anorm ^ 2)) *
+          ((2 * Umax) * residual k) ^ 2 =
+        (gamma / (2 * Xmax * Anorm ^ 2)) * residual k ^ 2 := by
+    field_simp [ne_of_gt hXmax_pos, ne_of_gt hUmax_pos, ne_of_gt hAnorm_pos]
+    ring
+  exact hscaled.trans (by simpa [hconst] using hascent k)
+
+/--
+Paper-constant rate theorem from the two Section-3 proof ingredients.
+
+Compared with `dualRate_KL_paperConstant_from_quadraticGapDescent`, this endpoint no longer
+takes the quadratic descent inequality as primitive: Lean derives it from the displayed
+gap-vs-residual and per-step-ascent hypotheses, then applies the certified reciprocal-rate proof.
+-/
+theorem dualRate_KL_paperConstant_from_ascentGapResidual
+    {gap residual : ℕ → ℝ} {gamma Xmax Umax Anorm : ℝ}
+    (hgamma_pos : 0 < gamma)
+    (hXmax_pos : 0 < Xmax)
+    (hUmax_pos : 0 < Umax)
+    (hAnorm_pos : 0 < Anorm)
+    (hgap_nonneg : ∀ k : ℕ, 0 ≤ gap k)
+    (hgap_res : ∀ k : ℕ, gap k ≤ (2 * Umax) * residual k)
+    (hascent : ∀ k : ℕ,
+      (gamma / (2 * Xmax * Anorm ^ 2)) * residual k ^ 2 ≤ gap k - gap (k + 1))
+    (n : ℕ) :
+    0 ≤ gap (n + 1) ∧
+      gap (n + 1) ≤
+        (8 * Xmax * Umax ^ 2 * Anorm ^ 2 / gamma) / (n + 1 : ℝ) := by
+  exact dualRate_KL_paperConstant_from_quadraticGapDescent
+    hgamma_pos hXmax_pos hUmax_pos hAnorm_pos hgap_nonneg
+    (quadraticGapDescent_of_gapResidual_ascent
+      hgamma_pos hXmax_pos hUmax_pos hAnorm_pos hgap_nonneg hgap_res hascent)
+    n
+
+/--
+Paper-facing vocabulary-certificate version of Theorem `thm:kl-dual-rate`.
+
+The two hypotheses are named statement-level certificates: positivity of the scalar constants and
+the exact Appendix-A scalar ingredients.  Lean unfolds the certificates, derives the quadratic
+descent inequality, and applies the certified reciprocal-growth rate theorem.
+-/
+theorem dualRate_KL_paperConstant_from_scalarCertificates
+    {gap residual : ℕ → ℝ} {gamma Xmax Umax Anorm : ℝ}
+    (hconst : PositiveKLRateConstants gamma Xmax Umax Anorm)
+    (hingredients : KLRateScalarIngredients gap residual gamma Xmax Umax Anorm)
+    (n : ℕ) :
+    0 ≤ gap (n + 1) ∧
+      gap (n + 1) ≤
+        (8 * Xmax * Umax ^ 2 * Anorm ^ 2 / gamma) / (n + 1 : ℝ) := by
+  exact
+    dualRate_KL_paperConstant_from_ascentGapResidual
+      hconst.gamma_pos hconst.xmax_pos hconst.umax_pos hconst.anorm_pos
+      hingredients.gap_nonneg hingredients.gap_residual hingredients.per_step_ascent n
+
+/--
+Structured-certificate version of Theorem `thm:kl-dual-rate`.
+
+The challenge-facing statement now exposes a single named certificate for the
+scalar proof interface.  Lean unfolds that certificate and reuses the
+paper-constant rate proof, so the remaining bridge is precisely the construction
+of `KLDualRateCertificate` from the concrete cyclic KL block iterates.
+-/
+theorem dualRate_KL_paperConstant_from_rateCertificate
+    {gap residual : ℕ → ℝ} {gamma Xmax Umax Anorm : ℝ}
+    (hcert : KLDualRateCertificate gap residual gamma Xmax Umax Anorm)
+    (n : ℕ) :
+    0 ≤ gap (n + 1) ∧
+      gap (n + 1) ≤
+        (8 * Xmax * Umax ^ 2 * Anorm ^ 2 / gamma) / (n + 1 : ℝ) := by
+  exact
+    dualRate_KL_paperConstant_from_scalarCertificates
+      hcert.constants hcert.scalar_ingredients n
 
 /--
 Ready-to-use iteration threshold extracted from the Section-3 master rate.
@@ -868,6 +1268,80 @@ theorem regularizedApproximation_complexity_of_closedFormIterationThreshold
     (Fgamma := Fgamma) n hbias hreg hbudget
 
 /--
+Paper-style epsilon guarantee for Theorem `thm:approx-linprog`.
+
+This endpoint exposes the constants that appear in the manuscript:
+
+* the temperature choice `γ = ε / (2 * X₀ * log d)`;
+* the Section-3 regularized dual-rate constant
+  `8 * Xmax * Umax^2 * ||A||^2 / γ`;
+* the paper's larger closed-form iteration budget
+  `ceil(64 * Xmax * Umax^2 * ||A||^2 * maxMass * log d / ε^2)`;
+* the usual `ε/2 + ε/2` split between regularization bias and optimization error.
+
+The result is still stated at the scalar objective-error level.  Upstream hypotheses represent the
+model-specific facts that the LP optimum gives the `ε/2` bias bound and that the generated KL
+iterates satisfy the displayed dual-rate estimate.
+-/
+theorem regularizedApproximation_paperEpsilon_of_KLRate_closedFormIterationThreshold
+    {F0 FgammaStar gamma Xmax Umax Anorm XmaxZero maxMass logd eps : ℝ}
+    {Fgamma : ℕ → ℝ}
+    (heps : 0 < eps)
+    (hXmaxZero_logd_pos : 0 < XmaxZero * logd)
+    (hAlog_nonneg : 0 ≤ Xmax * Umax ^ 2 * Anorm ^ 2 * logd)
+    (hXmaxZero_nonneg : 0 ≤ XmaxZero)
+    (hXmaxZero_le_maxMass : XmaxZero ≤ maxMass)
+    (hgamma_choice : gamma = eps / (2 * XmaxZero * logd))
+    (hbias : |F0 - FgammaStar| ≤ eps / 2)
+    (hrate :
+      ∀ n : ℕ,
+        |FgammaStar - Fgamma n| ≤
+          (8 * Xmax * Umax ^ 2 * Anorm ^ 2 / gamma) / (n + 1 : ℝ))
+    (n : ℕ)
+    (hn :
+      Nat.ceil (64 * Xmax * Umax ^ 2 * Anorm ^ 2 * maxMass * logd / eps ^ 2) ≤
+        n + 1) :
+    |F0 - Fgamma n| ≤ eps := by
+  let C := 16 * Xmax * Umax ^ 2 * Anorm ^ 2 * XmaxZero * logd / eps
+  let paperN := 64 * Xmax * Umax ^ 2 * Anorm ^ 2 * maxMass * logd / eps ^ 2
+  have hconst_eq :
+      8 * Xmax * Umax ^ 2 * Anorm ^ 2 / gamma = C := by
+    have heps_ne : eps ≠ 0 := ne_of_gt heps
+    have hden_ne : 2 * XmaxZero * logd ≠ 0 := by nlinarith
+    rw [hgamma_choice]
+    dsimp [C]
+    field_simp [heps_ne, hden_ne]
+    ring_nf
+  have hmaster : ∀ k : ℕ, |FgammaStar - Fgamma k| ≤ C / (k + 1 : ℝ) := by
+    intro k
+    simpa [hconst_eq] using hrate k
+  have hratio : C / (eps / 2) ≤ paperN := by
+    let A := Xmax * Umax ^ 2 * Anorm ^ 2 * logd
+    have hA_nonneg : 0 ≤ A := by simpa [A] using hAlog_nonneg
+    have hAmul : A * XmaxZero ≤ A * maxMass :=
+      mul_le_mul_of_nonneg_left hXmaxZero_le_maxMass hA_nonneg
+    have hmax_nonneg : 0 ≤ maxMass :=
+      hXmaxZero_nonneg.trans hXmaxZero_le_maxMass
+    have hAmax_nonneg : 0 ≤ A * maxMass := mul_nonneg hA_nonneg hmax_nonneg
+    have h32 : 32 * (A * XmaxZero) ≤ 32 * (A * maxMass) := by
+      exact mul_le_mul_of_nonneg_left hAmul (by norm_num)
+    have h3264 : 32 * (A * maxMass) ≤ 64 * (A * maxMass) := by nlinarith
+    have hmain : 32 * (A * XmaxZero) ≤ 64 * (A * maxMass) := h32.trans h3264
+    have heps_ne : eps ≠ 0 := ne_of_gt heps
+    dsimp [C, paperN]
+    field_simp [heps_ne]
+    ring_nf at hmain ⊢
+    nlinarith
+  have hceil : Nat.ceil (C / (eps / 2)) ≤ Nat.ceil paperN := Nat.ceil_le_ceil hratio
+  have hnC : Nat.ceil (C / (eps / 2)) ≤ n + 1 := hceil.trans hn
+  have heps_half : 0 < eps / 2 := by positivity
+  have hbudget : eps / 2 + eps / 2 ≤ eps := by linarith
+  exact regularizedApproximation_complexity_of_closedFormIterationThreshold
+    (F0 := F0) (FgammaStar := FgammaStar) (bias := eps / 2) (C := C)
+    (eps := eps / 2) (target := eps) (Fgamma := Fgamma)
+    hbias hmaster heps_half n hnC hbudget
+
+/--
 Master-rate-to-final-target bridge with explicit ceiling threshold.
 
 This packages the full non-application-specific pipeline:
@@ -943,6 +1417,487 @@ theorem klBias_bound
     (hbias : FgammaStar - F0 ≤ bias) :
     |FgammaStar - F0| ≤ bias := by
   simpa [abs_of_nonneg hnonneg] using hbias
+
+/--
+Paper-facing arithmetic core of Appendix Lemma `app-lem:kl-bias`.
+
+The theorem exposes the two displayed bias inequalities from the manuscript.  The deeper
+optimization argument proving `Fγ⋆ - F0⋆ ≤ γ KL(x0⋆‖z)` and the entropy estimate for the
+constant reference vector are passed as explicit hypotheses here, so Comparator can see exactly
+which scalar consequences have been certified and which model-specific facts remain upstream.
+-/
+theorem klBias_regularizedGap_and_constantReference
+    {F0 FgammaStar gamma klX0Z XmaxZero logd : ℝ}
+    (hnonneg : 0 ≤ FgammaStar - F0)
+    (hklBias : FgammaStar - F0 ≤ gamma * klX0Z)
+    (hklConst : klX0Z ≤ XmaxZero * logd)
+    (hgamma : 0 ≤ gamma) :
+    0 ≤ FgammaStar - F0 ∧
+      FgammaStar - F0 ≤ gamma * klX0Z ∧
+        FgammaStar - F0 ≤ gamma * XmaxZero * logd := by
+  refine ⟨hnonneg, hklBias, ?_⟩
+  calc
+    FgammaStar - F0 ≤ gamma * klX0Z := hklBias
+    _ ≤ gamma * (XmaxZero * logd) := mul_le_mul_of_nonneg_left hklConst hgamma
+    _ = gamma * XmaxZero * logd := by simp [mul_assoc]
+
+/--
+Coordinate-sum version of Appendix Lemma `app-lem:kl-bias`.
+
+The previous paper-facing endpoint accepted the constant-reference entropy estimate as the single
+scalar hypothesis `KL(x₀⋆‖z) <= XmaxZero*log d`.  This version exposes one more proof layer:
+the KL quantity is represented as a finite sum of coordinate terms, each coordinate term is bounded
+by an envelope term, and Lean verifies the summation step before applying the regularization bias
+inequality.
+-/
+theorem klBias_regularizedGap_from_coordinateConstantReference
+    {coord : Type*} [Fintype coord]
+    {klTerm klEnvelope : coord → ℝ}
+    {F0 FgammaStar gamma XmaxZero logd : ℝ}
+    (hnonneg : 0 ≤ FgammaStar - F0)
+    (hklBias : FgammaStar - F0 ≤ gamma * (∑ i : coord, klTerm i))
+    (hterm : ∀ i : coord, klTerm i ≤ klEnvelope i)
+    (henvelope : (∑ i : coord, klEnvelope i) ≤ XmaxZero * logd)
+    (hgamma : 0 ≤ gamma) :
+    0 ≤ FgammaStar - F0 ∧
+      FgammaStar - F0 ≤ gamma * (∑ i : coord, klTerm i) ∧
+        FgammaStar - F0 ≤ gamma * XmaxZero * logd := by
+  have hklConst : (∑ i : coord, klTerm i) ≤ XmaxZero * logd := by
+    exact (Finset.sum_le_sum fun i _hi => hterm i).trans henvelope
+  refine ⟨hnonneg, hklBias, ?_⟩
+  calc
+    FgammaStar - F0 ≤ gamma * (∑ i : coord, klTerm i) := hklBias
+    _ ≤ gamma * (XmaxZero * logd) := mul_le_mul_of_nonneg_left hklConst hgamma
+    _ = gamma * XmaxZero * logd := by simp [mul_assoc]
+
+/--
+Feasible-minimizer version of Appendix Lemma `app-lem:kl-bias`.
+
+This endpoint derives the optimization comparison
+`Fγ⋆ - F0⋆ <= γ KL(x0⋆‖z)` from two explicit minimizer predicates: `x0` minimizes the
+linear objective on the feasible set, while `xgamma` minimizes the entropic objective on the same
+set.  It then reuses the coordinate-sum certificate for the constant-reference KL estimate.
+-/
+theorem klBias_regularizedGap_from_minimizers_coordinateConstantReference
+    {coord : Type*} [Fintype coord]
+    (C x0 xgamma : coord → ℝ)
+    (Feasible : (coord → ℝ) → Prop)
+    (KL : (coord → ℝ) → ℝ)
+    {klTerm klEnvelope : coord → ℝ}
+    {gamma XmaxZero logd : ℝ}
+    (hgamma : 0 ≤ gamma)
+    (hlinearMin : IsLinearMinimizer Feasible C x0)
+    (hregMin : IsRegularizedMinimizer Feasible C gamma KL xgamma)
+    (hKLnonneg : NonnegativeOn Feasible KL)
+    (hKLsum : KL x0 = ∑ i : coord, klTerm i)
+    (hterm : ∀ i : coord, klTerm i ≤ klEnvelope i)
+    (henvelope : (∑ i : coord, klEnvelope i) ≤ XmaxZero * logd) :
+    0 ≤ regularizedObjective C gamma KL xgamma - linearObjective C x0 ∧
+      regularizedObjective C gamma KL xgamma - linearObjective C x0 ≤ gamma * KL x0 ∧
+        regularizedObjective C gamma KL xgamma - linearObjective C x0 ≤
+          gamma * (∑ i : coord, klTerm i) ∧
+          regularizedObjective C gamma KL xgamma - linearObjective C x0 ≤
+            gamma * XmaxZero * logd := by
+  have hx0Feasible : Feasible x0 := hlinearMin.1
+  have hxgammaFeasible : Feasible xgamma := hregMin.1
+  have hlinear_le_xgamma : linearObjective C x0 ≤ linearObjective C xgamma :=
+    hlinearMin.2 xgamma hxgammaFeasible
+  have hKL_xgamma : 0 ≤ KL xgamma := hKLnonneg xgamma hxgammaFeasible
+  have hreg_ge_linear :
+      linearObjective C xgamma ≤ regularizedObjective C gamma KL xgamma := by
+    dsimp [regularizedObjective]
+    have hmul : 0 ≤ gamma * KL xgamma := mul_nonneg hgamma hKL_xgamma
+    linarith
+  have hnonneg :
+      0 ≤ regularizedObjective C gamma KL xgamma - linearObjective C x0 :=
+    sub_nonneg.mpr (hlinear_le_xgamma.trans hreg_ge_linear)
+  have hreg_le_x0 :
+      regularizedObjective C gamma KL xgamma ≤ regularizedObjective C gamma KL x0 :=
+    hregMin.2 x0 hx0Feasible
+  have hupperKL :
+      regularizedObjective C gamma KL xgamma - linearObjective C x0 ≤ gamma * KL x0 := by
+    dsimp [regularizedObjective] at hreg_le_x0 ⊢
+    linarith
+  have hupperSum :
+      regularizedObjective C gamma KL xgamma - linearObjective C x0 ≤
+        gamma * (∑ i : coord, klTerm i) := by
+    simpa [hKLsum] using hupperKL
+  have hklConst : (∑ i : coord, klTerm i) ≤ XmaxZero * logd := by
+    exact (Finset.sum_le_sum fun i _hi => hterm i).trans henvelope
+  refine ⟨hnonneg, hupperKL, hupperSum, ?_⟩
+  calc
+    regularizedObjective C gamma KL xgamma - linearObjective C x0
+        ≤ gamma * (∑ i : coord, klTerm i) := hupperSum
+    _ ≤ gamma * (XmaxZero * logd) := mul_le_mul_of_nonneg_left hklConst hgamma
+    _ = gamma * XmaxZero * logd := by simp [mul_assoc]
+
+/--
+Mass-coordinate version of Appendix Lemma `app-lem:kl-bias`.
+
+Compared with `klBias_regularizedGap_from_minimizers_coordinateConstantReference`, this endpoint
+does not assume the summed constant-reference envelope
+`sum_i klEnvelope_i <= XmaxZero * log d`.  It proves that finite summation step from coordinate
+bounds `klTerm_i <= x0_i * logd`, the mass certificate `sum_i x0_i <= XmaxZero`, and
+`0 <= logd`.
+-/
+theorem klBias_regularizedGap_from_minimizers_massCoordinateReference
+    {coord : Type*} [Fintype coord]
+    (C x0 xgamma : coord → ℝ)
+    (Feasible : (coord → ℝ) → Prop)
+    (KL : (coord → ℝ) → ℝ)
+    {klTerm : coord → ℝ}
+    {gamma XmaxZero logd : ℝ}
+    (hgamma : 0 ≤ gamma)
+    (hlinearMin : IsLinearMinimizer Feasible C x0)
+    (hregMin : IsRegularizedMinimizer Feasible C gamma KL xgamma)
+    (hKLnonneg : NonnegativeOn Feasible KL)
+    (hKLsum : KL x0 = ∑ i : coord, klTerm i)
+    (hterm : ∀ i : coord, klTerm i ≤ x0 i * logd)
+    (hmass : (∑ i : coord, x0 i) ≤ XmaxZero)
+    (hlogd : 0 ≤ logd) :
+    0 ≤ regularizedObjective C gamma KL xgamma - linearObjective C x0 ∧
+      regularizedObjective C gamma KL xgamma - linearObjective C x0 ≤ gamma * KL x0 ∧
+        regularizedObjective C gamma KL xgamma - linearObjective C x0 ≤
+          gamma * (∑ i : coord, klTerm i) ∧
+          regularizedObjective C gamma KL xgamma - linearObjective C x0 ≤
+            gamma * XmaxZero * logd := by
+  have henvelope :
+      (∑ i : coord, x0 i * logd) ≤ XmaxZero * logd := by
+    have hmassLog : (∑ i : coord, x0 i) * logd ≤ XmaxZero * logd :=
+      mul_le_mul_of_nonneg_right hmass hlogd
+    simpa [Finset.sum_mul] using hmassLog
+  exact klBias_regularizedGap_from_minimizers_coordinateConstantReference
+    (C := C)
+    (x0 := x0)
+    (xgamma := xgamma)
+    (Feasible := Feasible)
+    (KL := KL)
+    (hgamma := hgamma)
+    (hlinearMin := hlinearMin)
+    (hregMin := hregMin)
+    (hKLnonneg := hKLnonneg)
+    (hKLsum := hKLsum)
+    (hterm := hterm)
+    (henvelope := henvelope)
+
+/--
+Finite-sum KL version of Appendix Lemma `app-lem:kl-bias`.
+
+This is the paper-facing refinement of
+`klBias_regularizedGap_from_minimizers_massCoordinateReference`.  The KL functional is no longer
+an arbitrary function equipped with a separate identity `KL x0 = sum_i klTerm_i`; it is
+definitionally the finite coordinate sum.  Likewise the logarithmic dimension factor is
+definitionally `log(card coord)`, whose nonnegativity is derived from `[Nonempty coord]`.
+-/
+theorem klBias_regularizedGap_from_minimizers_finiteSumKL_cardLogReference
+    {coord : Type*} [Fintype coord] [Nonempty coord]
+    (C x0 xgamma : coord → ℝ)
+    (Feasible : (coord → ℝ) → Prop)
+    (klTerm : (coord → ℝ) → coord → ℝ)
+    {gamma XmaxZero : ℝ}
+    (hgamma : 0 ≤ gamma)
+    (hlinearMin : IsLinearMinimizer Feasible C x0)
+    (hregMin :
+      IsRegularizedMinimizer Feasible C gamma (coordinateSumKL klTerm) xgamma)
+    (hKLnonneg : NonnegativeOn Feasible (coordinateSumKL klTerm))
+    (hterm :
+      ∀ i : coord, klTerm x0 i ≤ x0 i * Real.log (Fintype.card coord : ℝ))
+    (hmass : (∑ i : coord, x0 i) ≤ XmaxZero) :
+    0 ≤
+        regularizedObjective C gamma (coordinateSumKL klTerm) xgamma -
+          linearObjective C x0 ∧
+      regularizedObjective C gamma (coordinateSumKL klTerm) xgamma -
+          linearObjective C x0 ≤
+        gamma * coordinateSumKL klTerm x0 ∧
+        regularizedObjective C gamma (coordinateSumKL klTerm) xgamma -
+            linearObjective C x0 ≤
+          gamma * (∑ i : coord, klTerm x0 i) ∧
+          regularizedObjective C gamma (coordinateSumKL klTerm) xgamma -
+              linearObjective C x0 ≤
+            gamma * XmaxZero * Real.log (Fintype.card coord : ℝ) := by
+  have hcard_one : (1 : ℝ) ≤ (Fintype.card coord : ℝ) := by
+    exact_mod_cast (Nat.succ_le_of_lt (Fintype.card_pos : 0 < Fintype.card coord))
+  have hlog_card : 0 ≤ Real.log (Fintype.card coord : ℝ) :=
+    Real.log_nonneg hcard_one
+  exact
+    klBias_regularizedGap_from_minimizers_massCoordinateReference
+      (C := C)
+      (x0 := x0)
+      (xgamma := xgamma)
+      (Feasible := Feasible)
+      (KL := coordinateSumKL klTerm)
+      (klTerm := fun i : coord => klTerm x0 i)
+      (gamma := gamma)
+      (XmaxZero := XmaxZero)
+      (logd := Real.log (Fintype.card coord : ℝ))
+      hgamma hlinearMin hregMin hKLnonneg (by rfl) hterm hmass hlog_card
+
+/--
+Bias-envelope refinement of Theorem `thm:approx-linprog`.
+
+This endpoint removes the opaque input `|F₀⋆ - Fγ⋆| ≤ ε/2` from
+`regularizedApproximation_paperEpsilon_of_KLRate_closedFormIterationThreshold`.
+Instead it takes the paper's bias envelope
+`0 ≤ Fγ⋆ - F₀⋆ ≤ γ * X₀ * log d` and derives the `ε/2` budget internally from the
+displayed temperature choice `γ = ε/(2*X₀*log d)`.
+-/
+theorem regularizedApproximation_paperEpsilon_of_KLRate_biasEnvelope_closedFormIterationThreshold
+    {F0 FgammaStar gamma Xmax Umax Anorm XmaxZero maxMass logd eps : ℝ}
+    {Fgamma : ℕ → ℝ}
+    (heps : 0 < eps)
+    (hXmaxZero_logd_pos : 0 < XmaxZero * logd)
+    (hAlog_nonneg : 0 ≤ Xmax * Umax ^ 2 * Anorm ^ 2 * logd)
+    (hXmaxZero_nonneg : 0 ≤ XmaxZero)
+    (hXmaxZero_le_maxMass : XmaxZero ≤ maxMass)
+    (hgamma_choice : gamma = eps / (2 * XmaxZero * logd))
+    (hbias_nonneg : 0 ≤ FgammaStar - F0)
+    (hbias_envelope : FgammaStar - F0 ≤ gamma * XmaxZero * logd)
+    (hrate :
+      ∀ n : ℕ,
+        |FgammaStar - Fgamma n| ≤
+          (8 * Xmax * Umax ^ 2 * Anorm ^ 2 / gamma) / (n + 1 : ℝ))
+    (n : ℕ)
+    (hn :
+      Nat.ceil (64 * Xmax * Umax ^ 2 * Anorm ^ 2 * maxMass * logd / eps ^ 2) ≤
+        n + 1) :
+    |F0 - Fgamma n| ≤ eps := by
+  have hbias_abs_raw : |FgammaStar - F0| ≤ gamma * XmaxZero * logd :=
+    klBias_bound hbias_nonneg hbias_envelope
+  have hbias_budget : gamma * XmaxZero * logd = eps / 2 := by
+    have hX_ne : XmaxZero ≠ 0 := by
+      intro h
+      rw [h] at hXmaxZero_logd_pos
+      norm_num at hXmaxZero_logd_pos
+    have hlog_ne : logd ≠ 0 := by
+      intro h
+      rw [h] at hXmaxZero_logd_pos
+      norm_num at hXmaxZero_logd_pos
+    rw [hgamma_choice]
+    field_simp [hX_ne, hlog_ne]
+  have hbias_abs : |F0 - FgammaStar| ≤ eps / 2 := by
+    rw [abs_sub_comm]
+    simpa [hbias_budget] using hbias_abs_raw
+  exact
+    regularizedApproximation_paperEpsilon_of_KLRate_closedFormIterationThreshold
+      (F0 := F0) (FgammaStar := FgammaStar) (gamma := gamma)
+      (Xmax := Xmax) (Umax := Umax) (Anorm := Anorm)
+      (XmaxZero := XmaxZero) (maxMass := maxMass) (logd := logd)
+      (eps := eps) (Fgamma := Fgamma)
+      heps hXmaxZero_logd_pos hAlog_nonneg hXmaxZero_nonneg hXmaxZero_le_maxMass
+      hgamma_choice hbias_abs hrate n hn
+
+/--
+Finite-minimizer version of Theorem `thm:approx-linprog`.
+
+This is the strongest current paper-facing endpoint for the approximation theorem.  It derives
+the regularization-bias half of the proof from the formal Appendix-B KL-bias theorem:
+`x0` is a finite linear minimizer, `xgamma` is a finite regularized minimizer, the KL functional is
+the finite coordinate sum, and the constant-reference entropy envelope is summed in Lean.  The
+remaining input is the Section-3 regularized dual-rate estimate for the generated iterates.
+-/
+theorem regularizedApproximation_paperEpsilon_of_KLRate_finiteBias_closedFormIterationThreshold
+    {coord : Type*} [Fintype coord] [Nonempty coord]
+    (C x0 xgamma : coord → ℝ)
+    (Feasible : (coord → ℝ) → Prop)
+    (klTerm : (coord → ℝ) → coord → ℝ)
+    {gamma Xmax Umax Anorm XmaxZero maxMass eps : ℝ}
+    {Fgamma : ℕ → ℝ}
+    (heps : 0 < eps)
+    (hXmaxZero_logcard_pos : 0 < XmaxZero * Real.log (Fintype.card coord : ℝ))
+    (hAlog_nonneg :
+      0 ≤ Xmax * Umax ^ 2 * Anorm ^ 2 * Real.log (Fintype.card coord : ℝ))
+    (hXmaxZero_nonneg : 0 ≤ XmaxZero)
+    (hXmaxZero_le_maxMass : XmaxZero ≤ maxMass)
+    (hgamma_choice :
+      gamma = eps / (2 * XmaxZero * Real.log (Fintype.card coord : ℝ)))
+    (hbiasCert :
+      FiniteKLBiasApproximationCertificate C x0 xgamma Feasible klTerm gamma XmaxZero)
+    (hrate :
+      ∀ n : ℕ,
+        |regularizedObjective C gamma (coordinateSumKL klTerm) xgamma - Fgamma n| ≤
+          (8 * Xmax * Umax ^ 2 * Anorm ^ 2 / gamma) / (n + 1 : ℝ))
+    (n : ℕ)
+    (hn :
+      Nat.ceil
+          (64 * Xmax * Umax ^ 2 * Anorm ^ 2 * maxMass *
+            Real.log (Fintype.card coord : ℝ) / eps ^ 2) ≤
+        n + 1) :
+    |linearObjective C x0 - Fgamma n| ≤ eps := by
+  have hgamma_nonneg : 0 ≤ gamma := by
+    have hden_pos : 0 < 2 * XmaxZero * Real.log (Fintype.card coord : ℝ) := by
+      nlinarith
+    rw [hgamma_choice]
+    positivity
+  have hbias :=
+    klBias_regularizedGap_from_minimizers_finiteSumKL_cardLogReference
+      (C := C) (x0 := x0) (xgamma := xgamma)
+      (Feasible := Feasible) (klTerm := klTerm)
+      (gamma := gamma) (XmaxZero := XmaxZero)
+      hgamma_nonneg hbiasCert.linear_min hbiasCert.regularized_min hbiasCert.kl_nonneg
+      hbiasCert.coordinate_envelope hbiasCert.mass_bound
+  exact
+    regularizedApproximation_paperEpsilon_of_KLRate_biasEnvelope_closedFormIterationThreshold
+      (F0 := linearObjective C x0)
+      (FgammaStar := regularizedObjective C gamma (coordinateSumKL klTerm) xgamma)
+      (gamma := gamma) (Xmax := Xmax) (Umax := Umax) (Anorm := Anorm)
+      (XmaxZero := XmaxZero) (maxMass := maxMass)
+      (logd := Real.log (Fintype.card coord : ℝ))
+      (eps := eps) (Fgamma := Fgamma)
+      heps hXmaxZero_logcard_pos hAlog_nonneg hXmaxZero_nonneg hXmaxZero_le_maxMass
+      hgamma_choice hbias.1 hbias.2.2.2 hrate n hn
+
+/--
+Theorem `thm:approx-linprog` with the Section-3 rate hypothesis derived internally.
+
+Compared with
+`regularizedApproximation_paperEpsilon_of_KLRate_finiteBias_closedFormIterationThreshold`, this
+endpoint no longer assumes the regularized optimization estimate as a black-box bound.  It takes a
+gap sequence linked to the displayed dual values and the two scalar proof ingredients of
+Theorem `thm:kl-dual-rate`; Lean applies
+`dualRate_KL_paperConstant_from_ascentGapResidual` to recover the required rate and then combines
+it with the finite KL-bias certificate.
+-/
+theorem regularizedApproximation_paperEpsilon_of_rateIngredients_finiteBias_closedFormThreshold
+    {coord : Type*} [Fintype coord] [Nonempty coord]
+    (C x0 xgamma : coord → ℝ)
+    (Feasible : (coord → ℝ) → Prop)
+    (klTerm : (coord → ℝ) → coord → ℝ)
+    {gamma Xmax Umax Anorm XmaxZero maxMass eps : ℝ}
+    {Fgamma gap residual : ℕ → ℝ}
+    (heps : 0 < eps)
+    (hXmax_pos : 0 < Xmax)
+    (hUmax_pos : 0 < Umax)
+    (hAnorm_pos : 0 < Anorm)
+    (hXmaxZero_logcard_pos : 0 < XmaxZero * Real.log (Fintype.card coord : ℝ))
+    (hXmaxZero_le_maxMass : XmaxZero ≤ maxMass)
+    (hgamma_choice :
+      gamma = eps / (2 * XmaxZero * Real.log (Fintype.card coord : ℝ)))
+    (hbiasCert :
+      FiniteKLBiasApproximationCertificate C x0 xgamma Feasible klTerm gamma XmaxZero)
+    (hgap_eval :
+      ∀ n : ℕ,
+        gap (n + 1) =
+          regularizedObjective C gamma (coordinateSumKL klTerm) xgamma - Fgamma n)
+    (hgap_nonneg : ∀ k : ℕ, 0 ≤ gap k)
+    (hgap_res : ∀ k : ℕ, gap k ≤ (2 * Umax) * residual k)
+    (hascent :
+      ∀ k : ℕ,
+        (gamma / (2 * Xmax * Anorm ^ 2)) * residual k ^ 2 ≤ gap k - gap (k + 1))
+    (n : ℕ)
+    (hn :
+      Nat.ceil
+          (64 * Xmax * Umax ^ 2 * Anorm ^ 2 * maxMass *
+            Real.log (Fintype.card coord : ℝ) / eps ^ 2) ≤
+        n + 1) :
+    |linearObjective C x0 - Fgamma n| ≤ eps := by
+  have hlog_nonneg : 0 ≤ Real.log (Fintype.card coord : ℝ) := by
+    have hcard_one : (1 : ℝ) ≤ (Fintype.card coord : ℝ) := by
+      exact_mod_cast (Nat.succ_le_of_lt (Fintype.card_pos : 0 < Fintype.card coord))
+    exact Real.log_nonneg hcard_one
+  have hXmaxZero_nonneg : 0 ≤ XmaxZero := by
+    by_contra hnot
+    have hXmaxZero_neg : XmaxZero < 0 := lt_of_not_ge hnot
+    have hprod_nonpos :
+        XmaxZero * Real.log (Fintype.card coord : ℝ) ≤ 0 :=
+      mul_nonpos_of_nonpos_of_nonneg (le_of_lt hXmaxZero_neg) hlog_nonneg
+    linarith
+  have hAlog_nonneg :
+      0 ≤ Xmax * Umax ^ 2 * Anorm ^ 2 * Real.log (Fintype.card coord : ℝ) := by
+    positivity
+  have hden_pos : 0 < 2 * XmaxZero * Real.log (Fintype.card coord : ℝ) := by
+    nlinarith
+  have hgamma_pos : 0 < gamma := by
+    rw [hgamma_choice]
+    positivity
+  have hrate_from_gap :
+      ∀ m : ℕ,
+        0 ≤ gap (m + 1) ∧
+          gap (m + 1) ≤
+            (8 * Xmax * Umax ^ 2 * Anorm ^ 2 / gamma) / (m + 1 : ℝ) :=
+    dualRate_KL_paperConstant_from_ascentGapResidual
+      (gamma := gamma) (Xmax := Xmax) (Umax := Umax) (Anorm := Anorm)
+      hgamma_pos hXmax_pos hUmax_pos hAnorm_pos hgap_nonneg hgap_res hascent
+  have hrate :
+      ∀ m : ℕ,
+        |regularizedObjective C gamma (coordinateSumKL klTerm) xgamma - Fgamma m| ≤
+          (8 * Xmax * Umax ^ 2 * Anorm ^ 2 / gamma) / (m + 1 : ℝ) := by
+    intro m
+    have hm := hrate_from_gap m
+    have hdiff_nonneg :
+        0 ≤ regularizedObjective C gamma (coordinateSumKL klTerm) xgamma - Fgamma m := by
+      simpa [hgap_eval m] using hm.1
+    have habs :
+        |regularizedObjective C gamma (coordinateSumKL klTerm) xgamma - Fgamma m| =
+          gap (m + 1) := by
+      rw [abs_of_nonneg hdiff_nonneg, hgap_eval m]
+    simpa [habs] using hm.2
+  exact
+    regularizedApproximation_paperEpsilon_of_KLRate_finiteBias_closedFormIterationThreshold
+      (C := C) (x0 := x0) (xgamma := xgamma)
+      (Feasible := Feasible) (klTerm := klTerm)
+      (gamma := gamma) (Xmax := Xmax) (Umax := Umax) (Anorm := Anorm)
+      (XmaxZero := XmaxZero) (maxMass := maxMass) (eps := eps)
+      (Fgamma := Fgamma)
+      heps hXmaxZero_logcard_pos hAlog_nonneg hXmaxZero_nonneg hXmaxZero_le_maxMass
+      hgamma_choice hbiasCert hrate n hn
+
+/--
+Paper-facing certificate version of Theorem `thm:approx-linprog`.
+
+The long list of scalar, finite-bias, gap-evaluation, and rate hypotheses is
+exposed as the named proof-free certificate `ApproxLinprogCertificate`.  Lean
+unfolds this certificate, derives the Section-3 KL rate from the bundled
+`KLDualRateCertificate`, derives the regularization-bias half-budget from the
+finite KL-bias certificate, and applies the closed-form iteration threshold
+theorem.
+-/
+theorem regularizedApproximation_paperEpsilon_of_certificate_closedFormThreshold
+    {coord : Type*} [Fintype coord] [Nonempty coord]
+    (C x0 xgamma : coord → ℝ)
+    (Feasible : (coord → ℝ) → Prop)
+    (klTerm : (coord → ℝ) → coord → ℝ)
+    {gamma Xmax Umax Anorm XmaxZero maxMass eps : ℝ}
+    {Fgamma gap residual : ℕ → ℝ}
+    (hcert :
+      ApproxLinprogCertificate C x0 xgamma Feasible klTerm
+        gamma Xmax Umax Anorm XmaxZero maxMass eps Fgamma gap residual)
+    (n : ℕ)
+    (hn :
+      Nat.ceil
+          (64 * Xmax * Umax ^ 2 * Anorm ^ 2 * maxMass *
+            Real.log (Fintype.card coord : ℝ) / eps ^ 2) ≤
+        n + 1) :
+    |linearObjective C x0 - Fgamma n| ≤ eps := by
+  exact
+    regularizedApproximation_paperEpsilon_of_rateIngredients_finiteBias_closedFormThreshold
+      (C := C)
+      (x0 := x0)
+      (xgamma := xgamma)
+      (Feasible := Feasible)
+      (klTerm := klTerm)
+      (gamma := gamma)
+      (Xmax := Xmax)
+      (Umax := Umax)
+      (Anorm := Anorm)
+      (XmaxZero := XmaxZero)
+      (maxMass := maxMass)
+      (eps := eps)
+      (Fgamma := Fgamma)
+      (gap := gap)
+      (residual := residual)
+      hcert.eps_pos
+      hcert.rate_certificate.constants.xmax_pos
+      hcert.rate_certificate.constants.umax_pos
+      hcert.rate_certificate.constants.anorm_pos
+      hcert.xmaxZero_logcard_pos
+      hcert.xmaxZero_le_maxMass
+      hcert.gamma_choice
+      hcert.bias
+      hcert.gap_eval
+      hcert.rate_certificate.scalar_ingredients.gap_nonneg
+      hcert.rate_certificate.scalar_ingredients.gap_residual
+      hcert.rate_certificate.scalar_ingredients.per_step_ascent
+      n hn
 
 /--
 Combine bias and regularized optimization error into a total unregularized error bound.

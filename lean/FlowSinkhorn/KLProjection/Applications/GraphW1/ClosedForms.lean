@@ -1,3 +1,4 @@
+import FlowSinkhorn.KLProjection.Applications.GraphW1.ClosedFormsVocabulary
 import FlowSinkhorn.KLProjection.PrimalDualBounds.Blueprint
 import FlowSinkhorn.KLProjection.Variation
 import Mathlib.Analysis.SpecialFunctions.Arsinh
@@ -6,7 +7,7 @@ import Mathlib.Analysis.SpecialFunctions.Arsinh
 # Closed-form graph-`W₁` block updates
 
 This module is reserved for the closed-form block analysis from
-`papers/kl-projections/sections/sec-w1-graphs.tex`.
+the graph-W1 material in `neurips/paper.tex`.
 
 Paper targets:
 - Proposition `prop:explici-formula-proj`;
@@ -27,12 +28,6 @@ namespace Applications
 namespace GraphW1
 
 open Function
-
-/--
-Helper scalar root used in Proposition `prop:explici-formula-proj`.
--/
-noncomputable def graphW1_phi (t u : ℝ) : ℝ :=
-  (Real.sqrt (t ^ 2 + 4 * u) - t) / 2
 
 /--
 `phi(t,u) = (sqrt(t^2+4u)-t)/2` solves `x^2 + t*x - u = 0` whenever the discriminant is
@@ -89,6 +84,32 @@ theorem graphW1_projection_C2_coordinate
   · simpa [p] using (Real.sqrt_nonneg (f * g))
 
 /--
+The scalar `phi(t,u)` is positive when the mass ratio `u` is positive.
+-/
+theorem graphW1_phi_pos
+    (t u : ℝ)
+    (hu : 0 < u) :
+    0 < graphW1_phi t u := by
+  have hsqrt_gt : t < Real.sqrt (t ^ 2 + 4 * u) := by
+    by_cases ht : 0 ≤ t
+    · exact (Real.lt_sqrt ht).2 (by nlinarith [hu])
+    · exact lt_of_lt_of_le (lt_of_not_ge ht) (Real.sqrt_nonneg _)
+  unfold graphW1_phi
+  exact div_pos (sub_pos.mpr hsqrt_gt) (by norm_num)
+
+/--
+The coordinate scaling used by `C1` is strictly positive under positive row and column masses.
+-/
+theorem graphW1_C1Scaling_pos
+    {ι : Type*}
+    (bDiff hRow hCol : ι → ℝ)
+    (hrow_pos : ∀ i : ι, 0 < hRow i)
+    (hcol_pos : ∀ i : ι, 0 < hCol i) :
+    ∀ i : ι, 0 < graphW1_C1Scaling bDiff hRow hCol i := by
+  intro i
+  exact graphW1_phi_pos _ _ (div_pos (hcol_pos i) (hrow_pos i))
+
+/--
 Closed-form characterization of the graph-`W₁` primal KL projections (Proposition
 `prop:explici-formula-proj`) in coordinate form.
 
@@ -114,6 +135,164 @@ theorem graphW1_projection_closedForm
     exact graphW1_projection_C1_coordinate (bDiff i) (hRow i) (hCol i) (hrow_ne i) (hdisc i)
   · intro i j
     exact graphW1_projection_C2_coordinate (f i j) (g i j) (hfg i j)
+
+/--
+Paper-facing formula package for Proposition `prop:graphw1-projection-closed-form`.
+
+This statement introduces named Lean maps for the displayed candidates
+`Proj_C1(h,h) = (diag(s)h, h diag(s)^{-1})` and
+`Proj_C2(f,g) = (sqrt(f⊙g), sqrt(f⊙g))`.  It proves the explicit component
+formulas, strict positivity of the scaling `s`, the coordinate `C1` constraint
+equation, and the coordinate `C2` product equation.
+
+The theorem certifies the closed-form algebra of the paper statement.  The
+variational fact that these candidates are the unique KL minimizers remains
+outside this endpoint.
+-/
+theorem graphW1_projection_closedForm_maps
+    {ι : Type*}
+    (bDiff hRow hCol : ι → ℝ)
+    (h f g : ι → ι → ℝ)
+    (hrow_pos : ∀ i : ι, 0 < hRow i)
+    (hcol_pos : ∀ i : ι, 0 < hCol i)
+    (hfg : ∀ i j : ι, 0 ≤ f i j * g i j) :
+    (∀ i : ι, 0 < graphW1_C1Scaling bDiff hRow hCol i) ∧
+    (∀ i j : ι,
+      graphW1_projC1Left bDiff hRow hCol h i j =
+          graphW1_C1Scaling bDiff hRow hCol i * h i j ∧
+        graphW1_projC1Right bDiff hRow hCol h i j =
+          h i j / graphW1_C1Scaling bDiff hRow hCol j) ∧
+    (∀ i : ι,
+      let s := graphW1_C1Scaling bDiff hRow hCol i
+      (s ^ 2) * hRow i + s * bDiff i - hCol i = 0) ∧
+    (∀ i j : ι,
+      graphW1_projC2Common f g i j = Real.sqrt (f i j * g i j) ∧
+        (graphW1_projC2Common f g i j) ^ 2 = f i j * g i j ∧
+          0 ≤ graphW1_projC2Common f g i j) := by
+  have hscaling_pos :
+      ∀ i : ι, 0 < graphW1_C1Scaling bDiff hRow hCol i :=
+    graphW1_C1Scaling_pos bDiff hRow hCol hrow_pos hcol_pos
+  have hdisc :
+      ∀ i : ι, 0 ≤ (bDiff i / hRow i) ^ 2 + 4 * (hCol i / hRow i) := by
+    intro i
+    exact add_nonneg (sq_nonneg _) <|
+      mul_nonneg (by norm_num) (le_of_lt (div_pos (hcol_pos i) (hrow_pos i)))
+  constructor
+  · exact hscaling_pos
+  constructor
+  · intro i j
+    constructor <;> rfl
+  constructor
+  · intro i
+    exact graphW1_projection_C1_coordinate
+      (bDiff i) (hRow i) (hCol i) (ne_of_gt (hrow_pos i)) (hdisc i)
+  · intro i j
+    constructor
+    · rfl
+    · exact graphW1_projection_C2_coordinate (f i j) (g i j) (hfg i j)
+
+/--
+Paper-facing variational package for Proposition `prop:graphw1-projection-closed-form`.
+
+Compared with `graphW1_projection_closedForm_maps`, this endpoint also exposes the projection
+meaning of the two displayed candidates.  Lean derives the `C1` constraint from the row/column
+sum identities and the quadratic root, records the `C2` diagonal constraint definitionally, and
+returns the named finite-KL optimality predicates supplied by
+`GraphW1ProjectionVariationalCertificate`.  The statement also records nonnegativity of the
+displayed `C1` projection candidate, matching the paper's flow cone.
+-/
+theorem graphW1_projection_closedForm_maps_with_variationalCertificate
+    {ι : Type*} [Fintype ι]
+    (bDiff hRow hCol : ι → ℝ)
+    (h f g : ι → ι → ℝ)
+    (hrow_pos : ∀ i : ι, 0 < hRow i)
+    (hcol_pos : ∀ i : ι, 0 < hCol i)
+    (hcert : GraphW1ProjectionVariationalCertificate bDiff hRow hCol h f g) :
+    (∀ i : ι, 0 < graphW1_C1Scaling bDiff hRow hCol i) ∧
+    (∀ i j : ι,
+      graphW1_projC1Left bDiff hRow hCol h i j =
+          graphW1_C1Scaling bDiff hRow hCol i * h i j ∧
+        graphW1_projC1Right bDiff hRow hCol h i j =
+          h i j / graphW1_C1Scaling bDiff hRow hCol j) ∧
+    (∀ i : ι,
+      let s := graphW1_C1Scaling bDiff hRow hCol i
+      (s ^ 2) * hRow i + s * bDiff i - hCol i = 0) ∧
+    GraphW1C1Constraint bDiff
+      (graphW1_projC1Left bDiff hRow hCol h)
+      (graphW1_projC1Right bDiff hRow hCol h) ∧
+    GraphW1PairNonnegative
+      (graphW1_projC1Left bDiff hRow hCol h)
+      (graphW1_projC1Right bDiff hRow hCol h) ∧
+    GraphW1C1ProjectionOptimality bDiff h
+      (graphW1_projC1Left bDiff hRow hCol h)
+      (graphW1_projC1Right bDiff hRow hCol h) ∧
+    (∀ i j : ι,
+      graphW1_projC2Common f g i j = Real.sqrt (f i j * g i j) ∧
+        (graphW1_projC2Common f g i j) ^ 2 = f i j * g i j ∧
+          0 ≤ graphW1_projC2Common f g i j) ∧
+    GraphW1C2ProjectionOptimality f g (graphW1_projC2Common f g) := by
+  classical
+  let s : ι → ℝ := graphW1_C1Scaling bDiff hRow hCol
+  have hfg : ∀ i j : ι, 0 ≤ f i j * g i j := by
+    intro i j
+    exact mul_nonneg (hcert.fg_nonneg.1 i j) (hcert.fg_nonneg.2 i j)
+  have hmaps :=
+    graphW1_projection_closedForm_maps bDiff hRow hCol h f g hrow_pos hcol_pos hfg
+  have hconstraint :
+      GraphW1C1Constraint bDiff
+        (graphW1_projC1Left bDiff hRow hCol h)
+        (graphW1_projC1Right bDiff hRow hCol h) := by
+    intro i
+    have hs_pos : 0 < s i := by
+      simpa [s] using hmaps.1 i
+    have hs_ne : s i ≠ 0 := ne_of_gt hs_pos
+    have hleft_sum :
+        (∑ j : ι, graphW1_projC1Left bDiff hRow hCol h i j) = s i * hRow i := by
+      calc
+        (∑ j : ι, graphW1_projC1Left bDiff hRow hCol h i j)
+            = ∑ j : ι, s i * h i j := by
+                simp [s, graphW1_projC1Left]
+        _ = s i * ∑ j : ι, h i j := by
+                rw [Finset.mul_sum]
+        _ = s i * hRow i := by
+                rw [← hcert.row_sum i]
+    have hright_sum :
+        (∑ j : ι, graphW1_projC1Right bDiff hRow hCol h j i) = hCol i / s i := by
+      calc
+        (∑ j : ι, graphW1_projC1Right bDiff hRow hCol h j i)
+            = ∑ j : ι, h j i / s i := by
+                simp [s, graphW1_projC1Right]
+        _ = (∑ j : ι, h j i) / s i := by
+                rw [Finset.sum_div]
+        _ = hCol i / s i := by
+                rw [← hcert.col_sum i]
+    have hquad :
+        (s i ^ 2) * hRow i + s i * bDiff i - hCol i = 0 := by
+      simpa [s] using hmaps.2.2.1 i
+    have hscalar : -(s i * hRow i) + hCol i / s i = bDiff i := by
+      have hcol_eq : hCol i = (s i ^ 2) * hRow i + s i * bDiff i := by
+        linarith
+      rw [hcol_eq]
+      field_simp [hs_ne]
+      ring
+    calc
+      -(∑ j : ι, graphW1_projC1Left bDiff hRow hCol h i j) +
+          (∑ j : ι, graphW1_projC1Right bDiff hRow hCol h j i)
+          = -(s i * hRow i) + hCol i / s i := by
+              rw [hleft_sum, hright_sum]
+      _ = bDiff i := hscalar
+  have hc1_nonneg :
+      GraphW1PairNonnegative
+        (graphW1_projC1Left bDiff hRow hCol h)
+        (graphW1_projC1Right bDiff hRow hCol h) := by
+    refine ⟨?_, ?_⟩
+    · intro i j
+      exact mul_nonneg (le_of_lt (hmaps.1 i)) (hcert.h_nonneg i j)
+    · intro i j
+      exact div_nonneg (hcert.h_nonneg i j) (le_of_lt (hmaps.1 j))
+  exact
+    ⟨hmaps.1, hmaps.2.1, hmaps.2.2.1, hconstraint,
+      hc1_nonneg, hcert.c1_optimality, hmaps.2.2.2, hcert.c2_optimality⟩
 
 /-!
 ## Projection-to-update algebra
@@ -510,6 +689,199 @@ theorem graphW1_vUpdate_stable_correct_from_code_vector
     hgamma (hv i) (hhNext i) (hm i)
 
 /--
+Paper-facing stable dual-update package for Proposition
+`prop:graphw1-flow-sinkhorn-update`.
+
+The statement exposes the actual dual map `Ψ` and the stable `arsinh` formula from
+Equation `eq:v-update-stable`.  The log-sum-exp quantities
+`alphaPlus` and `alphaMinus`, and the scalar `beta`, are provided as already-computed
+algorithmic fields; this theorem certifies the sign-sensitive algebra turning the
+implementation update into the displayed dual formula.
+-/
+theorem graphW1_flowSinkhorn_stableDualUpdate_from_code
+    {ι : Type*}
+    (Psi : (ι → ℝ) → ι → ℝ)
+    (v h hNext m alphaPlus alphaMinus beta : ι → ℝ)
+    (gamma : ℝ)
+    (hgamma : gamma ≠ 0)
+    (hv : ∀ i : ι, v i = 2 * h i)
+    (hPsi : Psi v = fun i : ι => 2 * hNext i)
+    (hhNext : ∀ i : ι, hNext i = h i / 2 - gamma / 2 * m i)
+    (hm :
+      ∀ i : ι, m i = (alphaMinus i - alphaPlus i) / (2 * gamma) + Real.arsinh (beta i)) :
+    Psi v =
+      (fun i : ι =>
+        (1 / 2) * v i + (1 / 2) * (alphaPlus i - alphaMinus i) -
+          gamma * Real.arsinh (beta i)) := by
+  rw [hPsi]
+  exact graphW1_vUpdate_stable_correct_from_code_vector
+    v h hNext m alphaPlus alphaMinus beta gamma hgamma hv hhNext hm
+
+/--
+Paper-facing stable dual-update package with the log-sum-exp fields internalized.
+
+Compared with `graphW1_flowSinkhorn_stableDualUpdate_from_code`, this endpoint no longer treats
+`α⁺`, `α⁻`, and `β` as opaque precomputed inputs: they are the finite log-sum-exp quantities
+displayed in Proposition `prop:graphw1-flow-sinkhorn-update`.  The remaining bridge hypothesis is
+the implementation identity for the intermediate variable `m`, which is the next projection-level
+fact to internalize.
+-/
+theorem graphW1_flowSinkhorn_stableDualUpdate_logsumexp
+    {ι : Type*} [Fintype ι]
+    (Psi : (ι → ℝ) → ι → ℝ)
+    (v h hNext m bDiff : ι → ℝ)
+    (w : ι → ι → ℝ)
+    (gamma : ℝ)
+    (hgamma : gamma ≠ 0)
+    (hv : ∀ i : ι, v i = 2 * h i)
+    (hPsi : Psi v = fun i : ι => 2 * hNext i)
+    (hhNext : ∀ i : ι, hNext i = h i / 2 - gamma / 2 * m i)
+    (hm :
+      ∀ i : ι,
+        m i =
+          (graphW1_alphaMinus w gamma v i - graphW1_alphaPlus w gamma v i) / (2 * gamma) +
+            Real.arsinh (graphW1_beta bDiff w gamma v i)) :
+    Psi v =
+      (fun i : ι =>
+        (1 / 2) * v i +
+          (1 / 2) * (graphW1_alphaPlus w gamma v i - graphW1_alphaMinus w gamma v i) -
+            gamma * Real.arsinh (graphW1_beta bDiff w gamma v i)) := by
+  exact graphW1_flowSinkhorn_stableDualUpdate_from_code
+    (Psi := Psi) (v := v) (h := h) (hNext := hNext) (m := m)
+    (alphaPlus := graphW1_alphaPlus w gamma v)
+    (alphaMinus := graphW1_alphaMinus w gamma v)
+    (beta := graphW1_beta bDiff w gamma v)
+    (gamma := gamma) hgamma hv hPsi hhNext hm
+
+/--
+Paper-facing stable dual-update package from the Lean projection-map update.
+
+This removes the explicit intermediate `m` variable from the paper-facing statement.  The
+remaining implementation bridge is the single statement that the dual sweep `Psi` is represented
+by the Lean update `2 * graphW1_hNextFromDual`; the log-sum-exp fields and `beta` are all
+defined internally.
+-/
+theorem graphW1_flowSinkhorn_stableDualUpdate_from_projectionMap
+    {ι : Type*} [Fintype ι]
+    (Psi : (ι → ℝ) → ι → ℝ)
+    (v bDiff : ι → ℝ)
+    (w : ι → ι → ℝ)
+    (gamma : ℝ)
+    (hgamma : gamma ≠ 0)
+    (hPsi :
+      Psi v =
+        fun i : ι => 2 * graphW1_hNextFromDual bDiff w gamma v i) :
+    Psi v =
+      (fun i : ι =>
+        (1 / 2) * v i +
+          (1 / 2) * (graphW1_alphaPlus w gamma v i - graphW1_alphaMinus w gamma v i) -
+            gamma * Real.arsinh (graphW1_beta bDiff w gamma v i)) := by
+  rw [hPsi]
+  funext i
+  unfold graphW1_hNextFromDual graphW1_mUpdate
+  field_simp [hgamma]
+  ring
+
+/--
+Paper-facing stable dual-update theorem for the concrete Lean sweep map.
+
+This is the cleanest current Proposition `prop:graphw1-flow-sinkhorn-update` endpoint: the sweep
+map, the log-sum-exp fields, the `beta` field, and the intermediate half-dual update are all Lean
+definitions.  No arbitrary `Psi`, `m`, `h`, or `hNext` variables remain in the statement.
+-/
+theorem graphW1_flowSinkhorn_stableDualUpdate_concreteMap
+    {ι : Type*} [Fintype ι]
+    (v bDiff : ι → ℝ)
+    (w : ι → ι → ℝ)
+    (gamma : ℝ)
+    (hgamma : gamma ≠ 0) :
+    graphW1_stableDualSweep bDiff w gamma v =
+      (fun i : ι =>
+        (1 / 2) * v i +
+          (1 / 2) * (graphW1_alphaPlus w gamma v i - graphW1_alphaMinus w gamma v i) -
+            gamma * Real.arsinh (graphW1_beta bDiff w gamma v i)) := by
+  exact graphW1_flowSinkhorn_stableDualUpdate_from_projectionMap
+    (Psi := graphW1_stableDualSweep bDiff w gamma)
+    (v := v)
+    (bDiff := bDiff)
+    (w := w)
+    (gamma := gamma)
+    hgamma
+    rfl
+
+/--
+Pointwise-block form of Proposition `prop:graphw1-flow-sinkhorn-update`.
+
+This variant removes the named sweep certificate from the paper-facing theorem statement.  The
+remaining implementation bridge is exposed directly as the two pointwise block identities: the
+second block computes the Lean-defined log-domain `m` update, and the first block maps that `m`
+update to the displayed stable dual step.
+-/
+theorem graphW1_flowSinkhorn_stableDualUpdate_from_pointwiseBlockIdentities
+    {ι : Type*} [Fintype ι]
+    (Ψ₁ Ψ₂ : (ι → ℝ) → ι → ℝ)
+    (v bDiff : ι → ℝ)
+    (w : ι → ι → ℝ)
+    (gamma : ℝ)
+    (hgamma : gamma ≠ 0)
+    (hsecond :
+      ∀ v : ι → ℝ, Ψ₂ v = graphW1_mUpdate bDiff w gamma v)
+    (hfirst :
+      ∀ v : ι → ℝ,
+        Ψ₁ (graphW1_mUpdate bDiff w gamma v) =
+          fun i : ι => v i / 2 - gamma * graphW1_mUpdate bDiff w gamma v i) :
+    (Ψ₁ ∘ Ψ₂) v =
+      (fun i : ι =>
+        (1 / 2) * v i +
+          (1 / 2) * (graphW1_alphaPlus w gamma v i - graphW1_alphaMinus w gamma v i) -
+            gamma * Real.arsinh (graphW1_beta bDiff w gamma v i)) := by
+  have hcomp :
+      (Ψ₁ ∘ Ψ₂) v =
+        fun i : ι => v i / 2 - gamma * graphW1_mUpdate bDiff w gamma v i := by
+    unfold Function.comp
+    rw [hsecond v]
+    exact hfirst v
+  rw [hcomp]
+  funext i
+  unfold graphW1_mUpdate
+  field_simp [hgamma]
+  ring
+
+/--
+Paper-facing block-sweep form of Proposition `prop:graphw1-flow-sinkhorn-update`.
+
+This endpoint explicitly mentions the two block projection maps `Ψ₁` and `Ψ₂` from the paper.
+The proof-free certificate `GraphW1StableProjectionSweepCertificate` is the remaining statement
+that these concrete projection blocks produce the Lean-defined log-domain intermediate `m` and
+then reconstruct the stable dual step from it.  Lean then unfolds the intermediate update and
+proves the displayed `arsinh` formula for the composed sweep.
+-/
+theorem graphW1_flowSinkhorn_stableDualUpdate_from_blockSweepCertificate
+    {ι : Type*} [Fintype ι]
+    (Ψ₁ Ψ₂ : (ι → ℝ) → ι → ℝ)
+    (v bDiff : ι → ℝ)
+    (w : ι → ι → ℝ)
+    (gamma : ℝ)
+    (hgamma : gamma ≠ 0)
+    (hblock : GraphW1StableProjectionSweepCertificate Ψ₁ Ψ₂ bDiff w gamma) :
+    (Ψ₁ ∘ Ψ₂) v =
+      (fun i : ι =>
+        (1 / 2) * v i +
+          (1 / 2) * (graphW1_alphaPlus w gamma v i - graphW1_alphaMinus w gamma v i) -
+            gamma * Real.arsinh (graphW1_beta bDiff w gamma v i)) := by
+  have hcomp :
+      (Ψ₁ ∘ Ψ₂) v =
+        fun i : ι => v i / 2 - gamma * graphW1_mUpdate bDiff w gamma v i := by
+    unfold Function.comp
+    rw [hblock.second_block_eq_mUpdate v]
+    exact hblock.first_block_eq_from_mUpdate v
+  rw [hcomp]
+  funext i
+  unfold graphW1_mUpdate
+  field_simp [hgamma]
+  ring
+
+/--
 Closed-form expression for the graph-`W₁` block quotient constant.
 
 Concrete paper-facing statement of Proposition `prop:V1V2_closed_form_flow`.
@@ -518,9 +890,11 @@ It certifies that the quotient seminorm on both blocks (`V1` for vertex potentia
 edge-flow tensors) is exactly the variation seminorm.
 -/
 theorem graphW1_blockQuotient_closedForm
-    {ι : Type*} [Fintype ι] [Nonempty ι]
-    (v : ι → ℝ)
-    (U : ι × ι → ℝ) :
+    {vertex edge : Type*}
+    [Fintype vertex] [Nonempty vertex]
+    [Fintype edge] [Nonempty edge]
+    (v : vertex → ℝ)
+    (U : edge → ℝ) :
     Setup.blockQuotientSeminorm v = variationSeminorm v ∧
       Setup.blockQuotientSeminorm U = variationSeminorm U := by
   exact ⟨Setup.blockQuotientSeminorm_eq_variationSeminorm v,
@@ -548,6 +922,38 @@ theorem graphW1_Psi2_nonexpansive
         = |v j - v i| / 2 := by rw [abs_div, abs_of_pos (by norm_num : (0 : ℝ) < 2)]
     _ ≤ oscillation v / 2 := by nlinarith
     _ = variationSeminorm v := rfl
+
+/--
+Closed form and non-expansiveness of `Ψ₂` on an explicit finite edge set.
+
+This is the paper-facing content of Proposition `prop:graphw1-psi2-closed-nonexp`: the
+second block map has the displayed formula, and its variation seminorm is bounded by the
+variation seminorm of the vertex potential.
+-/
+theorem graphW1_Psi2_closedForm_nonexpansive
+    {ι ε : Type*} [Fintype ι] [Nonempty ι] [Fintype ε] [Nonempty ε]
+    (src dst : ε → ι)
+    (v : ι → ℝ) :
+    (∀ e : ε, graphW1_Psi2 src dst v e = (v (dst e) - v (src e)) / 2) ∧
+      variationSeminorm (graphW1_Psi2 src dst v) ≤ variationSeminorm v := by
+  constructor
+  · intro e
+    rfl
+  · apply variationSeminorm_le_of_shifted_supnorm_bound _ (c := 0)
+    intro e
+    simp only [graphW1_Psi2, add_zero]
+    have hkey : |v (dst e) - v (src e)| ≤ oscillation v := by
+      unfold oscillation
+      rw [abs_le]
+      constructor
+      · linarith [coordMin_le v (dst e), le_coordMax v (src e)]
+      · linarith [coordMin_le v (src e), le_coordMax v (dst e)]
+    calc
+      |(v (dst e) - v (src e)) / 2|
+          = |v (dst e) - v (src e)| / 2 := by
+            rw [abs_div, abs_of_pos (by norm_num : (0 : ℝ) < 2)]
+      _ ≤ oscillation v / 2 := by nlinarith
+      _ = variationSeminorm v := rfl
 
 /--
 If `Ψ₁` and `Ψ₂` are seminorm-nonexpansive and the closed-form update agrees pointwise with
@@ -689,6 +1095,33 @@ theorem graphW1_flowSinkhorn_closedForm_variationSeminorm_nonexpansive_of_isTopi
       (SeminormNonexpansive_variationSeminormAsSeminorm_of_isTopical hPsi₁)
       (SeminormNonexpansive_variationSeminormAsSeminorm_of_isTopical hPsi₂)
       hupdate
+
+/--
+Paper-facing non-expansiveness package for Proposition `prop:graphw1-signed-structure`.
+
+This endpoint states the conclusion for the full paper-order sweep `Ψ₁ ∘ Ψ₂` directly, without
+passing through an auxiliary closed-form wrapper.  The signed-structure work is represented by the
+two `IsTopical` certificates, which are the abstract output of the monotone-block and translation
+equivariance criteria.
+-/
+theorem graphW1_signedStructure_fullSweep_variationSeminorm_nonexpansive
+    {ι : Type*} [Fintype ι] [Nonempty ι]
+    (Psi₁ Psi₂ : (ι → ℝ) → (ι → ℝ))
+    (hPsi₁ : IsTopical Psi₁)
+    (hPsi₂ : IsTopical Psi₂) :
+    ∀ x y : ι → ℝ,
+      variationSeminorm ((Psi₁ ∘ Psi₂) x - (Psi₁ ∘ Psi₂) y) ≤
+        variationSeminorm (x - y) := by
+  intro x y
+  have hne : SeminormNonexpansive variationSeminormAsSeminorm (Psi₁ ∘ Psi₂) :=
+    SeminormNonexpansive_comp
+      variationSeminormAsSeminorm Psi₂ Psi₁
+      (SeminormNonexpansive_variationSeminormAsSeminorm_of_isTopical hPsi₂)
+      (SeminormNonexpansive_variationSeminormAsSeminorm_of_isTopical hPsi₁)
+  change
+    variationSeminormAsSeminorm ((Psi₁ ∘ Psi₂) x - (Psi₁ ∘ Psi₂) y) ≤
+      variationSeminormAsSeminorm (x - y)
+  exact hne x y
 
 /--
 Uniform iterate bound for the closed-form graph-W₁ update from topical block witnesses.

@@ -1,11 +1,12 @@
 import FlowSinkhorn.KLProjection.Applications.GraphW1.Kappa
+import FlowSinkhorn.KLProjection.Applications.GraphW1.ComplexityVocabulary
 import FlowSinkhorn.KLProjection.Setup.BlockMonotonicity
 
 /-!
 # Graph `W₁` complexity instantiation
 
 This module is reserved for Corollary `cor:W1-XmaxUmax` and the resulting explicit complexity
-statements from `papers/kl-projections/sections/sec-w1-graphs.tex`.
+statements from the graph-W1 material in `neurips/paper.tex`.
 
 Intended theorem names:
 - `graphW1_explicit_XGamma_UGamma`;
@@ -54,6 +55,230 @@ theorem graphW1_explicit_XGamma_UGamma
           nlinarith
     _ = 4 * diam * (cost + Real.log n_nodes) := by
           exact graphW1_Umax_twoTimesHGammaBudget_diam hgamma
+
+/--
+Paper-facing package for Corollary `app-cor:graphw1-xgamma-ugamma`.
+
+The witness records the displayed graph-W₁ choices
+`U_γ = 4 * diam * (lengthMax + γ * H_γ)` and
+`X_γ = ‖b‖₁ * U_γ / γ + p * exp (-lengthMin / γ)`.
+The orbit bound is derived from the two-step path certificate and the fixed-point budget; the
+primal confinement bound uses the pointwise mass estimate supplied by Proposition
+`prop:mass-bound-block`.
+-/
+theorem graphW1_XGamma_UGamma_bounds_from_twoStep_path
+    {ι : Type*} [Fintype ι] [Nonempty ι]
+    (Psi : (ι → ℝ) → (ι → ℝ))
+    (hT : IsTopical Psi)
+    {vStar : ι → ℝ} (hfix : Psi vStar = vStar)
+    {kappa B lengthMax gamma hGamma bMass p lengthMin : ℝ}
+    (hB : 0 ≤ B)
+    (hBunit : B ≤ 1)
+    (graphDiam : ℕ)
+    (yf yg : ι × ι → ℝ)
+    (hyf : ∀ p : ι × ι, |yf p| ≤ B)
+    (hyg : ∀ p : ι × ι, |yg p| ≤ B)
+    (steps : List ℝ)
+    (hlen : steps.length ≤ graphDiam)
+    (hsteps : ∀ x ∈ steps, ∃ p : ι × ι, x = (yf + yg) p)
+    (hkappa_from_path : kappa ≤ |steps.sum|)
+    (hgamma : 0 < gamma)
+    (hbMass : 0 ≤ bMass)
+    (hbase_nonneg : 0 ≤ lengthMax + gamma * hGamma)
+    (hvStar : variationSeminorm vStar ≤
+      PrimalDualBounds.hGammaKappaBudget kappa lengthMax gamma hGamma)
+    (xMass : ℕ → ℝ)
+    (hmass :
+      ∀ k : ℕ,
+        xMass k ≤
+          bMass * variationSeminorm ((Psi^[k]) (0 : ι → ℝ)) / gamma +
+            p * Real.exp (-lengthMin / gamma)) :
+    ∃ U_gamma X_gamma : ℝ,
+      U_gamma = 4 * (graphDiam : ℝ) * (lengthMax + gamma * hGamma) ∧
+      X_gamma = bMass * U_gamma / gamma + p * Real.exp (-lengthMin / gamma) ∧
+      ∀ k : ℕ,
+        variationSeminorm ((Psi^[k]) (0 : ι → ℝ)) ≤ U_gamma ∧
+          xMass k ≤ X_gamma := by
+  let U_gamma := 4 * (graphDiam : ℝ) * (lengthMax + gamma * hGamma)
+  let X_gamma := bMass * U_gamma / gamma + p * Real.exp (-lengthMin / gamma)
+  refine ⟨U_gamma, X_gamma, rfl, rfl, ?_⟩
+  intro k
+  have hPsi : SeminormNonexpansive variationSeminormAsSeminorm Psi :=
+    SeminormNonexpansive_variationSeminormAsSeminorm_of_isTopical hT
+  have hiter :=
+    seminorm_iterate_le_of_nonexpansive_fixedPoint
+      variationSeminormAsSeminorm Psi hPsi (uStar := vStar)
+      (u0 := (0 : ι → ℝ)) hfix k
+  have hzero : variationSeminorm (0 : ι → ℝ) = 0 := variationSeminorm_zero
+  have hiter' :
+      variationSeminorm ((Psi^[k]) (0 : ι → ℝ)) ≤
+        variationSeminorm (0 : ι → ℝ) + 2 * variationSeminorm vStar :=
+    hiter
+  have horbit_to_star :
+      variationSeminorm ((Psi^[k]) (0 : ι → ℝ)) ≤ 2 * variationSeminorm vStar := by
+    linarith
+  have hbudget_explicit :
+      PrimalDualBounds.hGammaKappaBudget kappa lengthMax gamma hGamma ≤
+        2 * (graphDiam : ℝ) * (lengthMax + gamma * hGamma) :=
+    graphW1_hGammaBudget_le_explicit_twoDiam_of_twoStep_path
+      hB hBunit graphDiam yf yg hyf hyg steps hlen hsteps hkappa_from_path hbase_nonneg
+  have horbit : variationSeminorm ((Psi^[k]) (0 : ι → ℝ)) ≤ U_gamma := by
+    calc
+      variationSeminorm ((Psi^[k]) (0 : ι → ℝ))
+          ≤ 2 * variationSeminorm vStar := horbit_to_star
+      _ ≤ 2 * PrimalDualBounds.hGammaKappaBudget kappa lengthMax gamma hGamma := by
+            exact mul_le_mul_of_nonneg_left hvStar (by norm_num)
+      _ ≤ 2 * (2 * (graphDiam : ℝ) * (lengthMax + gamma * hGamma)) := by
+            exact mul_le_mul_of_nonneg_left hbudget_explicit (by norm_num)
+      _ = U_gamma := by
+            dsimp [U_gamma]
+            ring
+  refine ⟨horbit, ?_⟩
+  have hmass_point := hmass k
+  have hmul :
+      bMass * variationSeminorm ((Psi^[k]) (0 : ι → ℝ)) ≤ bMass * U_gamma :=
+    mul_le_mul_of_nonneg_left horbit hbMass
+  have hdiv :
+      bMass * variationSeminorm ((Psi^[k]) (0 : ι → ℝ)) / gamma ≤
+        bMass * U_gamma / gamma :=
+    div_le_div_of_nonneg_right hmul (le_of_lt hgamma)
+  dsimp [X_gamma]
+  linarith
+
+/--
+Block-condition version of Corollary `app-cor:graphw1-xgamma-ugamma`.
+
+Compared with `graphW1_XGamma_UGamma_bounds_from_twoStep_path`, this endpoint no longer asks the
+caller for a prepackaged `IsTopical` certificate.  It starts from the two graph-`W₁` block maps,
+uses their monotonicity and signed translation-equivariance laws to obtain the full-sweep orbit
+bound, then combines that bound with the pointwise primal-mass proxy.
+-/
+theorem graphW1_XGamma_UGamma_bounds_from_blockConditions_twoStep_path
+    {ι₁ ι₂ : Type*} [Fintype ι₁] [Nonempty ι₁]
+    (τ : PairedSign)
+    (Ψ₁ : (ι₂ → ℝ) → (ι₁ → ℝ))
+    (Ψ₂ : (ι₁ → ℝ) → (ι₂ → ℝ))
+    (hΨ₁_mono : Monotone Ψ₁) (hΨ₂_mono : Monotone Ψ₂)
+    (hΨ₁_trans : SignedBlockTranslationEquivariant1 τ Ψ₁)
+    (hΨ₂_trans : SignedBlockTranslationEquivariant2 τ Ψ₂)
+    {vStar : ι₁ → ℝ} (hfix : sweep Ψ₁ Ψ₂ vStar = vStar)
+    {kappa B lengthMax gamma hGamma bMass p lengthMin : ℝ}
+    (hB : 0 ≤ B)
+    (hBunit : B ≤ 1)
+    (graphDiam : ℕ)
+    (yf yg : ι₁ × ι₁ → ℝ)
+    (hyf : ∀ p : ι₁ × ι₁, |yf p| ≤ B)
+    (hyg : ∀ p : ι₁ × ι₁, |yg p| ≤ B)
+    (steps : List ℝ)
+    (hlen : steps.length ≤ graphDiam)
+    (hsteps : ∀ x ∈ steps, ∃ p : ι₁ × ι₁, x = (yf + yg) p)
+    (hkappa_from_path : kappa ≤ |steps.sum|)
+    (hgamma : 0 < gamma)
+    (hbMass : 0 ≤ bMass)
+    (hbase_nonneg : 0 ≤ lengthMax + gamma * hGamma)
+    (hvStar : variationSeminorm vStar ≤
+      PrimalDualBounds.hGammaKappaBudget kappa lengthMax gamma hGamma)
+    (xMass : ℕ → ℝ)
+    (hmass :
+      ∀ k : ℕ,
+        xMass k ≤
+          bMass * variationSeminorm (((sweep Ψ₁ Ψ₂)^[k]) (0 : ι₁ → ℝ)) / gamma +
+            p * Real.exp (-lengthMin / gamma)) :
+    ∃ U_gamma X_gamma : ℝ,
+      U_gamma = 4 * (graphDiam : ℝ) * (lengthMax + gamma * hGamma) ∧
+      X_gamma = bMass * U_gamma / gamma + p * Real.exp (-lengthMin / gamma) ∧
+      ∀ k : ℕ,
+        variationSeminorm (((sweep Ψ₁ Ψ₂)^[k]) (0 : ι₁ → ℝ)) ≤ U_gamma ∧
+          xMass k ≤ X_gamma := by
+  let U_gamma := 4 * (graphDiam : ℝ) * (lengthMax + gamma * hGamma)
+  let X_gamma := bMass * U_gamma / gamma + p * Real.exp (-lengthMin / gamma)
+  refine ⟨U_gamma, X_gamma, rfl, rfl, ?_⟩
+  intro k
+  have hbudget_explicit :
+      PrimalDualBounds.hGammaKappaBudget kappa lengthMax gamma hGamma ≤
+        2 * (graphDiam : ℝ) * (lengthMax + gamma * hGamma) :=
+    graphW1_hGammaBudget_le_explicit_twoDiam_of_twoStep_path
+      hB hBunit graphDiam yf yg hyf hyg steps hlen hsteps hkappa_from_path hbase_nonneg
+  have horbit_setup :
+      variationSeminorm (((sweep Ψ₁ Ψ₂)^[k]) (0 : ι₁ → ℝ)) ≤
+        variationSeminorm (0 : ι₁ → ℝ) + 2 * variationSeminorm vStar :=
+    Setup.sweep_orbit_bound_of_blockConditions
+      (τ := τ) (Ψ₁ := Ψ₁) (Ψ₂ := Ψ₂)
+      hΨ₁_mono hΨ₂_mono hΨ₁_trans hΨ₂_trans hfix k
+  have hvStar_explicit :
+      variationSeminorm vStar ≤ 2 * (graphDiam : ℝ) * (lengthMax + gamma * hGamma) :=
+    hvStar.trans hbudget_explicit
+  have horbit : variationSeminorm (((sweep Ψ₁ Ψ₂)^[k]) (0 : ι₁ → ℝ)) ≤ U_gamma := by
+    calc
+      variationSeminorm (((sweep Ψ₁ Ψ₂)^[k]) (0 : ι₁ → ℝ))
+          ≤ variationSeminorm (0 : ι₁ → ℝ) + 2 * variationSeminorm vStar := horbit_setup
+      _ = 2 * variationSeminorm vStar := by
+            rw [variationSeminorm_zero, zero_add]
+      _ ≤ 2 * (2 * (graphDiam : ℝ) * (lengthMax + gamma * hGamma)) := by
+            nlinarith
+      _ = U_gamma := by
+            dsimp [U_gamma]
+            ring
+  refine ⟨horbit, ?_⟩
+  have hmass_point := hmass k
+  have hmul :
+      bMass * variationSeminorm (((sweep Ψ₁ Ψ₂)^[k]) (0 : ι₁ → ℝ)) ≤ bMass * U_gamma :=
+    mul_le_mul_of_nonneg_left horbit hbMass
+  have hdiv :
+      bMass * variationSeminorm (((sweep Ψ₁ Ψ₂)^[k]) (0 : ι₁ → ℝ)) / gamma ≤
+        bMass * U_gamma / gamma :=
+    div_le_div_of_nonneg_right hmul (le_of_lt hgamma)
+  dsimp [X_gamma]
+  linarith
+
+/--
+Structured-certificate version of Corollary `app-cor:graphw1-xgamma-ugamma`.
+
+The theorem exposes the same mathematical data as
+`graphW1_XGamma_UGamma_bounds_from_blockConditions_twoStep_path`, but groups the block laws,
+fixed-point budget, bounded edge fields, path witness, and mass proxy into named records.
+This makes the paper-facing Comparator statement easier to audit without changing the proof core.
+-/
+theorem graphW1_XGamma_UGamma_bounds_from_structuredCertificates_twoStep_path
+    {ι₁ ι₂ : Type*} [Fintype ι₁] [Nonempty ι₁]
+    (block : SignedBlockSweepData ι₁ ι₂)
+    {kappa lengthMax gamma hGamma bMass p lengthMin : ℝ}
+    (fixed :
+      SweepFixedPointBudget ι₁ (sweep block.Ψ₁ block.Ψ₂) kappa lengthMax gamma hGamma)
+    (edge : UnitBoundedTwoStepFields ι₁)
+    (graphDiam : ℕ)
+    (path : TwoStepPathCertificate edge graphDiam kappa)
+    (hgamma : 0 < gamma)
+    (hbase_nonneg : 0 ≤ lengthMax + gamma * hGamma)
+    (mass :
+      GraphW1MassProxy ι₁ (sweep block.Ψ₁ block.Ψ₂) gamma bMass p lengthMin) :
+    ∃ U_gamma X_gamma : ℝ,
+      U_gamma = 4 * (graphDiam : ℝ) * (lengthMax + gamma * hGamma) ∧
+      X_gamma = bMass * U_gamma / gamma + p * Real.exp (-lengthMin / gamma) ∧
+      ∀ k : ℕ,
+        variationSeminorm (((sweep block.Ψ₁ block.Ψ₂)^[k]) (0 : ι₁ → ℝ)) ≤ U_gamma ∧
+          mass.xMass k ≤ X_gamma := by
+  have hB_nonneg : 0 ≤ edge.B := by
+    rcases (inferInstance : Nonempty ι₁) with ⟨i₀⟩
+    exact (abs_nonneg (edge.yf (i₀, i₀))).trans (edge.yf_bound (i₀, i₀))
+  exact
+    graphW1_XGamma_UGamma_bounds_from_blockConditions_twoStep_path
+      (τ := block.τ)
+      (Ψ₁ := block.Ψ₁)
+      (Ψ₂ := block.Ψ₂)
+      block.mono₁ block.mono₂ block.trans₁ block.trans₂
+      (vStar := fixed.vStar) fixed.fixed
+      (kappa := kappa)
+      (B := edge.B)
+      (lengthMax := lengthMax)
+      (gamma := gamma)
+      (hGamma := hGamma)
+      (bMass := bMass)
+      (p := p)
+      (lengthMin := lengthMin)
+      hB_nonneg edge.le_one graphDiam edge.yf edge.yg edge.yf_bound edge.yg_bound
+      path.steps path.length_le path.steps_from_edge path.kappa_le_abs_sum
+      hgamma mass.bMass_nonneg hbase_nonneg fixed.budget mass.xMass mass.pointwise
 
 /--
 Graph-`W₁` paper-facing dual-rate wrapper.
@@ -4001,6 +4226,97 @@ theorem
       Psi hT hfix halpha heps hgap_res hres_ascent hmono_gap
       hB hBunit graphDiam yf yg hyf hyg steps hlen hsteps
       hkappa_from_path hgamma hbase_nonneg hvStar hphi_orbit k k hk (Nat.le_refl _)
+
+/--
+Paper-facing operation-bound theorem for Theorem `thm:graphw1-complexity`.
+
+This is the arithmetic layer corresponding to the statement
+`O(p * diameter(E)^3 / eps^4)` operations up to logarithmic factors in `n`, under the side
+condition `p=o(1/log(1/eps))`.
+
+The analytic graph-W₁ convergence proof supplies `haccuracy` and the iteration budget; sparse
+implementation supplies the per-sweep and total-operation certificates. Lean then proves the
+displayed operation bound and carries the little-o edge-count regime as an explicit hypothesis.
+-/
+theorem graphW1_sinkhornFlow_complexity_from_operationBounds
+    {w1Error : ℕ → ℝ}
+    {eps p graphDiam logFactor iterationBudget perSweepOps operationCount : ℝ}
+    {pOfEps : ℝ → ℝ}
+    (k : ℕ)
+    (heps : 0 < eps)
+    (hp_nonneg : 0 ≤ p)
+    (haccuracy : w1Error k ≤ eps)
+    (hk_iter : (k : ℝ) ≤ iterationBudget)
+    (hiter_budget : iterationBudget ≤ logFactor * graphDiam ^ 3 / eps ^ 4)
+    (hper_sweep : perSweepOps ≤ p)
+    (hoperation : operationCount ≤ (k : ℝ) * perSweepOps)
+    (hp_eval : p = pOfEps eps)
+    (hp_littleO : graphW1LittleOEdgeRegime pOfEps) :
+    0 < eps ∧
+      w1Error k ≤ eps ∧
+      operationCount ≤ logFactor * p * graphDiam ^ 3 / eps ^ 4 ∧
+      p = pOfEps eps ∧
+      graphW1LittleOEdgeRegime pOfEps := by
+  have hk_nonneg : 0 ≤ (k : ℝ) := Nat.cast_nonneg k
+  have hstep_bound : (k : ℝ) * perSweepOps ≤ (k : ℝ) * p :=
+    mul_le_mul_of_nonneg_left hper_sweep hk_nonneg
+  have hiter_to_budget : (k : ℝ) ≤ logFactor * graphDiam ^ 3 / eps ^ 4 :=
+    hk_iter.trans hiter_budget
+  have hbudget_step :
+      (k : ℝ) * p ≤ (logFactor * graphDiam ^ 3 / eps ^ 4) * p :=
+    mul_le_mul_of_nonneg_right hiter_to_budget hp_nonneg
+  have hop :
+      operationCount ≤ (logFactor * graphDiam ^ 3 / eps ^ 4) * p :=
+    hoperation.trans (hstep_bound.trans hbudget_step)
+  have htarget :
+      (logFactor * graphDiam ^ 3 / eps ^ 4) * p =
+        logFactor * p * graphDiam ^ 3 / eps ^ 4 := by
+    ring
+  rw [htarget] at hop
+  exact ⟨heps, haccuracy, hop, hp_eval, hp_littleO⟩
+
+/--
+Structured-certificate version of Theorem `thm:graphw1-complexity`.
+
+Compared with `graphW1_sinkhornFlow_complexity_from_operationBounds`, this endpoint packages
+the epsilon-accuracy, iteration-budget, sparse-sweep, operation-count, and little-o side conditions
+into `GraphW1OperationBudgetCertificate`.  The proof still performs the arithmetic composition in
+Lean, but the Comparator-facing statement now exposes a named algorithmic certificate rather than
+a loose list of scalar hypotheses.
+-/
+theorem graphW1_sinkhornFlow_complexity_from_operationBudgetCertificate
+    {w1Error : ℕ → ℝ}
+    {eps p graphDiam logFactor iterationBudget perSweepOps operationCount : ℝ}
+    {pOfEps : ℝ → ℝ}
+    (k : ℕ)
+    (hcert :
+      GraphW1OperationBudgetCertificate w1Error eps p graphDiam logFactor
+        iterationBudget perSweepOps operationCount pOfEps k) :
+    0 < eps ∧
+      w1Error k ≤ eps ∧
+      operationCount ≤ logFactor * p * graphDiam ^ 3 / eps ^ 4 ∧
+      p = pOfEps eps ∧
+      graphW1LittleOEdgeRegime pOfEps := by
+  exact graphW1_sinkhornFlow_complexity_from_operationBounds
+    (w1Error := w1Error)
+    (eps := eps)
+    (p := p)
+    (graphDiam := graphDiam)
+    (logFactor := logFactor)
+    (iterationBudget := iterationBudget)
+    (perSweepOps := perSweepOps)
+    (operationCount := operationCount)
+    (pOfEps := pOfEps)
+    k
+    hcert.eps_pos
+    hcert.edge_nonneg
+    hcert.accuracy
+    hcert.iteration_index_le_budget
+    hcert.iteration_budget
+    hcert.per_sweep_ops
+    hcert.operation_count
+    hcert.edge_count_eval
+    hcert.edge_count_littleO
 
 end GraphW1
 end Applications

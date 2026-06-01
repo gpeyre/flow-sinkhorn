@@ -1,12 +1,9 @@
+import FlowSinkhorn.KLProjection.BlockQuotientVocabulary
 import FlowSinkhorn.KLProjection.Variation
 import Mathlib.Analysis.Seminorm
 
 namespace FlowSinkhorn
 namespace KLProjection
-
-/-- Coordinatewise sup norm on a finite real vector. -/
-noncomputable def coordSupNorm {ι : Type*} [Fintype ι] [Nonempty ι] (x : ι → ℝ) : ℝ :=
-  Finset.sup' Finset.univ Finset.univ_nonempty fun i => |x i|
 
 lemma abs_le_coordSupNorm {ι : Type*} [Fintype ι] [Nonempty ι] (x : ι → ℝ) (i : ι) :
     |x i| ≤ coordSupNorm x := by
@@ -114,23 +111,9 @@ noncomputable section BlockPairs
 variable {ι₁ ι₂ : Type*}
 variable [Fintype ι₁] [Nonempty ι₁] [Fintype ι₂] [Nonempty ι₂]
 
-/-- A pair of finite-dimensional real dual blocks. -/
-abbrev BlockPair (ι₁ ι₂ : Type*) :=
-  (ι₁ → ℝ) × (ι₂ → ℝ)
-
-/-- Sup norm on a pair of blocks. -/
-def blockSupNorm (u : BlockPair ι₁ ι₂) : ℝ :=
-  max (coordSupNorm u.1) (coordSupNorm u.2)
-
 lemma blockSupNorm_nonneg (u : BlockPair ι₁ ι₂) : 0 ≤ blockSupNorm u := by
   unfold blockSupNorm
   exact (coordSupNorm_nonneg u.1).trans (le_max_left _ _)
-
-/--
-Classical OT paired gauge shift: add a constant to the first block and subtract it from the second.
--/
-def pairedShift (c : ℝ) (u : BlockPair ι₁ ι₂) : BlockPair ι₁ ι₂ :=
-  (fun i => u.1 i + c, fun j => u.2 j - c)
 
 omit [Fintype ι₁] [Nonempty ι₁] [Fintype ι₂] [Nonempty ι₂] in
 lemma pairedShift_zero (u : BlockPair ι₁ ι₂) : pairedShift 0 u = u := by
@@ -140,22 +123,6 @@ omit [Fintype ι₁] [Nonempty ι₁] [Fintype ι₂] [Nonempty ι₂] in
 lemma pairedShift_add (c d : ℝ) (u : BlockPair ι₁ ι₂) :
     pairedShift c (pairedShift d u) = pairedShift (c + d) u := by
   ext i <;> simp [pairedShift, sub_eq_add_neg, add_assoc, add_comm]
-
-/-- The orbit of block sup norms obtained by all paired shifts of `u`. -/
-def pairedShiftNormSet (u : BlockPair ι₁ ι₂) : Set ℝ :=
-  Set.range fun c : ℝ => blockSupNorm (pairedShift c u)
-
-/-- A simple infimum-based quotient sup seminorm for the paired OT gauge direction. -/
-def pairedQuotientSupSeminorm (u : BlockPair ι₁ ι₂) : ℝ :=
-  sInf (pairedShiftNormSet u)
-
-/--
-A shift-invariant lower bound coming from the single-block variation seminorms.
-
-This is the first bridge toward the block-quotient seminorm used in the paper.
--/
-def pairedVariationLowerBound (u : BlockPair ι₁ ι₂) : ℝ :=
-  max (variationSeminorm u.1) (variationSeminorm u.2)
 
 theorem pairedVariationLowerBound_pairedShift (u : BlockPair ι₁ ι₂) (c : ℝ) :
     pairedVariationLowerBound (pairedShift c u) = pairedVariationLowerBound u := by
@@ -339,26 +306,6 @@ theorem pairedQuotientSupSeminorm_controls_blockVariation_right_pairedShift
     variationSeminorm (pairedShift d u).2 ≤ pairedQuotientSupSeminorm u :=
   (pairedQuotientSupSeminorm_controls_blockVariations_pairedShift (u := u) (d := d)).2
 
-/--
-Sign parameter for the two-block paired-balance action.
-
-`minus` recovers the classical OT gauge direction, while `plus` models the same-sign paired shift
-used in the graph-flow splitting from the paper.
--/
-inductive PairedSign where
-  | plus
-  | minus
-  deriving DecidableEq, Repr
-
-/-- Real value of the paired-balance sign, equal to `±1`. -/
-def PairedSign.toReal : PairedSign → ℝ
-  | .plus => 1
-  | .minus => -1
-
-/-- Signed two-block paired shift, with second block shifted by `tau * c`. -/
-def signedPairedShift (τ : PairedSign) (c : ℝ) (u : BlockPair ι₁ ι₂) : BlockPair ι₁ ι₂ :=
-  (fun i => u.1 i + c, fun j => u.2 j + τ.toReal * c)
-
 omit [Fintype ι₁] [Nonempty ι₁] [Fintype ι₂] [Nonempty ι₂] in
 @[simp] theorem signedPairedShift_minus_eq_pairedShift (c : ℝ) (u : BlockPair ι₁ ι₂) :
     signedPairedShift .minus c u = pairedShift c u := by
@@ -373,14 +320,6 @@ omit [Fintype ι₁] [Nonempty ι₁] [Fintype ι₂] [Nonempty ι₂] in
 lemma signedPairedShift_add (τ : PairedSign) (c d : ℝ) (u : BlockPair ι₁ ι₂) :
     signedPairedShift τ c (signedPairedShift τ d u) = signedPairedShift τ (c + d) u := by
   ext i <;> simp [signedPairedShift, PairedSign.toReal, mul_add, add_assoc, add_left_comm, add_comm]
-
-/-- Orbit of block sup norms for the signed paired-balance action. -/
-def signedPairedShiftNormSet (τ : PairedSign) (u : BlockPair ι₁ ι₂) : Set ℝ :=
-  Set.range fun c : ℝ => blockSupNorm (signedPairedShift τ c u)
-
-/-- Infimum-based quotient sup seminorm for the signed paired-balance action. -/
-def signedPairedQuotientSupSeminorm (τ : PairedSign) (u : BlockPair ι₁ ι₂) : ℝ :=
-  sInf (signedPairedShiftNormSet τ u)
 
 /--
 For `τ = minus`, the signed-shift orbit set coincides with the classical paired-shift orbit set.

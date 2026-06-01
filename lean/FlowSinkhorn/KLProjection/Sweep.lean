@@ -1,5 +1,6 @@
 import FlowSinkhorn.KLProjection.Variation
 import FlowSinkhorn.KLProjection.BlockQuotient
+import FlowSinkhorn.KLProjection.SweepVocabulary
 
 noncomputable section
 
@@ -7,23 +8,6 @@ namespace FlowSinkhorn
 namespace KLProjection
 
 variable {ι₁ ι₂ : Type*}
-
-/-- First block-translation equivariance relation from Proposition A.3. -/
-def SignedBlockTranslationEquivariant1
-    (τ : PairedSign) (Ψ₁ : (ι₂ → ℝ) → (ι₁ → ℝ)) : Prop :=
-  ∀ u₂ : ι₂ → ℝ, ∀ c : ℝ,
-    Ψ₁ (fun j => u₂ j + c) = fun i => Ψ₁ u₂ i + τ.toReal * c
-
-/-- Second block-translation equivariance relation from Proposition A.3. -/
-def SignedBlockTranslationEquivariant2
-    (τ : PairedSign) (Ψ₂ : (ι₁ → ℝ) → (ι₂ → ℝ)) : Prop :=
-  ∀ u₁ : ι₁ → ℝ, ∀ c : ℝ,
-    Ψ₂ (fun i => u₁ i + c) = fun j => Ψ₂ u₁ j + τ.toReal * c
-
-/-- Full sweep obtained by composing the two block maps. -/
-def sweep (Ψ₁ : (ι₂ → ℝ) → (ι₁ → ℝ)) (Ψ₂ : (ι₁ → ℝ) → (ι₂ → ℝ)) :
-    (ι₁ → ℝ) → (ι₁ → ℝ) :=
-  fun u₁ => Ψ₁ (Ψ₂ u₁)
 
 @[simp] lemma PairedSign.toReal_mul_self (τ : PairedSign) : τ.toReal * τ.toReal = 1 := by
   cases τ <;> norm_num [PairedSign.toReal]

@@ -1,176 +1,227 @@
-# Lean Formalization: Purpose and Navigation
+# Lean Formalization Guide
 
-This `lean/` project formalizes the main results of the submitted
-KL-projection paper. The supplementary archive contains the Lean sources and paper-facing theorem map,
-but it does not need to include the LaTeX paper source.
+This directory contains the Lean 4 formalization for the paper.  The goal is to make the
+paper-facing theorem list easy to audit, while keeping the proof-producing implementation organized
+by reusable mathematical components.
 
-This README is the primary entrypoint for contributors.
+Use this file as the main entry point.  Detailed audit ledgers and generated Comparator artifacts
+live under `audit/`.
 
-## 0) Naming and directory model (important)
+## Current Status
 
-Why both `KLProjection/` and `Paper/`?
-- `KLProjection/` = implementation backend (where proofs are actually developed).
-- `Paper/` = paper-structured facade (how to navigate by section/appendix).
+Status date: 2026-06-01.
 
-Recommended entrypoint:
-- use `FlowSinkhorn.Paper` for reading/auditing aligned with manuscript structure;
-- use `FlowSinkhorn.KLProjection` only for backend proof engineering.
+Paper-facing coverage:
 
-## 1) What this formalization guarantees
+- The paper contains `27` theorem/proposition/lemma/corollary statements.
+- All `27/27` paper statements have stable Lean aliases.
+- All `27/27` aliases resolve to concrete compiled Lean theorem constants.
+- The structural certification audit reports `27/27` endpoint coverage, `27/27` endpoint shape
+  checks, and `0` structural internalization gap flags.
+- No paper-facing target is an `_of_assumption` endpoint.
 
-- Every paper theorem/proposition/lemma/corollary has a mapped Lean endpoint.
-- The mapped endpoints compile in the global build.
-- No placeholders in `FlowSinkhorn/KLProjection`:
-  - no `sorry`
-  - no `admit`
-  - no local `axiom`
-- Important quality note:
-  - the audit distinguishes genuine gaps from long theorem interfaces. Some paper-facing endpoints
-    intentionally expose primitive mathematical certificates, such as positivity, finite support,
-    topicality, path witnesses, block monotonicity, or master-rate hypotheses.
+Lean proof hygiene:
 
-## 2) Current certification status (2026-05-08)
+- `FlowSinkhorn/KLProjection` has `30,435` non-comment, non-blank Lean lines.
+- `FlowSinkhorn/KLProjection` has `1,633` theorem/lemma declarations.
+- `FlowSinkhorn/KLProjection` has `63` direct `def`/`structure`/`class`/`abbrev`/`inductive`
+  declarations under the current simple repository counter.
+- `FlowSinkhorn/KLProjection` contains no `sorry`, no `admit`, and no local `axiom`.
+- `FlowSinkhorn.Comparator.Challenge` intentionally uses `sorry` placeholders because it is the
+  trusted statement-only Comparator challenge, not a proof-producing module.
 
-From `lean/`:
+Comparator status:
+
+- `FlowSinkhorn.Comparator.Challenge` contains the trusted statement-only challenge.
+- `FlowSinkhorn.Comparator.Solution` contains the untrusted solution theorem names.
+- Challenge/Solution statement matching passes for `27/27` entries.
+- The independent paper-to-Challenge audit records `27` faithful entries and `0` qualified entries.
+- Import-boundary checks show that Challenge exposes `0/27` implementation theorem endpoints.
+- Local fake-landrun Comparator smoke test passes, but the final hardened Linux `landrun` run is not
+  complete on this macOS workstation.
+
+## Fast Verification
+
+Run these commands from `lean/`:
 
 ```bash
 lake build FlowSinkhorn.KLProjection.StatementMap
+lake build FlowSinkhorn.Comparator.Challenge FlowSinkhorn.Comparator.Solution FlowSinkhorn.Paper
 python3 scripts/check_statementmap_sync.py
 python3 scripts/audit_paper_certification.py
-rg '^\s*theorem\b' FlowSinkhorn/KLProjection | wc -l
-rg '^\s*(def|structure)\b' FlowSinkhorn/KLProjection | wc -l
-rg '^\s*(sorry|admit|axiom)\b' FlowSinkhorn/KLProjection | wc -l
+python3 scripts/check_comparator_scaffold.py
+python3 scripts/check_comparator_challenge_lock.py
+python3 scripts/check_comparator_trust_boundary.py
 ```
 
-Snapshot:
-- actual non-comment, non-blank Lean code lines in `FlowSinkhorn/KLProjection`: `33271`
-  (with line comments and block comments stripped)
-- theorem/lemma declarations: `1527`
-- direct `def`/`structure` declarations: `36` with the simple README counter above
-- placeholders: `0`
-- paper-label endpoint coverage: `27/27`
-- endpoint structural shape checks: `27/27`
-- internalization candidates with no structural gap flags: `27/27`
-- internalization gap/review flags: `0` paper labels
-- `_of_assumption` paper-map targets: `0`
-- reviewed long-interface endpoints: `11`
+The synchronization scripts read `neurips/paper.aux` to recover compiled statement numbering.  If
+that file is absent after a clean checkout, regenerate it from the repository root with:
 
-## 3) Certification status tiers
+```bash
+cd neurips
+pdflatex -interaction=nonstopmode -halt-on-error paper.tex
+```
 
-Use this distinction when auditing:
-- Tier 1: mapped + build-checked endpoint (all paper labels currently satisfy this).
-- Tier 2: endpoint theorem is structurally nontrivial (passes `scripts/audit_paper_certification.py` shape checks).
-- Tier 3: no structural internalization gap at the paper-facing endpoint. Reviewed long-interface
-  endpoints may still expose primitive hypotheses, but those hypotheses are the theorem's intended
-  mathematical interface rather than hidden pass-through assumptions.
+Useful hygiene scans:
 
-Important audit convention:
-- `scripts/check_statementmap_sync.py` certifies synchronization and endpoint coverage.
-  It also checks that paper-first facade aliases in `FlowSinkhorn/Paper/*.lean` do not drift away
-  from the canonical targets in `FlowSinkhorn/KLProjection/StatementMap.lean`.
-- `scripts/audit_paper_certification.py` reports Tier 1/Tier 2 status and structural Tier 3 flags.
-- A Tier 3 `candidate` result means the structural audit found no obvious internalization gap; it is not a semantic proof of full manuscript-level internalization.
-- Targets or aliases ending in `_of_assumption` are explicit internalization gaps.
-- `interface-hypotheses:n` means a long signature has been reviewed as an intentional theorem
-  interface. This often indicates a stronger internalized endpoint, because the Lean theorem asks
-  for primitive certificates rather than a pre-packaged paper conclusion.
+```bash
+rg '^\s*(sorry|admit|axiom)\b' FlowSinkhorn/KLProjection
+rg '_of_assumption' FlowSinkhorn/KLProjection/StatementMap.lean FlowSinkhorn/Paper FlowSinkhorn/Comparator/Solution.lean
+```
 
-## 4) Where paper-to-Lean linking happens
+The Comparator smoke test is available for local wiring only:
 
-The synchronization layer is:
-- `FlowSinkhorn/KLProjection/StatementMap.lean`
-- facade import: `FlowSinkhorn.Paper.StatementMap`
+```bash
+COMPARATOR_ALLOW_FAKE_LANDRUN=1 scripts/run_comparator_bootstrap.sh
+```
 
-Important:
-- `StatementMap.lean` is an alias map only.
-- The actual proofs are in thematic modules (`DualConvergence`, `PrimalDualBounds`, `Setup`, `Applications`, `Legacy`).
+This smoke test is not a final certificate.  A final Comparator certificate requires a clean Linux
+run with real `landrun`.
 
-To inspect mapping consistency against the compiled paper labels/numbering:
+## Directory Map
+
+Primary entry points:
+
+- `FlowSinkhorn.lean`: package umbrella.
+- `FlowSinkhorn/KLProjection.lean`: proof-producing backend umbrella.
+- `FlowSinkhorn/Paper.lean`: manuscript-ordered facade.
+- `FlowSinkhorn/KLProjection/StatementMap.lean`: canonical paper-to-Lean alias map.
+- `FlowSinkhorn/Paper/StatementMap.lean`: paper-facade re-export of the alias map.
+- `FlowSinkhorn/Comparator/Challenge.lean`: trusted Comparator challenge statements.
+- `FlowSinkhorn/Comparator/Solution.lean`: untrusted Comparator solution theorem names.
+- `FlowSinkhorn/Comparator/Vocabulary.lean`: navigation umbrella for proof-free statement vocabulary.
+
+Implementation backend:
+
+- `KLProjection/Legacy/`: Section 2 duality/primal-dual certificate layer.
+- `KLProjection/DualConvergence/`: Pinsker, per-step ascent, gap-residual, rate, and approximation
+  transfer machinery.
+- `KLProjection/PrimalDualBounds/`: fixed-point control and primal-from-dual mass bounds.
+- `KLProjection/Setup/`: variation geometry, monotonicity, and translation laws.
+- `KLProjection/Applications/OT/`: optimal-transport specialization.
+- `KLProjection/Applications/GraphW1/`: graph-W1 closed forms, H_gamma, kappa, and complexity.
+
+Paper facade:
+
+- `Paper/Section2.lean` through `Paper/Section5.lean` mirror main-paper sections.
+- `Paper/AppendixA.lean`, `Paper/AppendixB.lean`, `Paper/AppendixE.lean`,
+  `Paper/AppendixF.lean`, and `Paper/AppendixG.lean` mirror appendix groups.
+- Legacy facade file names such as `S3DualConvergence.lean` are retained for compatibility.
+
+Comparator layer:
+
+- `Comparator/Vocabulary/` contains proof-free definitions needed to state the challenge.
+- `Comparator/Challenge.lean` may import only `Mathlib` and explicit `Comparator.Vocabulary.*`
+  modules.
+- `Comparator/Solution.lean` may import only `FlowSinkhorn.KLProjection.StatementMap`.
+- `KLProjection/*Vocabulary.lean` files are compatibility shims into `Comparator/Vocabulary/` and
+  should remain import-only.
+
+## Finding a Proof From a Paper Statement
+
+Use this workflow:
+
+1. Start from the paper label, for example `prop:graphw1-flow-sinkhorn-update`.
+2. Open `FlowSinkhorn/KLProjection/StatementMap.lean`.
+3. Find the label alias, for example `prop_graphw1_flow_sinkhorn_update`.
+4. Read the implementation comment on that alias.
+5. Jump to the theorem constant in the indicated file.
+
+Example:
+
+```lean
+abbrev prop_graphw1_flow_sinkhorn_update :=
+  @graphW1_flowSinkhorn_stableDualUpdate_from_pointwiseBlockIdentities
+  -- impl: Applications/GraphW1/ClosedForms.lean
+```
+
+The alias file is proof-free by design.  The actual proof is in the implementation module named in
+the comment.
+
+## Statement Map and Audit Rules
+
+`StatementMap.lean` is the single canonical synchronization layer.  It must remain stable and easy
+to read.
+
+Rules:
+
+- Every paper theorem/proposition/lemma/corollary must have a label alias and a numbered alias.
+- Each alias must point to one canonical Lean theorem constant.
+- Each alias should carry an implementation-file comment.
+- Paper facade aliases in `FlowSinkhorn/Paper/*.lean` must stay synchronized with `StatementMap`.
+- If a paper statement changes, regenerate and re-check the manifest, Challenge, Solution, review,
+  and lock artifacts.
+
+Synchronization command:
 
 ```bash
 python3 scripts/check_statementmap_sync.py
 ```
 
-To run the stricter endpoint-structure audit:
+Structural audit command:
 
 ```bash
 python3 scripts/audit_paper_certification.py
 ```
 
-Internalization-gap audit (assumption-packaging vs fully derived paper-style proof):
+## Comparator Certification Artifacts
+
+The Comparator artifacts are generated and locked so that future edits cannot silently change the
+trusted statement surface.
+
+Important files:
+
+- `audit/comparator.md`: detailed Comparator deployment and status log.
+- `audit/comparator-paper-manifest.json`: ordered paper statement list and Lean target metadata.
+- `audit/comparator-paper-config.template.json`: Comparator theorem list and permitted axioms.
+- `audit/comparator-paper-review.json` and `audit/comparator-paper-review.md`:
+  statement-by-statement review dossier.
+- `audit/comparator-challenge-audit.json` and `audit/comparator-challenge-audit.md`: independent
+  semantic audit of Challenge against the LaTeX statements.
+- `audit/comparator-challenge-lock.json`: frozen Challenge hash, import list, theorem order,
+  comment hashes, statement hashes, and audit status date.
+
+Regenerate only after a real paper-to-Challenge review:
 
 ```bash
-cat AUDIT_INTERNALIZATION_GAPS.md
+python3 scripts/generate_comparator_manifest.py
+python3 scripts/generate_comparator_challenge.py
+python3 scripts/generate_comparator_solution.py
+python3 scripts/generate_comparator_review.py
+python3 scripts/generate_comparator_challenge_lock.py
 ```
 
-## 5) How to find proof code from a paper label
-
-Workflow:
-1. Find alias in `StatementMap.lean` (`prop_*`, `thm_*`, `lem_*`, `cor_*`).
-2. Read theorem constant name on the right-hand side.
-3. Use search to jump to proof:
+Then check:
 
 ```bash
-rg -n "theorem <name>|lemma <name>" FlowSinkhorn/KLProjection
+python3 scripts/check_comparator_challenge_lock.py
+python3 scripts/check_comparator_scaffold.py
+python3 scripts/check_comparator_trust_boundary.py
 ```
 
-## 6) Current directory organization (and why)
+The lock generator and scaffold checker are fail-closed: they reject stale labels, stale numbering,
+stale implementation locations, non-faithful audit verdicts, import-boundary drift, and
+Challenge/Solution statement mismatches.
 
-Current namespace root is:
-- `FlowSinkhorn.KLProjection`
+## Maintenance Rules
 
-Historical context:
-- `FlowSinkhorn` is the repository-level Lean package root.
-- `KLProjection` scopes the paper-specific formalization inside that package.
+Use these rules when extending or refactoring the formalization:
 
-Thematic subfolders:
-- `Setup/`: monotonicity, translation, topical/nonexpansive geometry primitives.
-- `DualConvergence/`: abstract rate machinery and approximation transfer.
-- `PrimalDualBounds/`: fixed-point budget and primal-from-dual transfer.
-- `Applications/OT/`: balanced OT instantiation.
-- `Applications/GraphW1/`: graph-W1 instantiation.
-- `Legacy/`: historical compatibility layer used by the paper map (not preferred for new work).
+- Do not introduce `sorry`, `admit`, or local `axiom` in proof-producing modules.
+- Keep `StatementMap.lean` proof-free.
+- Keep Challenge proof-free and statement-only.
+- Keep Comparator vocabulary proof-free and implementation-free.
+- Prefer adding reusable backend lemmas in thematic `KLProjection/*` modules rather than putting
+  proof logic in paper facade files.
+- Preserve public paper-facing alias names unless the LaTeX label itself changes.
+- Run the verification commands above after any paper-facing theorem or alias change.
 
-## 7) Paper-structured facade (implemented)
+## Removed Redundant Docs
 
-A non-breaking paper-first namespace is now available:
-- umbrella: `FlowSinkhorn.Paper`
-- main body: `FlowSinkhorn.Paper.MainBody`
-- appendices: `FlowSinkhorn.Paper.Appendix`
-- statement map facade: `FlowSinkhorn.Paper.StatementMap`
+Older standalone planning notes were folded into this README to keep navigation simple.  The source
+of truth is now:
 
-Section/appendix modules (preferred names):
-- `FlowSinkhorn.Paper.Section2`
-- `FlowSinkhorn.Paper.Section3`
-- `FlowSinkhorn.Paper.Section4`
-- `FlowSinkhorn.Paper.Section5`
-- `FlowSinkhorn.Paper.AppendixA`
-- `FlowSinkhorn.Paper.AppendixB`
-- `FlowSinkhorn.Paper.AppendixE`
-- `FlowSinkhorn.Paper.AppendixF`
-- `FlowSinkhorn.Paper.AppendixG`
-
-Legacy-compatible facade names kept:
-- `FlowSinkhorn.Paper.S2Duality`
-- `FlowSinkhorn.Paper.S3DualConvergence`
-- `FlowSinkhorn.Paper.S4PrimalDualBounds`
-- `FlowSinkhorn.Paper.S5GraphW1Main`
-- `FlowSinkhorn.Paper.AppendixEOT`
-- `FlowSinkhorn.Paper.AppendixFGraphW1`
-- `FlowSinkhorn.Paper.AppendixGSetup`
-
-Design:
-- canonical proofs remain in `FlowSinkhorn.KLProjection.*`;
-- paper-oriented navigation and aliases are provided by `FlowSinkhorn.Paper.*`.
-
-## 8) Minimal build matrix
-
-```bash
-lake build FlowSinkhorn.KLProjection.Duality
-lake build FlowSinkhorn.KLProjection.Convergence
-lake build FlowSinkhorn.KLProjection.Geometry
-lake build FlowSinkhorn.KLProjection.Applications
-lake build FlowSinkhorn.KLProjection.StatementMap
-lake build FlowSinkhorn.KLProjection.Certification
-lake build
-```
+- `README.md` for orientation and maintenance rules.
+- `audit/comparator.md` for detailed Comparator deployment and status.
+- `audit/comparator-challenge-audit.md` for statement-by-statement Challenge faithfulness.
+- `audit/comparator-paper-review.md` for the paper/Challenge/Solution review dossier.

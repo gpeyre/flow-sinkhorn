@@ -7,7 +7,7 @@ import FlowSinkhorn.KLProjection.DualConvergence.Variational
 /-!
 # Dual convergence blueprint
 
-This section-level module mirrors `papers/kl-projections/sections/sec-dual-convergence.tex`.
+This section-level module mirrors the dual-convergence material in `neurips/paper.tex`.
 
 Planned paper-faithful order:
 1. per-step ascent;

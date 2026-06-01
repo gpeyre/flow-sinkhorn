@@ -1,4 +1,5 @@
 import FlowSinkhorn.KLProjection.DualConvergence.Pinsker
+import FlowSinkhorn.KLProjection.DualConvergence.Vocabulary
 import Mathlib.Data.Real.Basic
 import Mathlib.Order.Monotone.Basic
 import Mathlib.Tactic
@@ -9,7 +10,7 @@ set_option linter.style.longLine false
 # Per-step ascent
 
 This module is reserved for the Lean formalization of Lemma `lem:per-step-ascent` from
-`papers/kl-projections/sections/sec-dual-convergence.tex`.
+the dual-convergence material in `neurips/paper.tex`.
 
 Intended theorem names:
 - `perStepAscent_block1`;
@@ -356,6 +357,33 @@ theorem halfStepAscent_seq_of_klGain_add_of_pinsker
     ∀ k : ℕ, (r k) ^ 2 / (2 * M) ≤ Fafter k - Fbefore k := by
   intro k
   exact halfStepAscent_of_klGain_add_of_pinsker (hpinsker k) (hgain_add k)
+
+/--
+Convert a half-step ascent estimate in the primal-change norm into the paper's residual form.
+
+In Lemma A.1 the residual satisfies
+`||r||₁ ≤ ||A||_{1→1} ||x⁺-x||₁`.  This lemma packages the purely algebraic conversion from
+the primal-change estimate to the displayed residual estimate with denominator
+`||A||_{1→1}²`.
+-/
+theorem halfStepAscent_paperConstant_of_primalChangeBound
+    {change residual Fbefore Fafter gamma Xmax Anorm : ℝ}
+    (hgamma_nonneg : 0 ≤ gamma)
+    (hXmax_pos : 0 < Xmax)
+    (hAnorm_pos : 0 < Anorm)
+    (hresidual_nonneg : 0 ≤ residual)
+    (hresidual_bound : residual ≤ Anorm * change)
+    (hchange_ascent : (gamma / (2 * Xmax)) * change ^ 2 ≤ Fafter - Fbefore) :
+    (gamma / (2 * Xmax)) * (residual ^ 2 / Anorm ^ 2) ≤ Fafter - Fbefore := by
+  have hres_sq_le : residual ^ 2 ≤ Anorm ^ 2 * change ^ 2 := by
+    nlinarith [sq_nonneg (Anorm * change - residual)]
+  have hAnorm_sq_pos : 0 < Anorm ^ 2 := sq_pos_of_pos hAnorm_pos
+  have hdiv_le : residual ^ 2 / Anorm ^ 2 ≤ change ^ 2 := by
+    rw [div_le_iff₀ hAnorm_sq_pos]
+    simpa [pow_two, mul_assoc, mul_left_comm, mul_comm] using hres_sq_le
+  have hcoef_nonneg : 0 ≤ gamma / (2 * Xmax) := by
+    exact div_nonneg hgamma_nonneg (le_of_lt (mul_pos (by norm_num) hXmax_pos))
+  exact (mul_le_mul_of_nonneg_left hdiv_le hcoef_nonneg).trans hchange_ascent
 
 /--
 Full-sweep A.1 endpoint from KL-gain and Pinsker premises for both blocks.
@@ -2299,13 +2327,6 @@ def FiniteKLExactGainFromBlockUpdate
   Fafter - Fbefore = finiteKL p q
 
 /--
-Exact additive objective identity for a finite block update.
--/
-def FiniteKLExactAddGainFromBlockUpdate
-    {n : ℕ} (p q : Fin n → ℝ) (Fbefore Fafter : ℝ) : Prop :=
-  Fafter = Fbefore + finiteKL p q
-
-/--
 Exact difference gain implies the primitive additive KL-gain predicate.
 -/
 theorem finiteKLGainFromBlockUpdate_of_exactGain
@@ -2367,18 +2388,6 @@ theorem finiteMassShellBlockUpdateCertificate_of_exactBlockUpdateCertificate
     update_pos := hcert.update_pos
     update_mass := hcert.update_mass
     gain := finiteKLGainFromBlockUpdate_of_exactAddGain hcert.exact_gain }
-
-/--
-Exact-gain variant of the support-aware mass-shell block-update certificate.
--/
-structure FiniteMassShellExactSupportBlockUpdateCertificate
-    {n : ℕ} (p q : Fin n → ℝ) (M Fbefore Fafter : ℝ) : Prop where
-  source_nonneg : ∀ i, 0 ≤ p i
-  source_mass : ∑ i, p i = M
-  update_nonneg : ∀ i, 0 ≤ q i
-  update_mass : ∑ i, q i = M
-  support : ∀ i, q i = 0 → p i = 0
-  exact_gain : FiniteKLExactAddGainFromBlockUpdate p q Fbefore Fafter
 
 /--
 Forget exact objective-gain equality to the inequality-shaped support-aware certificate.
@@ -3149,6 +3158,205 @@ theorem perStepAscent_residualProxy_of_finiteMassShellExactSupportBlockUpdateCer
       (hcert1 k))
     (fun k => finiteMassShellSupportBlockUpdateCertificate_of_exactSupportBlockUpdateCertificate
       (hcert2 k))
+
+/--
+Paper-shaped two-half-step form of Lemma A.1 from exact support-aware finite block certificates.
+
+The conclusion states the two displayed inequalities separately, with the paper constant
+`γ/(2 Xmax ||A||_{1→1}²)`.  The certified KL-projection half-step ascent is supplied by the
+existing exact support block-update certificates; the remaining explicit inputs are precisely the
+mass-to-`Xmax` scale relation and the residual Lipschitz estimates
+`||r_i||₁ ≤ ||A||_{1→1} ||x_i⁺-x_i||₁`.
+-/
+theorem perStepAscent_twoHalfSteps_paperConstants_of_exactSupportBlockUpdateCertificates_commonMass
+    {n₁ n₂ : ℕ}
+    {F Fhalf : ℕ → ℝ}
+    {p1 q1 : ℕ → Fin n₁ → ℝ} {p2 q2 : ℕ → Fin n₂ → ℝ}
+    {r1 r2 : ℕ → ℝ} {gamma Xmax Anorm M : ℝ}
+    (hgamma_nonneg : 0 ≤ gamma)
+    (hXmax_pos : 0 < Xmax)
+    (hAnorm_pos : 0 < Anorm)
+    (hMpos : 0 < M)
+    (hscale : gamma * M ≤ Xmax)
+    (hcert1 :
+      ∀ k : ℕ,
+        FiniteMassShellExactSupportBlockUpdateCertificate (p1 k) (q1 k) M
+          (F k) (Fhalf k))
+    (hcert2 :
+      ∀ k : ℕ,
+        FiniteMassShellExactSupportBlockUpdateCertificate (p2 k) (q2 k) M
+          (Fhalf k) (F (k + 1)))
+    (hr1_nonneg : ∀ k : ℕ, 0 ≤ r1 k)
+    (hr1_bound :
+      ∀ k : ℕ, r1 k ≤ Anorm * l1Norm (fun i => p1 k i - q1 k i))
+    (hr2_nonneg : ∀ k : ℕ, 0 ≤ r2 k)
+    (hr2_bound :
+      ∀ k : ℕ, r2 k ≤ Anorm * l1Norm (fun i => p2 k i - q2 k i)) :
+    ∀ k : ℕ,
+      (gamma / (2 * Xmax)) * ((r1 k) ^ 2 / Anorm ^ 2) ≤ Fhalf k - F k ∧
+      (gamma / (2 * Xmax)) * ((r2 k) ^ 2 / Anorm ^ 2) ≤ F (k + 1) - Fhalf k := by
+  have hcoef_le : gamma / (2 * Xmax) ≤ 1 / (2 * M) := by
+    rw [div_le_div_iff₀ (mul_pos (by norm_num) hXmax_pos) (mul_pos (by norm_num) hMpos)]
+    nlinarith
+  intro k
+  have hraw1 :
+      (l1Norm (fun i => p1 k i - q1 k i)) ^ 2 / (2 * M) ≤ Fhalf k - F k := by
+    exact halfStepAscent_of_finiteMassShellSupportBlockUpdateCertificate_commonMass
+      (p := p1 k) (q := q1 k) (M := M) hMpos
+      (finiteMassShellSupportBlockUpdateCertificate_of_exactSupportBlockUpdateCertificate
+        (hcert1 k))
+  have hchange1 :
+      (gamma / (2 * Xmax)) * (l1Norm (fun i => p1 k i - q1 k i)) ^ 2
+        ≤ Fhalf k - F k := by
+    have hscaled :
+        (gamma / (2 * Xmax)) * (l1Norm (fun i => p1 k i - q1 k i)) ^ 2
+          ≤ (1 / (2 * M)) * (l1Norm (fun i => p1 k i - q1 k i)) ^ 2 := by
+      exact mul_le_mul_of_nonneg_right hcoef_le (sq_nonneg _)
+    have hraw1' :
+        (1 / (2 * M)) * (l1Norm (fun i => p1 k i - q1 k i)) ^ 2
+          ≤ Fhalf k - F k := by
+      simpa [div_eq_mul_inv, one_div, mul_comm, mul_left_comm, mul_assoc] using hraw1
+    exact hscaled.trans hraw1'
+  have hA1 :
+      (gamma / (2 * Xmax)) * ((r1 k) ^ 2 / Anorm ^ 2) ≤ Fhalf k - F k :=
+    halfStepAscent_paperConstant_of_primalChangeBound
+      (change := l1Norm (fun i => p1 k i - q1 k i))
+      (residual := r1 k) (Fbefore := F k) (Fafter := Fhalf k)
+      (gamma := gamma) (Xmax := Xmax) (Anorm := Anorm)
+      hgamma_nonneg hXmax_pos hAnorm_pos (hr1_nonneg k) (hr1_bound k) hchange1
+  have hraw2 :
+      (l1Norm (fun i => p2 k i - q2 k i)) ^ 2 / (2 * M) ≤ F (k + 1) - Fhalf k := by
+    exact halfStepAscent_of_finiteMassShellSupportBlockUpdateCertificate_commonMass
+      (p := p2 k) (q := q2 k) (M := M) hMpos
+      (finiteMassShellSupportBlockUpdateCertificate_of_exactSupportBlockUpdateCertificate
+        (hcert2 k))
+  have hchange2 :
+      (gamma / (2 * Xmax)) * (l1Norm (fun i => p2 k i - q2 k i)) ^ 2
+        ≤ F (k + 1) - Fhalf k := by
+    have hscaled :
+        (gamma / (2 * Xmax)) * (l1Norm (fun i => p2 k i - q2 k i)) ^ 2
+          ≤ (1 / (2 * M)) * (l1Norm (fun i => p2 k i - q2 k i)) ^ 2 := by
+      exact mul_le_mul_of_nonneg_right hcoef_le (sq_nonneg _)
+    have hraw2' :
+        (1 / (2 * M)) * (l1Norm (fun i => p2 k i - q2 k i)) ^ 2
+          ≤ F (k + 1) - Fhalf k := by
+      simpa [div_eq_mul_inv, one_div, mul_comm, mul_left_comm, mul_assoc] using hraw2
+    exact hscaled.trans hraw2'
+  have hA2 :
+      (gamma / (2 * Xmax)) * ((r2 k) ^ 2 / Anorm ^ 2) ≤ F (k + 1) - Fhalf k :=
+    halfStepAscent_paperConstant_of_primalChangeBound
+      (change := l1Norm (fun i => p2 k i - q2 k i))
+      (residual := r2 k) (Fbefore := Fhalf k) (Fafter := F (k + 1))
+      (gamma := gamma) (Xmax := Xmax) (Anorm := Anorm)
+      hgamma_nonneg hXmax_pos hAnorm_pos (hr2_nonneg k) (hr2_bound k) hchange2
+  exact ⟨hA1, hA2⟩
+
+/--
+Single half-step ascent from a gamma-scaled exact support-aware finite block certificate.
+
+This is the literal scaling used by the paper's dual objective:
+`Fafter = Fbefore + gamma * KL(p‖q)`.
+-/
+theorem halfStepAscent_of_finiteMassShellGammaExactSupportBlockUpdateCertificate_commonMass
+    {n : ℕ} {p q : Fin n → ℝ} {M gamma Fbefore Fafter : ℝ}
+    (hgamma_nonneg : 0 ≤ gamma)
+    (hMpos : 0 < M)
+    (hcert : FiniteMassShellGammaExactSupportBlockUpdateCertificate
+      p q M gamma Fbefore Fafter) :
+    (gamma / (2 * M)) * (l1Norm (fun i => p i - q i)) ^ 2 ≤ Fafter - Fbefore := by
+  let L := l1Norm (fun i => p i - q i)
+  have hpinsker :
+      finiteKL p q ≥ L ^ 2 / (2 * M) :=
+    pinsker_nonnormalized_of_finiteProbabilityMeasure_klDiv_computed_support
+      (p := p) (q := q) hMpos
+      hcert.source_nonneg hcert.source_mass hcert.update_nonneg hcert.update_mass
+      hcert.support
+  have hmul : gamma * (L ^ 2 / (2 * M)) ≤ gamma * finiteKL p q :=
+    mul_le_mul_of_nonneg_left hpinsker hgamma_nonneg
+  have hgain : Fafter - Fbefore = gamma * finiteKL p q := by
+    have hexact := hcert.exact_gain
+    dsimp [FiniteKLGammaExactAddGainFromBlockUpdate] at hexact
+    linarith
+  calc
+    (gamma / (2 * M)) * L ^ 2 = gamma * (L ^ 2 / (2 * M)) := by ring
+    _ ≤ gamma * finiteKL p q := hmul
+    _ = Fafter - Fbefore := hgain.symm
+
+/--
+Paper-shaped two-half-step form of Lemma A.1 with the literal gamma-scaled dual gain.
+
+Compared with
+`perStepAscent_twoHalfSteps_paperConstants_of_exactSupportBlockUpdateCertificates_commonMass`,
+this endpoint uses block certificates whose exact gain is
+`Fafter = Fbefore + gamma * KL(p‖q)`, matching the displayed dual objective increment in the
+appendix proof.  The mass side condition is therefore the direct paper condition `M ≤ Xmax`.
+-/
+theorem perStepAscent_twoHalfSteps_paperConstants_of_gammaExactSupportBlockUpdateCertificates_commonMass
+    {n₁ n₂ : ℕ}
+    {F Fhalf : ℕ → ℝ}
+    {p1 q1 : ℕ → Fin n₁ → ℝ} {p2 q2 : ℕ → Fin n₂ → ℝ}
+    {r1 r2 : ℕ → ℝ} {gamma Xmax Anorm M : ℝ}
+    (hgamma_nonneg : 0 ≤ gamma)
+    (hXmax_pos : 0 < Xmax)
+    (hAnorm_pos : 0 < Anorm)
+    (hMpos : 0 < M)
+    (hM_le_Xmax : M ≤ Xmax)
+    (hcert1 :
+      ∀ k : ℕ,
+        FiniteMassShellGammaExactSupportBlockUpdateCertificate (p1 k) (q1 k) M gamma
+          (F k) (Fhalf k))
+    (hcert2 :
+      ∀ k : ℕ,
+        FiniteMassShellGammaExactSupportBlockUpdateCertificate (p2 k) (q2 k) M gamma
+          (Fhalf k) (F (k + 1)))
+    (hr1_nonneg : ∀ k : ℕ, 0 ≤ r1 k)
+    (hr1_bound :
+      ∀ k : ℕ, r1 k ≤ Anorm * l1Norm (fun i => p1 k i - q1 k i))
+    (hr2_nonneg : ∀ k : ℕ, 0 ≤ r2 k)
+    (hr2_bound :
+      ∀ k : ℕ, r2 k ≤ Anorm * l1Norm (fun i => p2 k i - q2 k i)) :
+    ∀ k : ℕ,
+      (gamma / (2 * Xmax)) * ((r1 k) ^ 2 / Anorm ^ 2) ≤ Fhalf k - F k ∧
+      (gamma / (2 * Xmax)) * ((r2 k) ^ 2 / Anorm ^ 2) ≤ F (k + 1) - Fhalf k := by
+  have hcoef_le : gamma / (2 * Xmax) ≤ gamma / (2 * M) := by
+    rw [div_le_div_iff₀ (mul_pos (by norm_num) hXmax_pos) (mul_pos (by norm_num) hMpos)]
+    nlinarith
+  intro k
+  have hraw1 :
+      (gamma / (2 * M)) * (l1Norm (fun i => p1 k i - q1 k i)) ^ 2
+        ≤ Fhalf k - F k :=
+    halfStepAscent_of_finiteMassShellGammaExactSupportBlockUpdateCertificate_commonMass
+      (p := p1 k) (q := q1 k) (M := M) (gamma := gamma)
+      hgamma_nonneg hMpos (hcert1 k)
+  have hchange1 :
+      (gamma / (2 * Xmax)) * (l1Norm (fun i => p1 k i - q1 k i)) ^ 2
+        ≤ Fhalf k - F k := by
+    exact (mul_le_mul_of_nonneg_right hcoef_le (sq_nonneg _)).trans hraw1
+  have hA1 :
+      (gamma / (2 * Xmax)) * ((r1 k) ^ 2 / Anorm ^ 2) ≤ Fhalf k - F k :=
+    halfStepAscent_paperConstant_of_primalChangeBound
+      (change := l1Norm (fun i => p1 k i - q1 k i))
+      (residual := r1 k) (Fbefore := F k) (Fafter := Fhalf k)
+      (gamma := gamma) (Xmax := Xmax) (Anorm := Anorm)
+      hgamma_nonneg hXmax_pos hAnorm_pos (hr1_nonneg k) (hr1_bound k) hchange1
+  have hraw2 :
+      (gamma / (2 * M)) * (l1Norm (fun i => p2 k i - q2 k i)) ^ 2
+        ≤ F (k + 1) - Fhalf k :=
+    halfStepAscent_of_finiteMassShellGammaExactSupportBlockUpdateCertificate_commonMass
+      (p := p2 k) (q := q2 k) (M := M) (gamma := gamma)
+      hgamma_nonneg hMpos (hcert2 k)
+  have hchange2 :
+      (gamma / (2 * Xmax)) * (l1Norm (fun i => p2 k i - q2 k i)) ^ 2
+        ≤ F (k + 1) - Fhalf k := by
+    exact (mul_le_mul_of_nonneg_right hcoef_le (sq_nonneg _)).trans hraw2
+  have hA2 :
+      (gamma / (2 * Xmax)) * ((r2 k) ^ 2 / Anorm ^ 2) ≤ F (k + 1) - Fhalf k :=
+    halfStepAscent_paperConstant_of_primalChangeBound
+      (change := l1Norm (fun i => p2 k i - q2 k i))
+      (residual := r2 k) (Fbefore := Fhalf k) (Fafter := F (k + 1))
+      (gamma := gamma) (Xmax := Xmax) (Anorm := Anorm)
+      hgamma_nonneg hXmax_pos hAnorm_pos (hr2_nonneg k) (hr2_bound k) hchange2
+  exact ⟨hA1, hA2⟩
 
 /--
 One-sweep bridge from exact-gain support-aware finite block-update certificates.

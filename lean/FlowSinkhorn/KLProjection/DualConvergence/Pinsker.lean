@@ -2,6 +2,7 @@ import Mathlib.Data.Real.Basic
 import Mathlib.Algebra.BigOperators.Ring.Finset
 import Mathlib.Probability.Moments.SubGaussian
 import Mathlib.Tactic
+import FlowSinkhorn.KLProjection.DualConvergence.Vocabulary
 import FlowSinkhorn.KLProjection.DualConvergence.Variational
 
 /-!
@@ -27,14 +28,6 @@ open MeasureTheory
 open scoped BigOperators
 
 variable {n : ℕ}
-
-/-- Finite-dimensional KL expression used in the appendix argument. -/
-noncomputable def finiteKL (p q : Fin n → ℝ) : ℝ :=
-  ∑ i, p i * Real.log (p i / q i)
-
-/-- Finite-dimensional `ℓ¹` norm. -/
-noncomputable def l1Norm (v : Fin n → ℝ) : ℝ :=
-  ∑ i, |v i|
 
 /-- Deterministic sign selector used by the finite Pinsker test function. -/
 noncomputable def finiteSign (v : Fin n → ℝ) : Fin n → ℝ :=

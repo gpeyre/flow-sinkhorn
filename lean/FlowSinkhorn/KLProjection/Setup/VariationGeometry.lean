@@ -1,13 +1,14 @@
 import FlowSinkhorn.KLProjection.Variation
 import FlowSinkhorn.KLProjection.BlockQuotient
 import FlowSinkhorn.KLProjection.Topical
+import FlowSinkhorn.KLProjection.Setup.VariationGeometryVocabulary
 
 /-!
 # Variation geometry and quotient seminorms
 
 This module is the Lean-side home for the geometric setup used in
-`papers/kl-projections/sections/sec-nonexpansiveness.tex` and
-`papers/kl-projections/sections/sec-dual-convergence.tex`.
+the non-expansiveness material in `neurips/paper.tex` and
+the dual-convergence material in `neurips/paper.tex`.
 
 Paper targets:
 - Equation `eq:variation-seminorm`;
@@ -91,16 +92,6 @@ theorem variationSeminorm_nonexpansive_of_topical_shifted
     variationSeminorm_nonexpansive_of_topical T hmono htrans x y
 
 /-! ## Block-quotient seminorm -/
-
-/--
-Block-quotient seminorm for a single finite-dimensional real block.
-
-Paper role: Definition `def:block-seminorm` (first block, constant-shift quotient direction).
-This is the infimum of `‖x + c · 1‖_∞` over all scalar shifts `c`, which equals the variation
-seminorm.
--/
-noncomputable def blockQuotientSeminorm {ι : Type*} [Fintype ι] [Nonempty ι] (x : ι → ℝ) : ℝ :=
-  sInf (Set.range fun c : ℝ => coordSupNorm (fun i => x i + c))
 
 /--
 The block-quotient seminorm equals the variation seminorm for single-block constant-shift quotients.

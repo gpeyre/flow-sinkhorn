@@ -14,8 +14,10 @@ namespace S2Duality
 open KLProjection
 open KLProjection.Section2Duality
 
-abbrev prop_2_1 := @dualGammaCorrect_core -- impl: lean/FlowSinkhorn/KLProjection/Legacy/Section2Duality.lean
-abbrev prop_dual_gamma_correct := @dualGammaCorrect_core -- impl: lean/FlowSinkhorn/KLProjection/Legacy/Section2Duality.lean
+-- impl: lean/FlowSinkhorn/KLProjection/Legacy/Section2Duality.lean
+abbrev prop_2_1 := @dualGammaCorrect_from_primalDualCertificate
+-- impl: lean/FlowSinkhorn/KLProjection/Legacy/Section2Duality.lean
+abbrev prop_dual_gamma_correct := @dualGammaCorrect_from_primalDualCertificate
 
 end S2Duality
 end Paper

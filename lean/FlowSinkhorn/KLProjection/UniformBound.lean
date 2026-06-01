@@ -1,3 +1,4 @@
+import FlowSinkhorn.KLProjection.UniformBoundVocabulary
 import Mathlib.Analysis.Seminorm
 import Mathlib.Tactic
 
@@ -24,12 +25,6 @@ open Function
 
 variable {𝕜 E : Type*}
 variable [NormedField 𝕜] [AddCommGroup E] [Module 𝕜 E]
-
-/-! ## The SeminormNonexpansive predicate -/
-
-/-- Non-expansiveness of a map with respect to a seminorm-induced difference distance. -/
-def SeminormNonexpansive (p : Seminorm 𝕜 E) (Ψ : E → E) : Prop :=
-  ∀ x y, p (Ψ x - Ψ y) ≤ p (x - y)
 
 /--
 Abstract fixed-point contraction estimate behind the first step of Proposition 4.2.

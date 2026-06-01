@@ -1,11 +1,13 @@
 import FlowSinkhorn.KLProjection.Applications.GraphW1.ClosedForms
+import FlowSinkhorn.KLProjection.Applications.GraphW1.HGammaVocabulary
+import FlowSinkhorn.KLProjection.DualConvergence.Vocabulary
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 
 /-!
 # `H_γ` for graph `W₁`
 
 This module is reserved for Proposition `prop:Hgamma-flow` and the auxiliary primal
-`ℓ¹` bound from `papers/kl-projections/sections/sec-w1-graphs.tex`.
+`ℓ¹` bound from the graph-W1 material in `neurips/paper.tex`.
 
 Intended theorem names:
 - `graphW1_HGamma_bound`;
@@ -16,6 +18,8 @@ namespace FlowSinkhorn
 namespace KLProjection
 namespace Applications
 namespace GraphW1
+
+open scoped BigOperators
 
 variable {𝕜 E : Type*}
 variable [NormedField 𝕜] [AddCommGroup E] [Module 𝕜 E]
@@ -53,6 +57,348 @@ theorem graphW1_primalL1Bound_positiveCosts
   constructor
   · exact hpositiveCosts
   · simpa [abs_of_nonneg hprimal_nonneg] using hbound
+
+/--
+Paper-facing primal `ℓ¹` bound under positive costs.
+
+This is the algebraic core of Lemma `app-lem:l1-bound-from-feasible`.  The hypothesis `hopt`
+is the optimality comparison against a feasible comparison point `xbar`; `klStar` and `klBar`
+stand for the two KL values.  From coordinatewise positivity `Cmin ≤ Cᵢ`, nonnegativity of the
+optimizer, nonnegativity of the KL term at the optimizer, and `gamma ≥ 0`, the paper's displayed
+bound follows.
+-/
+theorem graphW1_primalL1Bound_from_optimality_positiveCosts
+    {ι : Type*} [Fintype ι]
+    (C x xbar : ι → ℝ)
+    {Cmin gamma klStar klBar : ℝ}
+    (hCmin : 0 < Cmin)
+    (hgamma : 0 ≤ gamma)
+    (hC : ∀ i, Cmin ≤ C i)
+    (hx : ∀ i, 0 ≤ x i)
+    (hklStar : 0 ≤ klStar)
+    (hopt :
+      (∑ i, C i * x i) + gamma * klStar ≤
+        (∑ i, C i * xbar i) + gamma * klBar) :
+    (∑ i, x i) ≤ ((∑ i, C i * xbar i) + gamma * klBar) / Cmin := by
+  have hcost_lower : Cmin * (∑ i, x i) ≤ ∑ i, C i * x i := by
+    rw [Finset.mul_sum]
+    refine Finset.sum_le_sum ?_
+    intro i _hi
+    exact mul_le_mul_of_nonneg_right (hC i) (hx i)
+  have hkl_nonneg : 0 ≤ gamma * klStar := mul_nonneg hgamma hklStar
+  have hcost_to_obj :
+      (∑ i, C i * x i) ≤ (∑ i, C i * x i) + gamma * klStar := by
+    linarith
+  have hmain : Cmin * (∑ i, x i) ≤ (∑ i, C i * xbar i) + gamma * klBar := by
+    linarith
+  have hmain' : (∑ i, x i) * Cmin ≤ (∑ i, C i * xbar i) + gamma * klBar := by
+    simpa [mul_comm] using hmain
+  exact (le_div_iff₀ hCmin).2 hmain'
+
+/--
+Feasible-set version of Lemma `app-lem:l1-bound-from-feasible`.
+
+Compared with `graphW1_primalL1Bound_from_optimality_positiveCosts`, this endpoint no longer
+takes the scalar optimality comparison as a primitive hypothesis.  Instead, it derives that
+comparison from an explicit feasible-set minimizer predicate and the feasibility of the comparison
+point `xbar`.
+-/
+theorem graphW1_primalL1Bound_from_feasibleEntropicMinimizer_positiveCosts
+    {ι : Type*} [Fintype ι]
+    (C xStar xbar : ι → ℝ)
+    (Feasible : (ι → ℝ) → Prop)
+    (KL : (ι → ℝ) → ℝ)
+    {Cmin gamma : ℝ}
+    (hCmin : 0 < Cmin)
+    (hgamma : 0 ≤ gamma)
+    (hC : ∀ i, Cmin ≤ C i)
+    (hxStar : ∀ i, 0 ≤ xStar i)
+    (hklStar : 0 ≤ KL xStar)
+    (hmin : IsFeasibleEntropicMinimizer Feasible C gamma KL xStar)
+    (hxbarFeasible : Feasible xbar) :
+    (∑ i, xStar i) ≤ ((∑ i, C i * xbar i) + gamma * KL xbar) / Cmin := by
+  have _hxStarFeasible : Feasible xStar := hmin.1
+  have hopt :
+      (∑ i, C i * xStar i) + gamma * KL xStar ≤
+        (∑ i, C i * xbar i) + gamma * KL xbar := by
+    simpa [entropicObjective] using hmin.2 xbar hxbarFeasible
+  have hcost_lower : Cmin * (∑ i, xStar i) ≤ ∑ i, C i * xStar i := by
+    rw [Finset.mul_sum]
+    refine Finset.sum_le_sum ?_
+    intro i _hi
+    exact mul_le_mul_of_nonneg_right (hC i) (hxStar i)
+  have hkl_nonneg : 0 ≤ gamma * KL xStar := mul_nonneg hgamma hklStar
+  have hcost_to_obj :
+      (∑ i, C i * xStar i) ≤ (∑ i, C i * xStar i) + gamma * KL xStar := by
+    linarith
+  have hmain : Cmin * (∑ i, xStar i) ≤ (∑ i, C i * xbar i) + gamma * KL xbar := by
+    linarith
+  have hmain' : (∑ i, xStar i) * Cmin ≤ (∑ i, C i * xbar i) + gamma * KL xbar := by
+    simpa [mul_comm] using hmain
+  exact (le_div_iff₀ hCmin).2 hmain'
+
+/--
+Feasible-set version of Lemma `app-lem:l1-bound-from-feasible` with KL nonnegativity internalized.
+
+This strengthens `graphW1_primalL1Bound_from_feasibleEntropicMinimizer_positiveCosts`: rather than
+assuming the single scalar fact `0 <= KL xStar`, it derives that fact from a nonnegativity
+certificate for `KL` on the feasible set and from the feasibility included in the minimizer
+predicate.
+-/
+theorem graphW1_primalL1Bound_from_feasibleEntropicMinimizer_KLNonnegative_positiveCosts
+    {ι : Type*} [Fintype ι]
+    (C xStar xbar : ι → ℝ)
+    (Feasible : (ι → ℝ) → Prop)
+    (KL : (ι → ℝ) → ℝ)
+    {Cmin gamma : ℝ}
+    (hCmin : 0 < Cmin)
+    (hgamma : 0 ≤ gamma)
+    (hC : ∀ i, Cmin ≤ C i)
+    (hxStar : ∀ i, 0 ≤ xStar i)
+    (hKLnonneg : ∀ x, Feasible x → 0 ≤ KL x)
+    (hmin : IsFeasibleEntropicMinimizer Feasible C gamma KL xStar)
+    (hxbarFeasible : Feasible xbar) :
+    (∑ i, xStar i) ≤ ((∑ i, C i * xbar i) + gamma * KL xbar) / Cmin := by
+  have hxStarFeasible : Feasible xStar := hmin.1
+  have hklStar : 0 ≤ KL xStar := hKLnonneg xStar hxStarFeasible
+  have hopt :
+      (∑ i, C i * xStar i) + gamma * KL xStar ≤
+        (∑ i, C i * xbar i) + gamma * KL xbar := by
+    simpa [entropicObjective] using hmin.2 xbar hxbarFeasible
+  have hcost_lower : Cmin * (∑ i, xStar i) ≤ ∑ i, C i * xStar i := by
+    rw [Finset.mul_sum]
+    refine Finset.sum_le_sum ?_
+    intro i _hi
+    exact mul_le_mul_of_nonneg_right (hC i) (hxStar i)
+  have hkl_nonneg : 0 ≤ gamma * KL xStar := mul_nonneg hgamma hklStar
+  have hcost_to_obj :
+      (∑ i, C i * xStar i) ≤ (∑ i, C i * xStar i) + gamma * KL xStar := by
+    linarith
+  have hmain : Cmin * (∑ i, xStar i) ≤ (∑ i, C i * xbar i) + gamma * KL xbar := by
+    linarith
+  have hmain' : (∑ i, xStar i) * Cmin ≤ (∑ i, C i * xbar i) + gamma * KL xbar := by
+    simpa [mul_comm] using hmain
+  exact (le_div_iff₀ hCmin).2 hmain'
+
+/--
+Feasible-set version of Lemma `app-lem:l1-bound-from-feasible` with feasibility-derived
+nonnegativity.
+
+This strengthens `graphW1_primalL1Bound_from_feasibleEntropicMinimizer_KLNonnegative_positiveCosts`:
+coordinatewise nonnegativity of the optimizer is no longer a separate scalar hypothesis.  It is
+derived from a structural certificate saying every feasible point is coordinatewise nonnegative.
+The proof still keeps `Feasible` and `KL` abstract, matching the finite theorem stated in the
+appendix while making one more paper-side feasibility consequence explicit in Lean.
+-/
+theorem graphW1_primalL1Bound_from_feasibleNonnegative_KLNonnegative_positiveCosts
+    {ι : Type*} [Fintype ι]
+    (C xStar xbar : ι → ℝ)
+    (Feasible : (ι → ℝ) → Prop)
+    (KL : (ι → ℝ) → ℝ)
+    {Cmin gamma : ℝ}
+    (hCmin : 0 < Cmin)
+    (hgamma : 0 ≤ gamma)
+    (hC : ∀ i, Cmin ≤ C i)
+    (hFeasibleNonneg : ∀ x, Feasible x → ∀ i, 0 ≤ x i)
+    (hKLnonneg : ∀ x, Feasible x → 0 ≤ KL x)
+    (hmin : IsFeasibleEntropicMinimizer Feasible C gamma KL xStar)
+    (hxbarFeasible : Feasible xbar) :
+    (∑ i, xStar i) ≤ ((∑ i, C i * xbar i) + gamma * KL xbar) / Cmin := by
+  have hxStarFeasible : Feasible xStar := hmin.1
+  have hxStar : ∀ i, 0 ≤ xStar i := hFeasibleNonneg xStar hxStarFeasible
+  have hklStar : 0 ≤ KL xStar := hKLnonneg xStar hxStarFeasible
+  have hopt :
+      (∑ i, C i * xStar i) + gamma * KL xStar ≤
+        (∑ i, C i * xbar i) + gamma * KL xbar := by
+    simpa [entropicObjective] using hmin.2 xbar hxbarFeasible
+  have hcost_lower : Cmin * (∑ i, xStar i) ≤ ∑ i, C i * xStar i := by
+    rw [Finset.mul_sum]
+    refine Finset.sum_le_sum ?_
+    intro i _hi
+    exact mul_le_mul_of_nonneg_right (hC i) (hxStar i)
+  have hkl_nonneg : 0 ≤ gamma * KL xStar := mul_nonneg hgamma hklStar
+  have hcost_to_obj :
+      (∑ i, C i * xStar i) ≤ (∑ i, C i * xStar i) + gamma * KL xStar := by
+    linarith
+  have hmain : Cmin * (∑ i, xStar i) ≤ (∑ i, C i * xbar i) + gamma * KL xbar := by
+    linarith
+  have hmain' : (∑ i, xStar i) * Cmin ≤ (∑ i, C i * xbar i) + gamma * KL xbar := by
+    simpa [mul_comm] using hmain
+  exact (le_div_iff₀ hCmin).2 hmain'
+
+/--
+Finite coordinate-sum version of Lemma `app-lem:l1-bound-from-feasible`.
+
+This strengthens
+`graphW1_primalL1Bound_from_feasibleNonnegative_KLNonnegative_positiveCosts`: the KL functional
+is no longer an arbitrary nonnegative functional.  It is definitionally the finite coordinate sum
+`coordinateSumKL klTerm`, and Lean derives its nonnegativity on the feasible set from
+coordinatewise nonnegativity of the finite KL terms.
+-/
+theorem graphW1_primalL1Bound_from_feasibleNonnegative_coordinateSumKL_positiveCosts
+    {ι : Type*} [Fintype ι]
+    (C xStar xbar : ι → ℝ)
+    (Feasible : (ι → ℝ) → Prop)
+    (klTerm : (ι → ℝ) → ι → ℝ)
+    {Cmin gamma : ℝ}
+    (hCmin : 0 < Cmin)
+    (hgamma : 0 ≤ gamma)
+    (hC : ∀ i, Cmin ≤ C i)
+    (hFeasibleNonneg : ∀ x, Feasible x → ∀ i, 0 ≤ x i)
+    (hKLTermNonneg : ∀ x, Feasible x → ∀ i, 0 ≤ klTerm x i)
+    (hmin :
+      IsFeasibleEntropicMinimizer Feasible C gamma
+        (DualConvergence.coordinateSumKL klTerm) xStar)
+    (hxbarFeasible : Feasible xbar) :
+    (∑ i, xStar i) ≤
+      ((∑ i, C i * xbar i) +
+          gamma * DualConvergence.coordinateSumKL klTerm xbar) / Cmin := by
+  classical
+  have hKLnonneg :
+      ∀ x, Feasible x → 0 ≤ DualConvergence.coordinateSumKL klTerm x := by
+    intro x hx
+    dsimp [DualConvergence.coordinateSumKL]
+    exact Finset.sum_nonneg (by intro i _hi; exact hKLTermNonneg x hx i)
+  exact
+    graphW1_primalL1Bound_from_feasibleNonnegative_KLNonnegative_positiveCosts
+      (C := C)
+      (xStar := xStar)
+      (xbar := xbar)
+      (Feasible := Feasible)
+      (KL := DualConvergence.coordinateSumKL klTerm)
+      (Cmin := Cmin)
+      (gamma := gamma)
+      hCmin hgamma hC hFeasibleNonneg hKLnonneg hmin hxbarFeasible
+
+/--
+Positive-regularization version of Lemma `app-lem:l1-bound-from-feasible`.
+
+This is the paper-facing endpoint for the regularized graph-W1 appendix.  It keeps the finite
+coordinate-sum KL structure of
+`graphW1_primalL1Bound_from_feasibleNonnegative_coordinateSumKL_positiveCosts`, but requires the
+paper-natural hypothesis `gamma > 0`; Lean derives the weaker algebraic premise `gamma >= 0`
+internally before invoking the coordinate-sum theorem.
+-/
+theorem graphW1_primalL1Bound_from_feasibleNonnegative_coordinateSumKL_positiveCosts_posGamma
+    {ι : Type*} [Fintype ι]
+    (C xStar xbar : ι → ℝ)
+    (Feasible : (ι → ℝ) → Prop)
+    (klTerm : (ι → ℝ) → ι → ℝ)
+    {Cmin gamma : ℝ}
+    (hCmin : 0 < Cmin)
+    (hgamma : 0 < gamma)
+    (hC : ∀ i, Cmin ≤ C i)
+    (hFeasibleNonneg : ∀ x, Feasible x → ∀ i, 0 ≤ x i)
+    (hKLTermNonneg : ∀ x, Feasible x → ∀ i, 0 ≤ klTerm x i)
+    (hmin :
+      IsFeasibleEntropicMinimizer Feasible C gamma
+        (DualConvergence.coordinateSumKL klTerm) xStar)
+    (hxbarFeasible : Feasible xbar) :
+    (∑ i, xStar i) ≤
+      ((∑ i, C i * xbar i) +
+          gamma * DualConvergence.coordinateSumKL klTerm xbar) / Cmin := by
+  exact
+    graphW1_primalL1Bound_from_feasibleNonnegative_coordinateSumKL_positiveCosts
+      (C := C)
+      (xStar := xStar)
+      (xbar := xbar)
+      (Feasible := Feasible)
+      (klTerm := klTerm)
+      (Cmin := Cmin)
+      (gamma := gamma)
+      hCmin (le_of_lt hgamma) hC hFeasibleNonneg hKLTermNonneg hmin hxbarFeasible
+
+/--
+Finite-minimum positive-cost version of Lemma `app-lem:l1-bound-from-feasible`.
+
+The paper's graph-W1 application uses `C_min` as the minimum positive edge cost.  This endpoint
+therefore no longer asks the caller to provide a separate scalar lower-bound certificate
+`0 < Cmin` and `Cmin <= C_i`.  From strict positivity of every finite coordinate cost, Lean proves
+that the finite minimum is positive and bounded above by each coordinate, then applies the
+coordinate-sum KL theorem.
+-/
+theorem graphW1_primalL1Bound_from_minCost_coordinateSumKL_posGamma
+    {ι : Type*} [Fintype ι] [Nonempty ι]
+    (C xStar xbar : ι → ℝ)
+    (Feasible : (ι → ℝ) → Prop)
+    (klTerm : (ι → ℝ) → ι → ℝ)
+    {gamma : ℝ}
+    (hgamma : 0 < gamma)
+    (hCpos : ∀ i, 0 < C i)
+    (hFeasibleNonneg : ∀ x, Feasible x → ∀ i, 0 ≤ x i)
+    (hKLTermNonneg : ∀ x, Feasible x → ∀ i, 0 ≤ klTerm x i)
+    (hmin :
+      IsFeasibleEntropicMinimizer Feasible C gamma
+        (DualConvergence.coordinateSumKL klTerm) xStar)
+    (hxbarFeasible : Feasible xbar) :
+    (∑ i, xStar i) ≤
+      ((∑ i, C i * xbar i) +
+          gamma * DualConvergence.coordinateSumKL klTerm xbar) /
+        graphW1CostMin C := by
+  classical
+  let Cmin : ℝ := graphW1CostMin C
+  have hCmin : 0 < Cmin := by
+    dsimp [Cmin]
+    rw [graphW1CostMin]
+    unfold coordMin
+    exact (Finset.lt_inf'_iff (s := Finset.univ) (H := Finset.univ_nonempty)
+      (f := C) (a := 0)).2 (by intro i _hi; exact hCpos i)
+  have hC : ∀ i, Cmin ≤ C i := by
+    intro i
+    dsimp [Cmin]
+    rw [graphW1CostMin]
+    exact coordMin_le C i
+  exact
+    graphW1_primalL1Bound_from_feasibleNonnegative_coordinateSumKL_positiveCosts_posGamma
+      (C := C)
+      (xStar := xStar)
+      (xbar := xbar)
+      (Feasible := Feasible)
+      (klTerm := klTerm)
+      (Cmin := Cmin)
+      (gamma := gamma)
+      hCmin hgamma hC hFeasibleNonneg hKLTermNonneg hmin hxbarFeasible
+
+/--
+Nonnegative-feasible-set version of Lemma `app-lem:l1-bound-from-feasible`.
+
+This is the strongest paper-facing graph-W1 mass-bound endpoint: the feasible set is not an
+abstract predicate plus a separate nonnegativity assumption.  Instead it is definitionally the
+intersection of coordinatewise nonnegativity with an arbitrary remaining constraint predicate.
+Consequently, Lean derives the primal nonnegativity used in the mass estimate by projecting the
+feasibility proof, while the rest of the proof still follows the finite-minimum and coordinate-sum
+KL argument of the paper.
+-/
+theorem graphW1_primalL1Bound_from_nonnegativeFeasibleSet_minCost_coordinateSumKL_posGamma
+    {ι : Type*} [Fintype ι] [Nonempty ι]
+    (C xStar xbar : ι → ℝ)
+    (Constraint : (ι → ℝ) → Prop)
+    (klTerm : (ι → ℝ) → ι → ℝ)
+    {gamma : ℝ}
+    (hgamma : 0 < gamma)
+    (hCpos : ∀ i, 0 < C i)
+    (hKLTermNonneg :
+      ∀ x, ((∀ i, 0 ≤ x i) ∧ Constraint x) → ∀ i, 0 ≤ klTerm x i)
+    (hmin :
+      IsFeasibleEntropicMinimizer
+        (fun x => (∀ i, 0 ≤ x i) ∧ Constraint x) C gamma
+        (DualConvergence.coordinateSumKL klTerm) xStar)
+    (hxbarFeasible : (∀ i, 0 ≤ xbar i) ∧ Constraint xbar) :
+    (∑ i, xStar i) ≤
+      ((∑ i, C i * xbar i) +
+          gamma * DualConvergence.coordinateSumKL klTerm xbar) /
+        graphW1CostMin C := by
+  exact
+    graphW1_primalL1Bound_from_minCost_coordinateSumKL_posGamma
+      (C := C)
+      (xStar := xStar)
+      (xbar := xbar)
+      (Feasible := fun x => (∀ i, 0 ≤ x i) ∧ Constraint x)
+      (klTerm := klTerm)
+      (gamma := gamma)
+      hgamma hCpos
+      (by intro x hx i; exact hx.1 i)
+      hKLTermNonneg hmin hxbarFeasible
 
 /--
 Compositional fixed-point budget transfer for graph `W₁`.
@@ -110,6 +456,188 @@ theorem graphW1_HGamma_formula_nonneg
     0 ≤ Real.log n / gamma := by
   apply div_nonneg _ (le_of_lt hgamma)
   exact Real.log_nonneg (by exact_mod_cast hn)
+
+/--
+Proof-core statement for Proposition `app-prop:hgamma-graphw1`.
+
+For the graph-W₁ minimizer, the paper derives an upper log-ratio estimate from the
+positive-cost mass bound and a lower log-ratio estimate from the opposite-orientation product
+identity.  Once those two scalar estimates are available, this theorem packages the displayed
+formula
+`log Xγ⋆ + 2*length_max/γ + 3*‖log z‖∞`.
+-/
+theorem graphW1_HGamma_formula_uniform_logRatio_bound
+    {edge : Type*} [Nonempty edge]
+    (logRatio : edge → ℝ)
+    {XStar lengthMax gamma logZSup : ℝ}
+    (hgamma : 0 < gamma)
+    (hLengthMax : 0 ≤ lengthMax)
+    (hLogZSup : 0 ≤ logZSup)
+    (hupper : ∀ e, logRatio e ≤ Real.log XStar + logZSup)
+    (hlower :
+      ∀ e, -(Real.log XStar + 2 * lengthMax / gamma + logZSup) ≤ logRatio e) :
+    (∀ e,
+      |logRatio e| ≤ Real.log XStar + 2 * lengthMax / gamma + 3 * logZSup) ∧
+      0 ≤ Real.log XStar + 2 * lengthMax / gamma + 3 * logZSup := by
+  have htwoLen : 0 ≤ 2 * lengthMax / gamma := by positivity
+  have hbound :
+      ∀ e,
+        |logRatio e| ≤ Real.log XStar + 2 * lengthMax / gamma + 3 * logZSup := by
+    intro e
+    apply abs_le.mpr
+    constructor
+    · calc
+        -(Real.log XStar + 2 * lengthMax / gamma + 3 * logZSup)
+            ≤ -(Real.log XStar + 2 * lengthMax / gamma + logZSup) := by
+              linarith
+        _ ≤ logRatio e := hlower e
+    · calc
+        logRatio e ≤ Real.log XStar + logZSup := hupper e
+        _ ≤ Real.log XStar + 2 * lengthMax / gamma + 3 * logZSup := by
+              linarith
+  refine ⟨hbound, ?_⟩
+  obtain ⟨e⟩ := ‹Nonempty edge›
+  exact (abs_nonneg (logRatio e)).trans (hbound e)
+
+/--
+Mass/opposite-orientation version of Proposition `app-prop:hgamma-graphw1`.
+
+This endpoint no longer assumes the upper and lower log-ratio estimates directly.  It derives
+the upper estimate from the positive mass envelope `f_e <= XStar` and the log-reference bound
+`|log z_e| <= logZSup`.  It derives the lower estimate from the opposite-orientation log identity,
+the same mass envelope on the opposite edge, the log-reference bound on the opposite edge, and the
+pairwise length estimate `length_e + length_opp(e) <= 2 * lengthMax`.
+-/
+theorem graphW1_HGamma_formula_uniform_logRatio_bound_from_mass_oppositeLog
+    {edge : Type*} [Nonempty edge]
+    (opp : edge → edge)
+    (f z length : edge → ℝ)
+    {XStar lengthMax gamma logZSup : ℝ}
+    (hgamma : 0 < gamma)
+    (hLengthMax : 0 ≤ lengthMax)
+    (hLogZSup : 0 ≤ logZSup)
+    (hfpos : ∀ e, 0 < f e)
+    (_hzpos : ∀ e, 0 < z e)
+    (hfUpper : ∀ e, f e ≤ XStar)
+    (hlogZ : ∀ e, |Real.log (z e)| ≤ logZSup)
+    (hlengthPair : ∀ e, length e + length (opp e) ≤ 2 * lengthMax)
+    (hOppLog :
+      ∀ e,
+        Real.log (f e) + Real.log (f (opp e)) =
+          Real.log (z e) + Real.log (z (opp e)) -
+            (length e + length (opp e)) / gamma) :
+    (∀ e,
+      |Real.log (f e) - Real.log (z e)| ≤
+        Real.log XStar + 2 * lengthMax / gamma + 3 * logZSup) ∧
+      0 ≤ Real.log XStar + 2 * lengthMax / gamma + 3 * logZSup := by
+  let logRatio : edge → ℝ := fun e => Real.log (f e) - Real.log (z e)
+  have hupper : ∀ e, logRatio e ≤ Real.log XStar + logZSup := by
+    intro e
+    have hlogf : Real.log (f e) ≤ Real.log XStar :=
+      Real.log_le_log (hfpos e) (hfUpper e)
+    have hzAbs := abs_le.mp (hlogZ e)
+    have hnegz : -Real.log (z e) ≤ logZSup := by
+      linarith
+    dsimp [logRatio]
+    linarith
+  have hlower :
+      ∀ e, -(Real.log XStar + 2 * lengthMax / gamma + logZSup) ≤ logRatio e := by
+    intro e
+    have hlogfOpp : Real.log (f (opp e)) ≤ Real.log XStar :=
+      Real.log_le_log (hfpos (opp e)) (hfUpper (opp e))
+    have hzOppAbs := abs_le.mp (hlogZ (opp e))
+    have hlenDiv :
+        (length e + length (opp e)) / gamma ≤ 2 * lengthMax / gamma :=
+      div_le_div_of_nonneg_right (hlengthPair e) (le_of_lt hgamma)
+    have hOpp := hOppLog e
+    dsimp [logRatio]
+    linarith
+  simpa [logRatio] using
+    graphW1_HGamma_formula_uniform_logRatio_bound
+      (logRatio := logRatio)
+      hgamma hLengthMax hLogZSup hupper hlower
+
+/--
+Mass/opposite-orientation version of Proposition `app-prop:hgamma-graphw1` with the
+reference-log envelope positivity internalized.
+
+The paper states the finite certificate through the bound `|log z_e| <= logZSup`.  Because the
+edge set is nonempty, this certificate already implies `0 <= logZSup`; this endpoint derives that
+fact instead of taking it as a separate scalar hypothesis.
+-/
+theorem graphW1_HGamma_formula_uniform_logRatio_bound_from_mass_oppositeLog_logEnvelope
+    {edge : Type*} [Nonempty edge]
+    (opp : edge → edge)
+    (f z length : edge → ℝ)
+    {XStar lengthMax gamma logZSup : ℝ}
+    (hgamma : 0 < gamma)
+    (hLengthMax : 0 ≤ lengthMax)
+    (hfpos : ∀ e, 0 < f e)
+    (hzpos : ∀ e, 0 < z e)
+    (hfUpper : ∀ e, f e ≤ XStar)
+    (hlogZ : ∀ e, |Real.log (z e)| ≤ logZSup)
+    (hlengthPair : ∀ e, length e + length (opp e) ≤ 2 * lengthMax)
+    (hOppLog :
+      ∀ e,
+        Real.log (f e) + Real.log (f (opp e)) =
+          Real.log (z e) + Real.log (z (opp e)) -
+            (length e + length (opp e)) / gamma) :
+    (∀ e,
+      |Real.log (f e) - Real.log (z e)| ≤
+        Real.log XStar + 2 * lengthMax / gamma + 3 * logZSup) ∧
+      0 ≤ Real.log XStar + 2 * lengthMax / gamma + 3 * logZSup := by
+  obtain ⟨e0⟩ := ‹Nonempty edge›
+  have hLogZSup : 0 ≤ logZSup :=
+    (abs_nonneg (Real.log (z e0))).trans (hlogZ e0)
+  exact
+    graphW1_HGamma_formula_uniform_logRatio_bound_from_mass_oppositeLog
+      (opp := opp)
+      (f := f)
+      (z := z)
+      (length := length)
+      (XStar := XStar)
+      (lengthMax := lengthMax)
+      (gamma := gamma)
+      (logZSup := logZSup)
+      hgamma hLengthMax hLogZSup hfpos hzpos hfUpper hlogZ hlengthPair hOppLog
+
+/--
+Positive-field version of Proposition `app-prop:hgamma-graphw1`.
+
+The LaTeX statement writes `f,z : E -> R_{++}`.  This endpoint mirrors that by storing
+positivity in the `PositiveField` data, then delegates to the real-valued theorem above.
+-/
+theorem graphW1_HGamma_formula_uniform_logRatio_bound_from_positiveFields_oppositeLog_logEnvelope
+    {edge : Type*} [Nonempty edge]
+    (opp : edge → edge)
+    (f z : PositiveField edge)
+    (length : edge → ℝ)
+    {XStar lengthMax gamma logZSup : ℝ}
+    (hgamma : 0 < gamma)
+    (hLengthMax : 0 ≤ lengthMax)
+    (hfUpper : ∀ e, f e ≤ XStar)
+    (hlogZ : ∀ e, |Real.log (z e)| ≤ logZSup)
+    (hlengthPair : ∀ e, length e + length (opp e) ≤ 2 * lengthMax)
+    (hOppLog :
+      ∀ e,
+        Real.log (f e) + Real.log (f (opp e)) =
+          Real.log (z e) + Real.log (z (opp e)) -
+            (length e + length (opp e)) / gamma) :
+    (∀ e,
+      |Real.log (f e) - Real.log (z e)| ≤
+        Real.log XStar + 2 * lengthMax / gamma + 3 * logZSup) ∧
+      0 ≤ Real.log XStar + 2 * lengthMax / gamma + 3 * logZSup := by
+  exact
+    graphW1_HGamma_formula_uniform_logRatio_bound_from_mass_oppositeLog_logEnvelope
+      (opp := opp)
+      (f := fun e => f e)
+      (z := fun e => z e)
+      (length := length)
+      (XStar := XStar)
+      (lengthMax := lengthMax)
+      (gamma := gamma)
+      (logZSup := logZSup)
+      hgamma hLengthMax f.pos z.pos hfUpper hlogZ hlengthPair hOppLog
 
 /--
 Explicit graph-W₁ orbit budget when κ = diam and H_γ = log(n)/γ.

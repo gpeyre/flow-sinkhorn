@@ -1,12 +1,15 @@
+import FlowSinkhorn.KLProjection.Applications.GraphW1.ClosedFormsVocabulary
 import FlowSinkhorn.KLProjection.Applications.GraphW1.ClosedForms
+import FlowSinkhorn.KLProjection.Applications.GraphW1.HGammaVocabulary
 import FlowSinkhorn.KLProjection.Applications.GraphW1.HGamma
 import FlowSinkhorn.KLProjection.Applications.GraphW1.Kappa
+import FlowSinkhorn.KLProjection.Applications.GraphW1.ComplexityVocabulary
 import FlowSinkhorn.KLProjection.Applications.GraphW1.Complexity
 
 /-!
 # Graph Wasserstein-1 / flow-Sinkhorn instantiation
 
-This section-level module mirrors `papers/kl-projections/sections/sec-w1-graphs.tex`.
+This section-level module mirrors the graph-W1 material in `neurips/paper.tex`.
 
 Planned paper-faithful order:
 1. closed-form block updates and non-expansiveness ingredients;

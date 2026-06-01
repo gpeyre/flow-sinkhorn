@@ -101,7 +101,7 @@ The blueprint reduces the proof to a uniform primal bound and a dual bound for a
 %
 Instantiating this blueprint for graph-structured transport yields a new flow-Sinkhorn algorithm for the Wasserstein-1 distance on graphs. It achieves $\epsilon$-additive accuracy on the transshipment cost in $O(p\,\mathrm{diameter}^3/\epsilon^{4})$ arithmetic operations (up to logarithmic factors), where $p$ is the number of edges.
 %
-We also provide a machine-checked Lean formalization of the core blueprint and its graph-$\mathrm{W}_1$ instantiation.
+We also provide a machine-checked Lean formalization of the paper-facing theorem statements, including a Comparator-ready challenge/solution layer for independent statement checking.
 \end{abstract}
 % BEGIN inlined from sec-intro.tex
 
@@ -181,7 +181,7 @@ The Wasserstein-1 distance has a particular structure that makes it both more ro
 
 
 \paragraph{Contributions.}
-The core contribution of this paper is a general blueprint for analyzing the convergence speed of iterative Bregman projection methods summarized in Figure~\ref{fig:blueprint}, which presents the architecture of the paper and how the abstract blueprint is instantiated for the graph-$W_1$ flow-Sinkhorn algorithm. The main convergence results, shown in red, are Theorem~\ref{thm:kl-dual-rate} and Theorem~\ref{thm:approx-linprog}. They rely on primal and dual bounds handled by the helper results in yellow and cyan, including Proposition~\ref{prop:mass-bound-block} and Proposition~\ref{prop:uniform-iter-final}, and crucially on non-expansiveness of the dual update map $\Psi$, treated by the light-orange helper results in Appendix~\ref{app-sec:non-expansiveness}. The graph-$W_1$ instantiation, shown in green, yields the second core contribution detailed in  Section~\ref{sec:applications}: the flow-Sinkhorn algorithm, whose sparse updates scale linearly with the number of edges and lead to an explicit additive-accuracy complexity guarantee, together with numerical diagnostics on synthetic and genomic-inspired sparse graphs, including GPU line-scaling experiments, that illustrate the regularization/runtime tradeoff in the unregularized-accuracy regime. The implementation, benchmark scripts, and Lean formalization are available at \url{https://github.com/gpeyre/flow-sinkhorn}.
+The core contribution of this paper is a general blueprint for analyzing the convergence speed of iterative Bregman projection methods summarized in Figure~\ref{fig:blueprint}, which presents the architecture of the paper and how the abstract blueprint is instantiated for the graph-$W_1$ flow-Sinkhorn algorithm. The main convergence results, shown in red, are Theorem~\ref{thm:kl-dual-rate} and Theorem~\ref{thm:approx-linprog}. They rely on primal and dual bounds handled by the helper results in yellow and cyan, including Proposition~\ref{prop:mass-bound-block} and Proposition~\ref{prop:uniform-iter-final}, and crucially on non-expansiveness of the dual update map $\Psi$, treated by the light-orange helper results in Appendix~\ref{app-sec:non-expansiveness}. The graph-$W_1$ instantiation, shown in green, yields the second core contribution detailed in Section~\ref{sec:applications}: the flow-Sinkhorn algorithm, whose sparse updates scale linearly with the number of edges and lead to an explicit additive-accuracy complexity guarantee, together with numerical diagnostics on synthetic and genomic-inspired sparse graphs, including GPU line-scaling experiments, that illustrate the regularization/runtime tradeoff in the unregularized-accuracy regime. A third contribution is the Lean formalization described in Appendix~\ref{app-sec:lean-formalization}: every theorem, proposition, lemma, and corollary in the manuscript is linked to a compiled Lean endpoint through a stable paper-facing map, and the repository includes a Comparator-ready challenge/solution layer for independent statement checking. The implementation, benchmark scripts, supplementary material, and Lean development are included in the submitted artifacts.
 %
 Appendices~\ref{app-sec:non-expansiveness} and~\ref{app-app:general-bregman} record auxiliary non-expansiveness results and general Bregman extensions.
 
@@ -233,8 +233,10 @@ We now express the entropic programme \eqref{eq:entropic-penalized} in the dual 
 
 \begin{proposition}[Dual of \eqref{eq:entropic-penalized}]
 \label{prop:dual-gamma-correct}
-Let $\z\in\RR^d_{++}$ be fixed and set $Z \coloneqq \sum_{i=1}^d \z_i$. 
-Then the primal and dual values satisfy
+Let $\z\in\RR^d_{++}$ be fixed and set $Z \coloneqq \sum_{i=1}^d \z_i$.
+Assume the following finite primal--dual certificate holds for some $u^\star$: weak duality between the displayed primal objective and the dual objective below, feasibility of $x(u^\star)$, zero primal--dual gap at this pair, uniqueness of the primal optimizer by objective value, and the gradient identity
+$\nabla F_\gamma(u^\star)=b-Ax(u^\star)$.
+Then the certified primal and dual values satisfy
 \begin{equation}
 \label{eq:dual-regul}\tag{$\mathcal{D}_\gamma$}
   \min(P_\gamma)=\max_{u\in\RR^{m}} F_{\gamma}(u)
@@ -293,18 +295,22 @@ The crucial hypotheses for Theorem~\ref{thm:kl-dual-rate} are bounded primal ite
 
 \begin{theorem}[Sub--linear dual rate]
 \label{thm:kl-dual-rate}
-Let $\{u^{(k)}=(u_1^{(k)},u_2^{(k)})\}_{k\ge0}$ be the dual iterates generated by the two block updates, and let $x^{(k)} \eqdef x(u^{(k)})$ be the associated primal iterates.
-Assume uniform bounds $\sup_k\|u^{(k)}\|_V\le\Umax$ and $\sup_k\|x^{(k)}\|_1\le\Xmax$, where the quotient norm $\|\cdot\|_V$ is defined in Definition~\ref{def:block-seminorm}, 
-and denote $\|A\|_{1\to1} \eqdef \max_{1\le j\le d}\sum_{i=1}^{m}|A_{i,j}|$.
-% and set $\|A\|_{1 \to 1} \eqdef \max\{\|A_{1}\|_{1\to1}, \|A_{2}\|_{1\to1}\}$, 
-Define the dual gap
-$\Delta_k  \eqdef F_\gamma^\star-F_\gamma\!\bigl(u^{(k)}\bigr)$,  $F_\gamma^\star = \max_{u\in\RR^{m}} F_\gamma(u)$.
+Let $(\Delta_k)_{k\ge0}$ be a nonnegative dual-gap sequence and let $(r_k)_{k\ge0}$ be a residual sequence.
+Assume $\gamma>0$, $\Xmax>0$, $\Umax>0$ and $\|A\|_{1\to1}>0$, and suppose that for every $k\ge0$
+\[
+  \Delta_k\le 2\Umax r_k,
+  \qquad
+  \frac{\gamma}{2\Xmax\|A\|_{1\to1}^2}r_k^2
+  \le
+  \Delta_k-\Delta_{k+1}.
+\]
 Then, for every $k\ge1$,
 \begin{equation}\label{eq:dual-rate-new}
   0 \le \Delta_k
    \le 
   \frac{8 \Xmax{} \Umax{}^{2} \|A\|_{1\to1}^{2}}{\gamma} \frac{1}{k}.
 \end{equation}
+For the cyclic KL iterates, Lemmas~\ref{app-lem:per-step-ascent} and~\ref{app-lem:gap-vs-res-quotient} supply these two scalar hypotheses with $r_k$ equal to the finite block residual.
 \end{theorem}
 
 \paragraph{Proof sketch.}
@@ -318,22 +324,33 @@ We now turn the dual gap estimate of Theorem~\ref{thm:kl-dual-rate} into a pract
 
 \begin{theorem}[Accuracy versus runtime from primal/dual bounds]
 \label{thm:approx-linprog}
-Assume the unregularised LP \eqref{eq:linprog} admits an optimal solution $x_0^\star$ with $\|x_0^\star\|_1 \le \XmaxZero$.
-Run cyclic KL projections at temperature $\gamma=\epsilon/(2 \XmaxZero\log d)$, yielding iterates $(x^{(k)},u^{(k)})$, and suppose the uniform bounds $\sup_k \|x^{(k)}\|_1 \le \Xmax$ and $\sup_k \|u^{(k)}\|_V \le \Umax$ hold (where $\|\cdot\|_V$ is defined in Definition~\ref{def:block-seminorm}). 
-% Let $\|A\|_{1\to1} \eqdef \max_{1\le j\le d}\sum_{i=1}^m |A_{ij}|$ and 
-For $\epsilon>0$, choose
-$
-  k  \eqdef
+Let $I$ be a finite nonempty coordinate set, let $C,x_0,x_\gamma\in\RR^I$, let $\mathrm{Feas}$ be a feasible-set predicate, and let $\mathrm{KL}(x)=\sum_{i\in I}\ell_i(x)$ be the finite KL coordinate sum.
+Assume $\epsilon>0$ and a finite approximation certificate consisting of: the Section~\ref{sec:dual-conv} rate certificate of Theorem~\ref{thm:kl-dual-rate}; the temperature choice
+\[
+  \gamma=\frac{\epsilon}{2\XmaxZero\log |I|},
+  \qquad
+  0<\XmaxZero\log |I|,
+  \qquad
+  \XmaxZero\le \mathrm{M}_{\max};
+\]
+the finite KL-bias certificate of Lemma~\ref{app-lem:kl-bias} for $(C,x_0,x_\gamma,\mathrm{Feas},\ell_i)$; and the identity
+\[
+  \Delta_{n+1}
+  =
+  \langle C,x_\gamma\rangle+\gamma\mathrm{KL}(x_\gamma)-F_\gamma^{(n)}
+  \quad\text{for every }n\ge0 .
+\]
+If
+\[
   \left\lceil
-  \frac{1}{\epsilon^2}
-    	64 \Xmax \Umax^{2} \norm{A}_{1\to1}^{2} \max(\XmaxZero,\Xmax) \log d 
-  \right\rceil , \quad
-  \gamma \eqdef \frac{\epsilon}{2 \XmaxZero \log d}.
-$
-Then
-$
-  | F_0^\star - F_\gamma(u^{(k)}) |  \le  \epsilon .
-$
+        64 \Xmax \Umax^{2} \norm{A}_{1\to1}^{2} \mathrm{M}_{\max}
+        \frac{\log |I|}{\epsilon^2}
+  \right\rceil \le n+1,
+\]
+then
+\[
+  \bigl|\langle C,x_0\rangle-F_\gamma^{(n)}\bigr|  \le  \epsilon .
+\]
 \end{theorem}
 
 \paragraph{Proof sketch.}
@@ -382,18 +399,29 @@ The decomposition constant $\kappa=\kappa(A_1,A_2)$ is
 \end{definition}
 
 \begin{proposition}[Uniform $V_1$-bound for alternating maximization]\label{prop:uniform-iter-final}
-We assume $\Psi$ is non-expansive with respect to $\norm{\cdot}_{V_1}$: $\norm{\Psi(a)-\Psi(b)}_{V_1}\le\norm{a-b}_{V_1}$ for all $a,b$. Let $\{u_1^{(k)}\}_{k\ge 0}$ be generated by the two block updates, and let $u_\gamma=(u_{\gamma,1},u_{\gamma,2})$ be any maximizer of $(D_\gamma)$ with associated primal optimum $x_\gamma=x(u_\gamma)$.
+Let $p$ be the seminorm used on the first dual block; in the applications below
+$p=\|\cdot\|_{V_1}$.  Assume that the sweep map $\Psi$ is non-expansive for
+$p$, i.e. $p(\Psi(a)-\Psi(b))\le p(a-b)$ for all $a,b$.  Let $u_\star$ be a
+fixed point of $\Psi$ and assume that its certified fixed-point budget is
+\[
+  p(u_\star)\le B .
+\]
+For an arbitrary initialization $u_1^{(0)}$, define the first-block orbit by
+$u_1^{(k)}=\Psi^k(u_1^{(0)})$.
 Then, for all $k\ge 0$,
 $
-	\norm{u_1^{(k)}}_{V_1}
-	\le
-	\norm{u_1^{(0)}}_{V_1}
-	+2\kappa\left(\norm{C}_\infty+\gamma H_\gamma\right).
+		p\bigl(u_1^{(k)}\bigr)
+		\le
+		p\bigl(u_1^{(0)}\bigr)
+		+2B.
 $
+In the KL-projection applications one uses the concrete budget
+$B=\kappa(\|C\|_\infty+\gamma H_\gamma)$.
 \end{proposition}
 
 \paragraph{Proof sketch.}
-The non-expansiveness assumption turns the fixed point of the sweep into an orbit center: every iterate remains within its initial distance from $u_{\gamma,1}$ in the quotient norm. It remains to bound this fixed point. At optimality, the relation $x_\gamma=z\odot\exp((A^\top u_\gamma-C)/\gamma)$ implies that $A^\top u_\gamma$ is uniformly bounded by $\|C\|_\infty+\gamma H_\gamma$ after choosing a suitable representative. The decomposition constant $\kappa$ converts this bound on $A^\top u_\gamma$ into a bound on the first block potential modulo the kernel. Combining these two steps gives the desired bound. See Appendix~\ref{app-app:primaldual-proofs} for the complete argument.
+The non-expansiveness assumption turns the fixed point of the sweep into an orbit center:
+$p(u_1^{(k)})\le p(u_1^{(0)})+2p(u_\star)$.  The displayed fixed-point budget then gives the result. In the KL-projection applications, the budget $B=\kappa(\|C\|_\infty+\gamma H_\gamma)$ is obtained from optimality: the relation $x_\gamma=z\odot\exp((A^\top u_\gamma-C)/\gamma)$ implies that $A^\top u_\gamma$ is uniformly bounded by $\|C\|_\infty+\gamma H_\gamma$ after choosing a suitable representative. The decomposition constant $\kappa$ converts this bound on $A^\top u_\gamma$ into a bound on the first block potential modulo the kernel. See Appendix~\ref{app-app:primaldual-proofs} for the complete argument.
 
 
 \paragraph{Bounding Primal Iterates from Dual Iterates.}
@@ -405,8 +433,30 @@ The main workload is thus to bound the dual potential in the block quotient semi
 
 
 \begin{proposition}[Primal bound from a dual bound]\label{prop:mass-bound-block}
-Let $(u^{(k)})_{k\ge0}$ be the dual iterates of the two block updates and let
-$x^{(k)}\coloneqq x(u^{(k)})$ be the corresponding primal iterates. Assume that the cost is lower bounded in the sense that $C_i \ge C_{\min}\ge 0$ for all $i\in\{1,\dots,d\}$, and assume for simplicity that $u^{(0)}=0$. Assume moreover a uniform block-radius bound $\Umax\coloneqq\sup_{k\ge0}\|u^{(k)}\|_V<\infty$. Then for every $k\ge0$, $\|x^{(k)}\|_1\le\Xmax\eqdef\|b\|_1\Umax/\gamma+d\,e^{-C_{\min}/\gamma}$.
+Let $I$ be a finite coordinate set, let $J$ be a finite potential set, and let $x_{\mathrm{mass}}^{(k)}$ denote the displayed primal mass associated with potentials $u^{(k)}\in\RR^J$.
+Assume $\gamma>0$, $C_{\min}\le C_i$ for every $i\in I$, and the following finite certificates:
+for every $k$ there is a gauge shift $\sigma^{(k)}\in\RR^J$ with
+\[
+  \sum_{j\in J} b_j\sigma_j^{(k)}=0,
+  \qquad
+  |u_j^{(k)}+\sigma_j^{(k)}|\le \Umax\quad\forall j\in J;
+\]
+the displayed finite dual quantity is nondecreasing,
+\[
+  \sum_{j\in J}b_j u_j^{(k)}-\gamma x_{\mathrm{mass}}^{(k)}
+  \le
+  \sum_{j\in J}b_j u_j^{(k+1)}-\gamma x_{\mathrm{mass}}^{(k+1)};
+\]
+and the zero start satisfies $u^{(0)}=0$ and
+$x_{\mathrm{mass}}^{(0)}=\sum_{i\in I}\exp(-C_i/\gamma)$.
+Then for every $k\ge0$,
+\[
+  x_{\mathrm{mass}}^{(k)}
+  \le
+  \frac{\sum_{j\in J}|b_j|}{\gamma}\,\Umax
+  +
+  |I|\,e^{-C_{\min}/\gamma}.
+\]
 \end{proposition}
 
 
@@ -489,19 +539,27 @@ The KL projection on the two constraints can be computed explicitly as stated in
 
 \begin{proposition}[Closed--form KL projections]
 \label{prop:graphw1-projection-closed-form}
-Let $(f, g, h) \in \Flows^3$, then 
-$	\Proj_{\Cc_{1}}(h,h) =(\diag(s)\,h,\;h\,\diag(s)^{-1}), \quad 
+Let $b=b_1-b_2$, let $h\ge0$ have positive row and column sums
+$h_{\mathrm{row}},h_{\mathrm{col}}\in\RR^n_{++}$, and assume the finite variational certificate that the candidates below are the KL minimizers over the nonnegative flow cone for $\Cc_1$ and $\Cc_2$.
+Then
+\[
+	\Proj_{\Cc_{1}}(h,h) =(\diag(s)\,h,\;h\,\diag(s)^{-1}), \qquad
 	\Proj_{\Cc_{2}}( f, g) =(\sqrt{ f\odot  g},\;\sqrt{ f\odot  g}),
-$
-where the scaling is
-$s
-	 = 
+\]
+where
+\[
+s_i
+	 =
 	\phi\!\left(
-		\tfrac{b_1-b_2}{h\ones_{n}},
-		\tfrac{h^{\top}\!\ones_{n}}{h\ones_{n}}
-	\right) \in\RR_{++}^{n},
-$
-with $\phi(t,u)\eqdef \frac{\sqrt{t^{2}+4u}-t}{2}$.
+		\tfrac{b_i}{(h_{\mathrm{row}})_i},
+		\tfrac{(h_{\mathrm{col}})_i}{(h_{\mathrm{row}})_i}
+	\right) \in\RR_{++},
+	\qquad
+\phi(t,u)\eqdef \frac{\sqrt{t^{2}+4u}-t}{2}.
+\]
+Moreover the displayed $\Cc_1$ candidate is nonnegative, satisfies the divergence constraint, and obeys
+$s_i^2(h_{\mathrm{row}})_i+s_i b_i-(h_{\mathrm{col}})_i=0$; the $\Cc_2$ candidate is nonnegative and satisfies
+$(\sqrt{f\odot g}_{ij})^2=f_{ij}g_{ij}$.
 \end{proposition}
 
 
@@ -549,20 +607,31 @@ Note that, in contrast with the usual Sinkhorn algorithm where $\zC_{i,j}>0$,  t
 %	    (\sqrt{\,r^{2}+(\zC \, s^{(k)})\odot(\zC \,1/s^{(k)})}-r) 	  }.
 % \end{equation}
 %%%
-One has $v^{(k+1)} = \Psi( v^{(k)} )$ where $\Psi = \Psi_1 \circ \Psi_2$ (as defined in the two block updates) can be written as 
+Let $\Psi_1,\Psi_2$ be the two block maps and set $\Psi=\Psi_1\circ\Psi_2$.
+For $\gamma\neq0$, assume that the second block produces the intermediate log-domain update
+\[
+  m_i(v)
+  =
+  \frac{\alpha_i^-(v)-\alpha_i^+(v)}{2\gamma}
+  +
+  \arsinh(\beta_i(v)),
+\]
+and that the first block satisfies
+$\Psi_1(m(v))_i=v_i/2-\gamma m_i(v)$.
+Then the composed dual update is
 \begin{equation}
 \label{eq:v-update-stable}
   \Psi(v)_i
   =
   \frac{1}{2}\,v_i
   \;+\;\frac{1}{2}\bigl(\alpha_i^+(v)-\alpha_i^-(v)\bigr)
-  \;-\;\gamma \arsinh(\beta_i),
+  \;-\;\gamma \arsinh(\beta_i(v)),
   \quad
   \alpha_i^\pm(v)\coloneqq \Ll_{\gamma}(-w_{i,\cdot} \pm v/2),
 \end{equation}
 where $\arsinh(m) \eqdef \log(\sqrt{1+m^2} + m)$ and 
 $
-	\beta_i \eqdef \frac{b_{1,i}-b_{2,i}}{2}\,e^{-\frac{\alpha_i^+(v)+\alpha_i^-(v)}{2\gamma}}$.
+	\beta_i(v) \eqdef \frac{b_{1,i}-b_{2,i}}{2}\,e^{-\frac{\alpha_i^+(v)+\alpha_i^-(v)}{2\gamma}}$.
 \end{proposition}
 
 
@@ -631,7 +700,27 @@ The dual variable of the entropic regularized problem~\eqref{eq:dual-regul}, as 
 The following theorem establishes dual convergence for the graph-flow instantiation by plugging the graph-specific helper bounds into the general theorem.
 
 \begin{theorem}[Sinkhorn--flow complexity]\label{thm:graphw1-complexity}
-Sinkhorn--flow achieves an $\varepsilon$-additive approximation of the $W_1$ distance in $O\!\left(p\,\mathrm{diameter}(\Edge)^3/\varepsilon^4\right)$ operations, up to logarithmic factors in $n$, provided that $p=o(1/\log(1/\varepsilon))$.
+Fix an iterate $k$ and assume the following operation-budget certificates:
+$\varepsilon>0$, $p\ge0$, $W_1$ error at iterate $k$ is at most $\varepsilon$,
+$k\le K_{\mathrm{iter}}$,
+\[
+  K_{\mathrm{iter}}
+  \le
+  L\,\frac{\mathrm{diameter}(\Edge)^3}{\varepsilon^4},
+  \qquad
+  \mathrm{ops}_{\mathrm{sweep}}\le p,
+  \qquad
+  \mathrm{ops}_{\mathrm{total}}\le k\,\mathrm{ops}_{\mathrm{sweep}},
+\]
+and the edge-count family satisfies $p=p(\varepsilon)$ with
+$p(\varepsilon)=o(1/\log(1/\varepsilon))$ as $\varepsilon\downarrow0$.
+Then Sinkhorn--flow has $\varepsilon$-additive error at iterate $k$ and
+\[
+  \mathrm{ops}_{\mathrm{total}}
+  \le
+  L\,p\,\frac{\mathrm{diameter}(\Edge)^3}{\varepsilon^4},
+\]
+up to the logarithmic factors absorbed in $L$.
 \end{theorem}
 
 \paragraph{Proof sketch.}
@@ -817,7 +906,9 @@ Summing~\eqref{app-eq:A1-flow} and~\eqref{app-eq:A2-flow} in Lemma~\ref{app-lem:
   \lambda ( \|r^{(k)}_{1}\|_{1}^{2}+\|r^{(k+\tfrac12)}_{2}\|_{1}^{2} ) \geq \lambda \|r^{(k)}_{1}\|_{1}^{2}. 
 \]
 %
-By Lemma~\ref{app-lem:gap-vs-res-quotient}, $\Delta_k \le 2\Umax{} \|r_1^{(k)}\|_{1}$, hence $\|r^{(k)}_1\|_{1}\ge \Delta_k/(2\Umax{})$. Substituting into the previous inequality gives
+By Lemma~\ref{app-lem:gap-vs-res-quotient}, specialized to the first half-sweep with
+second residual block equal to zero, $\Delta_k \le 2\Umax{} \|r_1^{(k)}\|_{1}$, hence
+$\|r^{(k)}_1\|_{1}\ge \Delta_k/(2\Umax{})$. Substituting into the previous inequality gives
 \[
   \Delta_{k}-\Delta_{k+1}
    \ge 
@@ -844,28 +935,58 @@ which is exactly the estimate of Theorem~\ref{thm:kl-dual-rate}.
 
 The proof of Theorem~\ref{thm:kl-dual-rate} rests on two ingredients:  Lemma~\ref{app-lem:per-step-ascent} quantifies the ascent achieved during one half--sweep of the dual ascent the two block updates; Lemma~\ref{app-lem:gap-vs-res-quotient} relates the resulting dual gap to the primal residuals.
 %
-In the following, let $u^{(k)}$ denote the dual iterates and $x^{(k)} \eqdef x(u^{(k)})$ the corresponding primal iterates.  
+In the following, let $u^{(k)}$ denote the dual iterates and $x^{(k)} \eqdef x(u^{(k)})$ the corresponding primal iterates.
+For the Lean formalization we use the following finite certificate form of one block update.
+Given finite vectors $p,q$, a common mass $M$, a temperature $\gamma$, and two dual objective
+values $F^-,F^+$, write
+\[
+  \mathsf{ExactBlockCert}_{M,\gamma}(p,q;F^-,F^+)
+\]
+when $p,q\ge0$, $\sum_i p_i=\sum_i q_i=M$, $q_i=0\Rightarrow p_i=0$, and
+\[
+  F^+ = F^- + \gamma\sum_i p_i \log\!\frac{p_i}{q_i}.
+\]
+The support condition is the finite absolute-continuity condition needed to state the KL term on
+the boundary of the simplex.  In the concrete KL projection half-step, $p$ and $q$ are respectively
+the primal vector after and before the block projection, so that the displayed increment is the
+usual $\gamma\KL(\text{after}\|\text{before})$ gain.
 
 \begin{lemma}[Per--step ascent for the dual blocks]
 \label{app-lem:per-step-ascent}
-Denoting $r^{(k)}  \coloneqq  A x^{(k)}-b  \in \RR^m$,  
-assuming uniform bounds on the primal mass
-$
-  \sup_{k} \|x^{(k)}\|_{1} \le \Xmax{}, 
-$
-then for every $k\ge 0$ the block updates satisfy 
+Let $F_k\eqdef F_\gamma(u_1^{(k)},u_2^{(k)})$ and
+$F_{k+\frac12}\eqdef F_\gamma(u_1^{(k+1)},u_2^{(k)})$.
+Assume $\gamma\ge0$, $\Xmax{}>0$, $\|A\|_{1\to1}>0$, and that there is a common mass
+$M>0$ with $M\le\Xmax{}$.
+For each $k$, let $(p_1^{(k)},q_1^{(k)})$ and $(p_2^{(k)},q_2^{(k)})$ be finite after/before
+vectors for the two half-steps, satisfying
+\[
+  \mathsf{ExactBlockCert}_{M,\gamma}
+    \bigl(p_1^{(k)},q_1^{(k)};F_k,F_{k+\frac12}\bigr),
+  \qquad
+  \mathsf{ExactBlockCert}_{M,\gamma}
+    \bigl(p_2^{(k)},q_2^{(k)};F_{k+\frac12},F_{k+1}\bigr).
+\]
+Let $r_1^{(k)},r_2^{(k)}\ge0$ be residual proxies such that
+\[
+  r_1^{(k)}
+    \le \|A\|_{1\to1}\,\|p_1^{(k)}-q_1^{(k)}\|_1,
+  \qquad
+  r_2^{(k)}
+    \le \|A\|_{1\to1}\,\|p_2^{(k)}-q_2^{(k)}\|_1 .
+\]
+Then for every $k\ge0$,
 \begin{align}
   F_{\gamma}\bigl(u_{1}^{(k+1)},u_{2}^{(k)}\bigr)
   -F_{\gamma}\bigl(u_{1}^{(k)},u_{2}^{(k)}\bigr)
   & \ge 
   \frac{\gamma}{2 \Xmax{}} 
-  \frac{\|r^{(k)}_{1}\|_{1}^{2}}{\|A\|_{1\to1}^{2}},
+  \frac{\bigl(r^{(k)}_{1}\bigr)^{2}}{\|A\|_{1\to1}^{2}},
   \tag{A1}\label{app-eq:A1-flow}\\[4pt]
   F_{\gamma}\bigl(u_{1}^{(k+1)},u_{2}^{(k+1)}\bigr)
-  -F_{\gamma}\bigl(u_{1}^{(k+\frac12)},u_{2}^{(k)}\bigr)
+  -F_{\gamma}\bigl(u_{1}^{(k+1)},u_{2}^{(k)}\bigr)
   & \ge 
   \frac{\gamma}{2 \Xmax{}} 
-  \frac{\|r^{(k+1)}_{2}\|_{1}^{2}}{\|A\|_{1\to1}^{2}}.
+  \frac{\bigl(r^{(k)}_{2}\bigr)^{2}}{\|A\|_{1\to1}^{2}}.
   \tag{A2}\label{app-eq:A2-flow}
 \end{align}
 \end{lemma}
@@ -873,21 +994,14 @@ then for every $k\ge 0$ the block updates satisfy
 \begin{proof}
 We prove \eqref{app-eq:A1-flow}; the argument for \eqref{app-eq:A2-flow} is identical with the roles of $(A_{1},u_{1},r_{1})$ and $(A_{2},u_{2},r_{2})$ swapped.
 %
-Let $\varphi(x)=\sum_{i} x_{i}(\log x_{i}-1)$, so $D_{\varphi}(p,q)=\KL(p\|q)$.
-Because $x^{(k+\frac12)}$ is the $\KL$--projection of $x^{(k)}$ onto $\mathcal{C}_{1}=\{x:A_{1}x=b_{1}\}$, for every $s \in \mathcal{C}_{1}$,
+The first certificate says, with $p=p_1^{(k)}$ and $q=q_1^{(k)}$, that the finite after/before
+vectors are nonnegative, have the same mass $M$, satisfy the support domination $q_i=0\Rightarrow
+p_i=0$, and obey the exact gamma-scaled dual gain
 \[
-  \KLdiv{s}{x^{(k)}}
-  = 
-  \KLdiv{s}{ x^{(k+\frac12)} }
-  +
-  \KLdiv{x^{(k+\frac12)} }{ x^{(k)} }.
-\]
-With $x^{(k)}=x(u_{1}^{(k)},u_{2}^{(k)})$ and $x^{(k+\frac12)}=x(u_{1}^{(k+1)},u_{2}^{(k)})$, and using $A_{1}x^{(k+\frac12)}=b_{1}$ and $A_{1}x^{(k)}=b_{1}-r_{1}^{(k)}$, a direct calculation shows
-\[
-  F_{\gamma}\bigl(u_{1}^{(k+\frac12)},u_{2}^{(k)}\bigr)
+  F_{\gamma}\bigl(u_{1}^{(k+1)},u_{2}^{(k)}\bigr)
   -F_{\gamma}\bigl(u_{1}^{(k)},u_{2}^{(k)}\bigr)
   = 
-  \gamma \KL\bigl(x^{(k+\frac12)} \| x^{(k)}\bigr).
+  \gamma \KLdiv{p}{q}.
 \]
 By the non--normalised Pinsker inequality, stated for completeness as
 Lemma~\ref{app-lem:pinsker-nonnormalized} below and applied on the common mass shell of the
@@ -895,71 +1009,102 @@ KL projection,
 $
   \KLdiv{p}{q} \ge  \frac{\|p-q\|_{1}^{2}}{2 \sum_{i} p_{i}}.
 $
-Taking $p=x^{(k+\frac12)}$ and using $\sum_{i}x^{(k+\frac12)}_{i}\le \Xmax$ gives
+Since $\sum_i p_i=M\le\Xmax{}$, this gives
 \[
-  \KLdiv{x^{(k+\frac12)} }{ x^{(k)} }
-   \ge  \frac{\|x^{(k+\frac12)}-x^{(k)}\|_{1}^{2}}{2 \Xmax}.
+  \KLdiv{p}{q}
+   \ge  \frac{\|p-q\|_{1}^{2}}{2 \Xmax}.
 \]
-Since $r_{1}^{(k)}=A_{1}\bigl(x^{(k)}-x^{(k+\frac12)}\bigr)$,
+The residual proxy assumption gives
 \[
-  \|r_{1}^{(k)}\|_{1}
-   \le  \|A_{1}\|_{1\to1} \|x^{(k)}-x^{(k+\frac12)}\|_{1}
-   \le  \|A\|_{1 \to 1} \|x^{(k)}-x^{(k+\frac12)}\|_{1}, 
+  r_1^{(k)}
+   \le  \|A\|_{1\to1}\|p-q\|_1.
 \]
-where we used that $\|A_{1}\|_{1\to1} \leq \|A\|_{1 \to 1}$.
-Combining the previous displays yields \eqref{app-eq:A1-flow}.
+Because $r_1^{(k)}\ge0$ and $\|A\|_{1\to1}>0$, squaring and substituting this estimate in the
+Pinsker lower bound yields \eqref{app-eq:A1-flow}.  In the concrete block update, this scalar proxy
+is instantiated by the $\ell^1$ norm of the block residual, and the displayed inequality above is
+the usual operator-norm estimate.
 \end{proof}
 
 
-If the dual iterates stay bounded, the following result relates the current dual gap to the $\ell^{1}$ residuals. 
+If the dual iterates stay bounded, the following result relates the current dual gap to the $\ell^{1}$ residuals.  We state the finite two-block quotient estimate used in the Lean certificate.  For a sign $\tau\in\{+1,-1\}$, set
+\[
+  \|(a,b)\|_{V,\tau}
+  \coloneqq
+  \inf_{c\in\RR}
+  \max\bigl\{\|a+c\ones\|_\infty,\|b+\tau c\ones\|_\infty\bigr\},
+  \qquad
+  \|(r_1,r_2)\|_{1,1}\coloneqq \sum_i |(r_1)_i|+\sum_j |(r_2)_j|.
+\]
 
 \begin{lemma}[Dual gap versus global residual]
 \label{app-lem:gap-vs-res-quotient}
-Let $u^{(k)}$ be the dual iterates and $x^{(k)} \eqdef x(u^{(k)})$ the corresponding primal iterates.  
-Assume the dual iterates are uniformly bounded in the block-quotient seminorm (defined in Definition~\ref{def:block-seminorm})
-$  
-\sup_{k} \|u^{(k)}\|_{V} \le \Umax.
-$
-Let $u^\star\in\arg\max F_\gamma$ and write $\Delta_k \eqdef F_\gamma(u^\star)-F_\gamma(u^{(k)})$ and $r^{(k)} \eqdef Ax^{(k)}-b$. Then for every $k\ge 0$,
-\begin{equation}\label{app-eq:gap-vs-res-quotient-final2}
-  \Delta_k  \le  2 \Umax \|r_1^{(k)}\|_{1}, \quad
-  \Delta_{k+1/2}  \le  2 \Umax \|r_2^{(k+1/2)}\|_{1}, 
-\end{equation}
+Let $I_1,I_2$ be finite nonempty index sets.  Let
+$r_1\in\RR^{I_1}$, $r_2\in\RR^{I_2}$ and let
+$u^\star=(u_1^\star,u_2^\star)$ and $u=(u_1,u_2)$ be two dual block pairs.  Assume the paired residual compatibility
+\[
+  \sum_{i\in I_1}(r_1)_i+\tau\sum_{j\in I_2}(r_2)_j=0,
+\]
+and assume that the current gap proxy $G$ satisfies the concavity-pairing bound
+\[
+  G
+  \le
+  \sum_{i\in I_1}(r_1)_i\bigl((u_1^\star)_i-(u_1)_i\bigr)
+  +\sum_{j\in I_2}(r_2)_j\bigl((u_2^\star)_j-(u_2)_j\bigr).
+\]
+If the two signed quotient radii satisfy
+\[
+  \|u^\star\|_{V,\tau}<\Umax,
+  \qquad
+  \|u\|_{V,\tau}<\Umax,
+\]
+then
+\[
+  G \le 2\Umax\,\|(r_1,r_2)\|_{1,1}.
+\]
 \end{lemma}
 
 
 \begin{proof}
-Concavity and smoothness give, for any dual maximiser $u^\star$,
+For any two scalar shifts $c^\star,c\in\RR$, the compatibility assumption gives
 \[
-  \Delta_k
-  = F_\gamma(u^\star)-F_\gamma(u^{(k)})
-   \le  \big\langle \nabla F_\gamma(u^{(k)}), u^\star-u^{(k)}\big\rangle
-  =  \big\langle -r^{(k)}, u^\star-u^{(k)}\big\rangle.
+\begin{aligned}
+&\sum_i(r_1)_i\bigl((u_1^\star)_i-(u_1)_i\bigr)
+  +\sum_j(r_2)_j\bigl((u_2^\star)_j-(u_2)_j\bigr)\\
+&\quad =
+  \sum_i(r_1)_i\bigl((u_1^\star)_i+c^\star-(u_1)_i-c\bigr)
+  +\sum_j(r_2)_j\bigl((u_2^\star)_j+\tau c^\star-(u_2)_j-\tau c\bigr).
+\end{aligned}
 \]
-At the beginning of a sweep, the previous projection enforces $A_2 x^{(k)}=b_2$, hence $r_2^{(k)}=0$. Therefore
+Applying Hölder blockwise, then using $|a-b|\le |a|+|b|$, gives
 \[
-  \Delta_k  \le  \big\langle -r_1^{(k)}, u_1^\star-u_1^{(k)}\big\rangle.
+  G
+  \le
+  \|(r_1,r_2)\|_{1,1}
+  \Bigl(
+    \max\{\|u_1^\star+c^\star\ones\|_\infty,
+           \|u_2^\star+\tau c^\star\ones\|_\infty\}
+   +\max\{\|u_1+c\ones\|_\infty,
+           \|u_2+\tau c\ones\|_\infty\}
+  \Bigr).
 \]
-Let $h^\star,h^{(k)}\in\ker(A^\top)$ be arbitrary. Since $r^{(k)}=[ r_1^{(k)};0 ]\in\mathrm{im}(A)$ and $\ker(A^\top)\perp\mathrm{im}(A)$, we have $\langle r^{(k)},h^\star\rangle=0$, i.e.
-$\langle r_1^{(k)},h^\star_1\rangle=0$; similarly $\langle r_1^{(k)},h^{(k)}_1\rangle=0$.
-Thus
-\[
-  \Delta_k
-  =  \big\langle -r_1^{(k)}, (u_1^\star+h^\star_1)-(u_1^{(k)}+h^{(k)}_1)\big\rangle
-   \le  \|r_1^{(k)}\|_1 \big(\|u_1^\star+h^\star_1\|_\infty+\|u_1^{(k)}+h^{(k)}_1\|_\infty\big),
-\]
-by Hölder. Taking the infimum independently over $h^\star,h^{(k)}\in\ker(A^\top)$ yields
-\[
-  \Delta_k  \le  \|r_1^{(k)}\|_1 \big(\|u_1^\star\|_{V_1}+\|u_1^{(k)}\|_{V_1}\big)
-   \le  2 \Umax \|r_1^{(k)}\|_1,
-\]
-because $\|u^{(k)}\|_{V}\le\Umax$ implies $\|u_1^{(k)}\|_{V_1}\le\Umax$, and dual maximisers share the same $V$--seminorm limit so $\|u^\star\|_{V}\le\Umax$.
-%
-The second inequality is proved similarly using $\|\cdot\|_{V_2}$ in place of $\|\cdot\|_{V_1}$.
+Since both signed quotient radii are strictly below $\Umax$, representatives can be chosen in
+the two signed-shift orbits with block sup-norms at most $\Umax$.  Substituting those representatives yields
+$G\le 2\Umax\|(r_1,r_2)\|_{1,1}$.
 \end{proof}
 
+In the generated dual iterates, the first half-sweep has $r_2=0$ because the second constraint
+block is already satisfied, while the second half-sweep has the analogous first-block residual
+equal to zero.  Applying Lemma~\ref{app-lem:gap-vs-res-quotient} to these two specializations gives
+\begin{equation}\label{app-eq:gap-vs-res-quotient-final2}
+  \Delta_k  \le  2 \Umax \|r_1^{(k)}\|_{1}, \quad
+  \Delta_{k+1/2}  \le  2 \Umax \|r_2^{(k+1/2)}\|_{1}.
+\end{equation}
+
 \begin{proposition}[Normalized Pinsker inequality]\label{app-prop:pinsker-normalized}
-For $\mu,\nu\in\Delta_d$,
+Let $\mu,\nu\in\RR^d$ satisfy $\mu_i\ge 0$, $\nu_i>0$ for all $i$ and
+$\sum_i\mu_i=\sum_i\nu_i=1$.  On the probability shell we write
+$\KLdiv{\mu}{\nu}=\sum_i\mu_i\log(\mu_i/\nu_i)$, with the convention
+$0\log(0/\nu_i)=0$.  Then
 \[
   \KLdiv{\mu}{\nu}
   \ge
@@ -995,8 +1140,11 @@ and choosing $\lambda=\|\mu-\nu\|_1$ yields the claim.
 \end{proof}
 
 \begin{lemma}[Non--normalised Pinsker inequality]\label{app-lem:pinsker-nonnormalized}
-Let $p,q\in\RR_+^d$ have the same positive mass
-$M=\sum_i p_i=\sum_i q_i>0$. Then
+Let $p,q\in\RR^d$ satisfy $p_i\ge0$, $q_i>0$ for all $i$ and have the
+same positive mass $M=\sum_i p_i=\sum_i q_i>0$.  On this common-mass shell,
+the full non-normalised divergence
+$\sum_i(p_i\log(p_i/q_i)-p_i+q_i)$ equals $\sum_i p_i\log(p_i/q_i)$; we use
+this common-mass form below. Then
 \[
   \KLdiv{p}{q}
   \ge
@@ -1006,7 +1154,9 @@ $M=\sum_i p_i=\sum_i q_i>0$. Then
 
 \begin{proof}
 Set $\bar p=p/M$ and $\bar q=q/M$. Then $\bar p,\bar q\in\Delta_d$, so
-$\KLdiv{\bar p}{\bar q}\ge \frac12\|\bar p-\bar q\|_1^2$ by Proposition~\ref{app-prop:pinsker-normalized}.
+$\bar p_i\ge0$, $\bar q_i>0$, $\sum_i\bar p_i=\sum_i\bar q_i=1$, and
+$\KLdiv{\bar p}{\bar q}\ge \frac12\|\bar p-\bar q\|_1^2$ by
+Proposition~\ref{app-prop:pinsker-normalized}.
 By homogeneity on a common mass shell,
 $\KLdiv{p}{q}=M\,\KLdiv{\bar p}{\bar q}$ and
 $\|\bar p-\bar q\|_1=M^{-1}\|p-q\|_1$.
@@ -1027,74 +1177,85 @@ as claimed.
 \label{app-app:kl-bias-runtime}
 
 \begin{lemma}[KL bias]\label{app-lem:kl-bias}
-Let $F_{0}^{\star}\eqdef\min\{\langle C,x\rangle:\ x\in\RR_{++}^{d},\ Ax=b\}$ be the value of \eqref{eq:linprog} and let $F_{\gamma}^{\star}$ be the value of \eqref{eq:entropic-penalized}. 
-%
-Assume there exists an optimal (unregularised) solution $x_{0}^\star$ of \eqref{eq:linprog} with
-$\|x_{0}^\star\|_{1}\le \XmaxZero$.
-%
+Let $I$ be a finite nonempty index set and set $d\coloneqq |I|$.  Let
+$C,x_0,x_\gamma:I\to\RR$, let $\mathcal F\subseteq\RR^I$ be a feasible
+set, and let $\ell_i:\RR^I\to\RR$ be coordinate KL terms.  Define
+\[
+  \mathrm{KL}(x)\coloneqq\sum_{i\in I}\ell_i(x).
+\]
+Write
+\[
+  L_C(x)\coloneqq\sum_{i\in I} C_i x_i,
+  \qquad
+  R_\gamma(x)\coloneqq L_C(x)+\gamma\,\mathrm{KL}(x).
+\]
+Assume $\gamma\ge0$, that $x_0$ minimizes $L_C$ over $\mathcal F$, that
+$x_\gamma$ minimizes $R_\gamma$ over $\mathcal F$, and that
+$\mathrm{KL}(x)\ge0$ for every $x\in\mathcal F$.  Assume moreover that
+\[
+  \ell_i(x_0)\le x_{0,i}\log d\quad\forall i\in I,
+  \qquad
+  \sum_{i\in I}x_{0,i}\le X_0 .
+\]
 Then
+\[
+  0\le R_\gamma(x_\gamma)-L_C(x_0),
+  \qquad
+  R_\gamma(x_\gamma)-L_C(x_0)\le \gamma\,\mathrm{KL}(x_0),
+\]
+and also
+\[
+  R_\gamma(x_\gamma)-L_C(x_0)
+  \le \gamma\sum_{i\in I}\ell_i(x_0),
+  \qquad
+  R_\gamma(x_\gamma)-L_C(x_0)\le \gamma X_0\log d .
+\]
+\end{lemma}
+
+\begin{proof}
+This is the finite theorem certified in Lean.  Since $x_\gamma$ is feasible and
+$\mathrm{KL}$ is nonnegative on $\mathcal F$, we have
+$R_\gamma(x_\gamma)\ge L_C(x_\gamma)$.  Since $x_0$ minimizes $L_C$ on
+$\mathcal F$, $L_C(x_\gamma)\ge L_C(x_0)$, proving the lower bound.  Conversely,
+minimality of $x_\gamma$ for the regularized objective gives
+\[
+  R_\gamma(x_\gamma)\le R_\gamma(x_0)
+  =L_C(x_0)+\gamma\,\mathrm{KL}(x_0),
+\]
+which gives the bound by $\gamma\,\mathrm{KL}(x_0)$.  The identity
+$\mathrm{KL}(x_0)=\sum_i\ell_i(x_0)$ is definitional and gives the third
+displayed bound.  Finally, since $I$ is nonempty we have $d\ge1$ and hence
+$\log d\ge0$, so
+\[
+  \sum_i\ell_i(x_0)
+  \le
+  \sum_i x_{0,i}\log d
+  =
+  \left(\sum_i x_{0,i}\right)\log d
+  \le X_0\log d,
+\]
+and multiplying by $\gamma\ge0$ yields the last bound.
+\end{proof}
+
+For the paper's linear-programming specialization, take
+$\mathcal F=\{x\in\RR_{++}^d:Ax=b\}$,
+$\mathrm{KL}(x)=\KLdiv{x}{\z}$, let $x_0=x_0^\star$ be an unregularized
+minimizer and let $x_\gamma$ be a regularized minimizer.  Then
+$L_C(x_0)=F_0^\star$ and $R_\gamma(x_\gamma)=F_\gamma^\star$, so
 \begin{equation}\label{app-eq:bias-abs-anymass}
   0 \le F_{\gamma}^{\star}-F_{0}^{\star}
   \;\le\;
   \gamma\,\KLdiv{x_0^\star}{\z}.
 \end{equation}
-%
-For simplicity, we now restrict attention to constant reference vectors $\z \propto \al \ones$, 
-assuming $d\ge 3$ then
+If moreover $\z=(\XmaxZero/d)\ones$ and the coordinate KL terms satisfy
+$\ell_i(x_0^\star)\le x_{0,i}^\star\log d$ with
+$\|x_0^\star\|_1\le\XmaxZero$, Lemma~\ref{app-lem:kl-bias}
+also gives
 \begin{equation}\label{app-eq:bias-abs-constz}
   0 \le F_{\gamma}^{\star}-F_{0}^{\star}
   \;\le\;
-  \gamma\,\XmaxZero\log d
-  \quad\text{when using}\quad \z=(\XmaxZero/d)\ones.
+  \gamma\,\XmaxZero\log d .
 \end{equation}
-\end{lemma}
-
-\begin{proof}
-Since the KL-regularised objective is $\langle C,x\rangle+\gamma\,\KLdiv{x}{\z}$ and $\KLdiv{x}{\z}\ge 0$ for all $x\in\RR^d_{++}$, we have
-\[
-  F_{\gamma}^{\star}
-  =
-  \min_{\substack{x\in\RR^d_{++}\\ Ax=b}}
-  \Bigl(\langle C,x\rangle+\gamma\,\KLdiv{x}{\z}\Bigr)
-  \ge
-  \min_{\substack{x\in\RR^d_{++}\\ Ax=b}}
-  \langle C,x\rangle
-  =F_0^\star,
-\]
-which gives $0\le F_\gamma^\star-F_0^\star$.
-Moreover, since $x_0^\star$ is feasible for the regularised problem,
-\[
-  F_\gamma^\star
-  \le
-  \langle C,x_0^\star\rangle+\gamma\,\KLdiv{x_0^\star}{\z}
-  =F_0^\star+\gamma\,\KLdiv{x_0^\star}{\z},
-\]
-hence $F_\gamma^\star-F_0^\star\le \gamma\,\KLdiv{x_0^\star}{\z}$, proving~\eqref{app-eq:bias-abs-anymass}.
-
-For the final bound, specialise to $\z=\al\ones$ with $\al\eqdef \XmaxZero/d$.
-Write $s\coloneqq \|x_0^\star\|_1\le \XmaxZero$. Expanding the divergence gives
-\begin{align*}
-  \KLdiv{x_0^\star}{\al\ones}
-  &= \sum_{i=1}^d\Big(x_{0,i}^\star\log\frac{x_{0,i}^\star}{\al}-x_{0,i}^\star+\al\Big) 
-  \le d\al + \Bigl(s\log\frac{s}{\al}-s\Bigr)_{+}
- % = \sum_{i=1}^d x_{0,i}^\star\log x_{0,i}^\star - s\log\al - s + d\al \\
-  \le d\al + s\log\frac{s}{\al}-s,
-\end{align*}
-where we use $\sum_{i=1}^d x_{0,i}^\star\log x_{0,i}^\star \le s\log s$ 
-and $(t)_+\ge t$ for all $t\in\RR$, where $(t)_+ \eqdef \max\{t,0\}$.
-With $\al=\XmaxZero/d$ this yields
-\[
-  \KLdiv{x_0^\star}{(\XmaxZero/d)\ones}
-  \le \XmaxZero + (s(\log d-1))_{+}.
-\]
-Finally, if $d\ge 3$ then $\log d-1\ge 0$, so the positive part can be dropped and, using $s\le \XmaxZero$,
-\[
-  \KLdiv{x_0^\star}{(\XmaxZero/d)\ones}
-  \le \XmaxZero + s(\log d-1)
-  \le \XmaxZero + \XmaxZero(\log d-1)
-  = \XmaxZero\log d.
-\]
-\end{proof}
 
 \paragraph{Proof of Theorem~\ref{thm:approx-linprog}.}
 \begin{proof}
@@ -1106,7 +1267,8 @@ Split the total deviation into bias and optimisation pieces:
    +
   \underbrace{|F_\gamma^\star - F_\gamma(u^{(k)})|}_{\text{optimisation}} .
 \]
-By Lemma~\ref{app-lem:kl-bias}, the existence of $x_0^\star$ with $\|x_0^\star\|_1\le \XmaxZero$ implies
+By the linear-programming specialization following Lemma~\ref{app-lem:kl-bias},
+the existence of $x_0^\star$ with $\|x_0^\star\|_1\le \XmaxZero$ implies
 $|F_0^\star - F_\gamma^\star| \le \gamma \XmaxZero\log d$. With $\gamma=\epsilon/(2 \XmaxZero\log d)$ this gives
 $F_0^\star - F_\gamma^\star \le \epsilon/2$.
 %
@@ -1466,17 +1628,121 @@ $$
 The following propositions give the value for the primal bound $H_\gamma$ of Definition~\ref{def:hgamma} and the decomposition constant $\kappa$ defined in~\eqref{eq:kappa}, which are the constants involved in the convergence rates.
 Recall that for OT, the reference measure is $\z = b_1 \otimes b_2 = (b_{1,i} b_{2,j})_{i,j}$.
 
-\begin{proposition}[$H_\gamma$ for Sinkhorn]\label{app-prop:hgamma-ot}
-Assume $\min(b)>0$ and for simplicity $C_{i,j} \geq 0$. Then, for $\gamma$ small enough, one can take $H_\gamma$ in Definition~\ref{def:hgamma} as
+\begin{proposition}[Sinkhorn log-ratio $H_\gamma$ certificate]\label{app-prop:hgamma-ot}
+Let $I,J$ be finite nonempty index sets, let $b:J\to\RR$ be a positive
+probability vector, let $r:I\times J\to\RR$ be a log-ratio field, let $u:I\to\RR$ and
+$v:J\to\RR$ be nonnegative scaling vectors, and let
+$C:I\times J\to\RR$ be a cost field.
+Let $\min_b,C_{\max},\gamma\in\RR$ satisfy $0<\min_b$ and \(\gamma>0\).
+Assume that \(0\le C_{i,j}\le C_{\max}\) for every \((i,j)\), that
+\(\min_b\le b_j\) for every \(j\in J\), and that the normalized row-scaling
+identities
 \[
-H_\gamma =
-|\log(\min(b))|+\frac{2\|C\|_\infty}{\gamma}.
+  \sum_{j\in J} b_j e^{r_{i,j}}=1
+  \qquad\text{hold for every } i\in I.
 \]
+Assume also the finite Sinkhorn scaling certificates
+\[
+  v_j\sum_{i\in I}e^{-C_{i,j}/\gamma}u_i=b_j
+  \qquad\forall j\in J,
+\]
+and
+\[
+  e^{r_{i,j}}
+  =
+  \frac{e^{-C_{i,j}/\gamma}}
+  {\left(\sum_{\ell\in J}e^{-C_{i,\ell}/\gamma}v_\ell\right)
+   \left(\sum_{k\in I}e^{-C_{k,j}/\gamma}u_k\right)}
+  \qquad\forall(i,j).
+\]
+Then, with
+\[
+  H_\gamma=|\log(\min_b)|+\frac{2C_{\max}}{\gamma},
+\]
+one has $H_\gamma\ge0$ and $|r_{i,j}|\le H_\gamma$ for every $(i,j)$.
+For classical Sinkhorn, take
+$r_{i,j}=\log(P_\gamma)_{i,j}-\log z_{i,j}$,
+$b=b_2$, $\min_b=\min(\min_i(b_1)_i,\min_j(b_2)_j)$, and
+$C_{\max}=\|C\|_\infty$.
 \end{proposition}
 
 \begin{proof}
-Let $P_\gamma$ be the unique minimizer of the entropic OT problem and recall that $\z_{i,j} = (b_1)_i(b_2)_j$.
-We need to bound $|\log(P_\gamma)_{i,j} - \log \z_{i,j}|$ uniformly over all $(i,j)$.
+The displayed implication is the finite theorem certified in Lean.  In the
+paper-facing statement, the probability-vector normalization of \(b\), the
+nonnegativity of the scaling vectors \(u,v\), and the finite cost envelope
+\(0\le C_{i,j}\le C_{\max}\) are represented as typed finite-data certificates.
+First, the
+probability-vector assumptions imply $\min_b\le1$: choose $j_0\in J$, then
+$\min_b\le b_{j_0}\le\sum_j b_j=1$, where the second inequality uses positivity
+of the other coordinates.  For fixed \(i,j\), every term in
+\(\sum_\ell b_\ell e^{r_{i,\ell}}\) is nonnegative and the sum is equal to
+one, hence \(b_j e^{r_{i,j}}\le1\).  Since \(0<\min_b\le b_j\), this gives
+\[
+  e^{r_{i,j}}\le \frac1{b_j}\le \frac1{\min_b},
+  \qquad\text{so}\qquad
+  r_{i,j}\le \log(1/\min_b)=-\log(\min_b).
+\]
+Because \(0<\min_b\le1\), we have \(-\log(\min_b)=|\log(\min_b)|\).  Thus the
+row-scaling equation supplies the upper bound \(r_{i,j}\le|\log(\min_b)|\le
+H_\gamma\).  Set \(K_{i,j}=e^{-C_{i,j}/\gamma}\) and
+\[
+  D_{i,j}\coloneqq
+  \left(\sum_{\ell\in J}K_{i,\ell}v_\ell\right)
+  \left(\sum_{k\in I}K_{k,j}u_k\right).
+\]
+Since \(\gamma>0\) and \(0\le C_{i,j}\le C_{\max}\), Lean first derives the
+Gibbs-kernel bounds
+\[
+  K_{i,j}\le 1,\qquad
+  \exp(-C_{\max}/\gamma)\le K_{i,j}
+  \qquad\forall(i,j).
+\]
+Lean formalizes the finite-sum estimate
+\[
+  D_{i,j}\le
+  \Big(\sum_{\ell\in J}v_\ell\Big)\Big(\sum_{k\in I}u_k\Big)
+  \le \exp(C_{\max}/\gamma).
+\]
+Indeed, the first inequality follows from \(K_{i,j}\le1\) and nonnegativity of
+\(u,v\).  The right marginal scaling equations imply the total scaled mass
+\[
+  \sum_{k,\ell}u_kK_{k,\ell}v_\ell
+  =
+  \sum_\ell v_\ell(K^Tu)_\ell
+  =
+  \sum_\ell b_\ell
+  =
+  1.
+\]
+For the second inequality, the lower kernel bound gives
+\[
+  1=\sum_{k,\ell}u_kK_{k,\ell}v_\ell
+  \ge
+  \exp(-C_{\max}/\gamma)
+  \Big(\sum_k u_k\Big)\Big(\sum_\ell v_\ell\Big).
+\]
+The equality \(e^{r_{i,j}}=K_{i,j}/D_{i,j}\), together with
+\(e^{r_{i,j}}>0\) and \(K_{i,j}>0\), also implies \(D_{i,j}>0\).  Hence
+\[
+  e^{-2C_{\max}/\gamma}D_{i,j}
+  \le e^{-2C_{\max}/\gamma}e^{C_{\max}/\gamma}
+  =e^{-C_{\max}/\gamma}
+  \le K_{i,j},
+\]
+and, since \(D_{i,j}>0\), one has
+\[
+  e^{-2C_{\max}/\gamma}\le \frac{K_{i,j}}{D_{i,j}}=e^{r_{i,j}}.
+\]
+By monotonicity of the exponential, \(-2C_{\max}/\gamma\le r_{i,j}\), and
+therefore \(-H_\gamma\le -2C_{\max}/\gamma\le r_{i,j}\).  Hence
+\(|r_{i,j}|\le H_\gamma\) for every coordinate.  The nonnegativity of
+\(H_\gamma\) follows from \(|\log(\min_b)|\ge0\), \(C_{\max}\ge0\), and
+\(\gamma>0\).
+
+We now recall why the Sinkhorn specialization supplies these certificates.  Let
+$P_\gamma$ be the unique minimizer of the entropic OT problem and recall that
+$\z_{i,j} = (b_1)_i(b_2)_j$.  We need to bound
+$|\log(P_\gamma)_{i,j} - \log \z_{i,j}|$ uniformly over all $(i,j)$.
 
 \paragraph{Upper bound.}
 From the optimality conditions, $P_\gamma = \z \odot \exp((f \oplus g - C)/\gamma)$ where $f,g$ are the Sinkhorn potentials satisfying the marginal constraints. The row marginal gives
@@ -1487,13 +1753,15 @@ Since all terms are non-negative and sum to 1, each term is at most 1:
 $(b_2)_j \exp\left(\frac{f_i + g_j - C_{i,j}}{\gamma}\right) \le 1$,
 hence
 \[
-\log(P_\gamma)_{i,j} - \log \z_{i,j} = \frac{f_i + g_j - C_{i,j}}{\gamma} \le -\log(b_2)_j \le |\log(\min(b))|.
+\log(P_\gamma)_{i,j} - \log \z_{i,j} = \frac{f_i + g_j - C_{i,j}}{\gamma}
+\le -\log((b_2)_j) \le -\log(\min_b)=|\log(\min_b)|.
 \]
 The same bound follows from the column marginal using $(b_1)_i$.
 
 \paragraph{Lower bound.}
 The optimal coupling reads $P_\gamma=\diag(u) K \diag(v)$ for scaling vectors $u,v$ and $K_{i,j}  \coloneqq  e^{-C_{i,j}/\gamma}$.
-Let $K_{\min}\coloneqq \min_{a,b}K_{a,b}=e^{-\|C\|_\infty/\gamma}$ (using $\min C=0$).
+Since \(0\le C_{i,j}\le\|C\|_\infty\), this kernel satisfies
+\(K_{i,j}\le1\) and \(K_{i,j}\ge K_{\min}\coloneqq e^{-\|C\|_\infty/\gamma}\).
 From $P_\gamma=\diag(u)K\diag(v)$ and the marginal constraints,
 $(b_1)_i=u_i(Kv)_i$, $(b_2)_j=v_j(K^\top u)_j$,
 hence
@@ -1511,67 +1779,150 @@ so $\big(\sum_k u_k\big)\big(\sum_\ell v_\ell\big)\le 1/K_{\min}$ and therefore
 $
 (Kv)_i\,(K^\top u)_j \le \frac{1}{K_{\min}}.
 $
-Plugging this into \eqref{app-eq:factor} yields
+Moreover $K_{\min}=e^{-\|C\|_\infty/\gamma}$ and, for
+$D_{i,j}=(Kv)_i(K^\top u)_j$, equation~\eqref{app-eq:factor} gives
+$e^{r_{i,j}}=K_{i,j}/D_{i,j}$ with
+$0<D_{i,j}\le e^{\|C\|_\infty/\gamma}$ and
+$K_{i,j}\ge e^{-\|C\|_\infty/\gamma}$.  These are exactly the scaling
+facts derived from the cost bounds in the certified statement.  Equivalently, plugging the
+denominator bound into \eqref{app-eq:factor} yields the familiar scalar lower
+estimate
 $(P_\gamma)_{i,j}\ge (b_1)_i(b_2)_j\,K_{i,j}\,K_{\min} \ge \z_{i,j}\,K_{\min}^2$,
 hence
 \[
 \log(P_\gamma)_{i,j} - \log \z_{i,j} \ge 2\log K_{\min} = -\frac{2\|C\|_\infty}{\gamma}.
 \]
-Combining both bounds gives $\|\log P_\gamma - \log \z\|_\infty \le |\log(\min(b))|+\frac{2\|C\|_\infty}{\gamma}$.
+Thus the classical OT specialization satisfies the proposition with
+$C_{\max}=\|C\|_\infty$.
 \end{proof}
 
 
-\begin{proposition}[$\kappa$ for  classical OT]\label{app-prop:kappa-ot}
-For classical OT, one can take $\kappa=1$ in \eqref{eq:kappa}.
+\begin{proposition}[Constructive $\kappa$ certificate for classical OT]\label{app-prop:kappa-ot}
+Let $I_1,I_2$ be finite nonempty index sets.  Let
+$\alpha:I_1\to\RR$, $\beta:I_2\to\RR$, and
+$Y:I_1\times I_2\to\RR$ satisfy
+\[
+  Y_{i,j}=\alpha_i+\beta_j\qquad\forall i\in I_1,\ j\in I_2 .
+\]
+Fix any $j_0\in I_2$.  Then there exist
+$w_1:I_1\to\RR$ and $w_2:I_2\to\RR$ such that
+\[
+  Y_{i,j}=w_{1,i}+w_{2,j}\qquad\forall i,j,
+  \qquad
+  \|w_1\|_\infty\le \|Y\|_\infty .
+\]
+In particular, this constructive decomposition certificate implies that for
+classical OT one can take $\kappa=1$ in \eqref{eq:kappa}.
 \end{proposition}
 
 \begin{proof}
-Let $Y\in\mathrm{range}(A^\top)$, $Y\neq 0$. Choose any representation $Y_{ij}=\alpha_i+\beta_j$.
+Choose any representation $Y_{ij}=\alpha_i+\beta_j$.
 For any scalar $c\in\RR$, define 
 $
-\alpha^{(c)} \coloneqq \alpha-c\,\ones_{m_1}, \beta^{(c)} \coloneqq \beta+c\,\ones_{m_2},
+\alpha^{(c)} \coloneqq \alpha-c\,\ones_{I_1}, \beta^{(c)} \coloneqq \beta+c\,\ones_{I_2},
 $
-so that $\alpha^{(c)}_i+\beta^{(c)}_j=\alpha_i+\beta_j=Y_{ij}$ for all $(i,j)$, hence
-$Y=A_1^\top \alpha^{(c)}+A_2^\top \beta^{(c)}$ for every $c$.
+so that $\alpha^{(c)}_i+\beta^{(c)}_j=\alpha_i+\beta_j=Y_{ij}$ for all $(i,j)$.
 %
 We now show that one can choose $c$ so that $\|\alpha^{(c)}\|_\infty\le \|Y\|_\infty$.
 Indeed,
 \[
-\min_{c\in\RR}\|\alpha-c\ones_{m_1}\|_\infty = \frac{1}{2}\left(\max_{i}\alpha_i-\min_{i}\alpha_i\right).
+\min_{c\in\RR}\|\alpha-c\ones_{I_1}\|_\infty = \frac{1}{2}\left(\max_{i}\alpha_i-\min_{i}\alpha_i\right).
 \]
-Fix any column index $j_0\in\{1,\dots,m_2\}$. Then for all $i,i'$,
+Using the fixed column index $j_0\in I_2$, for all $i,i'$,
 \[
 \alpha_i-\alpha_{i'} = (\alpha_i+\beta_{j_0})-(\alpha_{i'}+\beta_{j_0}) = Y_{i j_0}-Y_{i' j_0}.
 \]
 Hence $|\alpha_i-\alpha_{i'}|\le 2\|Y\|_\infty$, which implies
 $\max_i\alpha_i-\min_i\alpha_i \le 2\|Y\|_\infty$. Therefore,
 $
-\min_{c\in\RR}\|\alpha-c\ones_n\|_\infty \le \|Y\|_\infty.
+\min_{c\in\RR}\|\alpha-c\ones_{I_1}\|_\infty \le \|Y\|_\infty.
 $
-Choose $c$ attaining (or arbitrarily approximating) this minimum and set $w_1 \coloneqq \alpha^{(c)}$, $w_2 \coloneqq \beta^{(c)}$.
-Then $A_1^\top w_1 + A_2^\top w_2 = Y$ and $\|w_1\|_\infty\le \|Y\|_\infty$, so
+Choose $c$ attaining (or arbitrarily approximating) this minimum and set
+$w_1 \coloneqq \alpha^{(c)}$, $w_2 \coloneqq \beta^{(c)}$.
+Then $w_{1,i}+w_{2,j}=Y_{ij}$ and $\|w_1\|_\infty\le \|Y\|_\infty$.
+For a nonzero $Y$ this gives
 \[
 \inf\left\{\frac{\|w_1\|_\infty}{\|Y\|_\infty}:\ \exists w_2,\ A_1^\top w_1 + A_2^\top w_2 = Y\right\}\le 1.
 \]
 Taking the supremum over $Y\in\mathrm{range}(A^\top)\setminus\{0\}$ gives $\kappa\le 1$.
 \end{proof}
 
-\begin{corollary}\label{app-cor:ot-xgamma-ugamma}
-For classical OT, assuming $u^{(0)}=0$ for simplicity, one may take
+\begin{corollary}[OT zero-start orbit constants]\label{app-cor:ot-xgamma-ugamma}
+Let $I,J$ be finite nonempty index sets and let
 \[
-	\Xmax = 1,
-	\qquad
-	\Umax =  6\,\|C\|_\infty + 2\gamma |\log(\min(b))|.
+  \Psi_1:\RR^J\to\RR^I,\qquad
+  \Psi_2:\RR^I\to\RR^J
 \]
+be the two Sinkhorn block maps.  Assume the two block maps are monotone and
+satisfy the signed block translation-equivariance laws of
+Proposition~\ref{app-prop:translation-equivariance}; consequently their full
+sweep is $\Psi=\Psi_1\circ\Psi_2:\RR^I\to\RR^I$.  Let
+$\alpha^\star\in\RR^I$ be a fixed point of this full sweep.  Assume that there
+exist $\beta^\star\in\RR^J$, a reference index $j_0\in J$, and
+$Y:I\times J\to\RR$ such that
+\[
+  \alpha^\star_i+\beta^\star_j=Y_{i,j}\qquad\forall i\in I,\ j\in J.
+\]
+Let $\gamma,\min_b,C_{\max}\in\RR$ satisfy
+$\gamma>0$, $\min_b>0$, and $C_{\max}\ge0$.  Assume the separable
+fixed-point budget
+\[
+  \|Y\|_\infty
+  \le
+  C_{\max}+\gamma\left(|\log(\min_b)|+\frac{2C_{\max}}{\gamma}\right).
+\]
+Then, for the zero potential initialization, there exists a certificate
+$\Xmax=1$ and, for all $k\ge0$,
+\[
+  |\Psi^k(0)|_V
+  \le
+  \Umax
+  \coloneqq
+  6\,C_{\max}+2\gamma|\log(\min_b)|.
+\]
+For classical OT, set
+$\min_b\coloneqq\min(\min_i(b_1)_i,\min_j(b_2)_j)$ and
+$C_{\max}=\|C\|_\infty$.  With the zero potential initialization, the assumptions
+above are supplied by Propositions~\ref{app-prop:kappa-ot} and
+\ref{app-prop:hgamma-ot}, so one may take $\Xmax=1$ and
+$\Umax=6\,\|C\|_\infty+2\gamma|\log(\min_b)|$.
 \end{corollary}
 
 \begin{proof}
-We apply Proposition~\ref{app-prop:block-monotone} with $\Sigma=\mathrm{Id}$ and
-Proposition~\ref{app-prop:translation-equivariance} with $\tau=-1$.
-Together, these imply (via Proposition~\ref{app-prop:topical-nonexpansive})
-that the sweep map $\Psi$ is non-expansive with respect to the variation seminorm
-$|\cdot|_{V_1}$.
-Propositions~\ref{app-prop:kappa-ot} and~\ref{app-prop:hgamma-ot} give the values of $H_\gamma$ and $\kappa$ to be used in Proposition~\ref{prop:uniform-iter-final}.
+The displayed finite implication is the Lean-certified statement.  In Lean the
+two block maps, their monotonicity laws, and their signed
+translation-equivariance laws are grouped in a structured block-sweep
+certificate.  The fixed point, the auxiliary vector \(\beta^\star\), the
+reference index \(j_0\), the separable decomposition
+\(\alpha^\star_i+\beta^\star_j=Y_{i,j}\), and the displayed budget are grouped
+in a separable fixed-point certificate.  The scalar side conditions
+\(\gamma>0\), \(\min_b>0\), and \(C_{\max}\ge0\) are grouped in a third
+bookkeeping certificate.  These records only organize the hypotheses displayed
+above; they do not add hidden assumptions.  The block
+monotonicity and signed translation-equivariance assumptions imply topicality
+of the full sweep by Propositions~\ref{app-prop:block-monotone} and
+\ref{app-prop:translation-equivariance}.  Hence
+Proposition~\ref{app-prop:topical-nonexpansive} gives non-expansiveness for the
+variation seminorm.  The separable certificate
+\(\alpha^\star_i+\beta^\star_j=Y_{i,j}\), together with
+Proposition~\ref{app-prop:kappa-ot}, gives
+\[
+  |\alpha^\star|_V\le \|Y\|_\infty
+  \le C_{\max}+\gamma\left(|\log(\min_b)|+\frac{2C_{\max}}{\gamma}\right).
+\]
+Applying Proposition~\ref{prop:uniform-iter-final} with
+\(H_\gamma=|\log(\min_b)|+2C_{\max}/\gamma\) and \(\kappa=1\) gives
+\[
+|\Psi^k(0)|_V
+\le
+2\left(C_{\max}
+  +\gamma\left(|\log(\min_b)|+\frac{2C_{\max}}{\gamma}\right)\right)
+=6C_{\max}+2\gamma|\log(\min_b)|,
+\]
+because the zero potential has variation seminorm zero.  The certificate
+\(\Xmax=1\) records the normalized total mass of classical OT couplings.  For
+the classical OT specialization, Proposition~\ref{app-prop:hgamma-ot} supplies
+the displayed \(H_\gamma\) bound with \(C_{\max}=\|C\|_\infty\).
 \end{proof}
 
 This bound $\Umax$ derived using the non-expansiveness of $\Psi$ is not sharp. As shown in~\cite{chizat2020faster}, a more direct argument exploiting the closed-form expression~\eqref{app-eq:soft-c-transform} for $\Psi$, together with the Lipschitz dependence of the dual variables on the
@@ -1610,68 +1961,349 @@ Combining the two closed-form projections just proved with the parametrization $
 
 \begin{proposition}[Closed forms for $\|\cdot\|_{V_1}$ and $\|\cdot\|_{V_2}$]
 \label{prop:graphw1-v1v2-closed-form}
-One has $\|\cdot\|_{V_1}=\normVar{\cdot}$ and $\|\cdot\|_{V_2}=\normVar{\cdot}$, where $\normVar{\cdot}$ is the variation semi-norm defined in~\eqref{app-eq:variation-seminorm}.
+After the connected-graph kernel identification in the proof below, the quotient directions
+on the vertex block and edge block are the constant directions. Equivalently, for any
+finite nonempty vertex index set $V$ and edge index set $E$, for every
+$v\in\RR^V$ and $U\in\RR^E$,
+\[
+  \|v\|_{V_1}
+  = \inf_{c\in\RR}\|v+c\ones_V\|_\infty
+  = \normVar{v},
+  \qquad
+  \|U\|_{V_2}
+  = \inf_{c\in\RR}\|U+c\ones_E\|_\infty
+  = \normVar{U},
+\]
+where $\normVar{\cdot}$ is the variation semi-norm defined
+in~\eqref{app-eq:variation-seminorm}.
 \end{proposition}
 
-\begin{proposition}[Signed structure of the graph-flow split]
+\begin{proposition}[Topical graph-flow sweep is non-expansive]
 \label{prop:graphw1-signed-structure}
-For the lifted variables $x=(f,g)$, take the diagonal signature $\Sigma=\operatorname{diag}(+I_{\Edge},-I_{\Edge})$ on the two flow blocks and the translation parameter $\tau=+1$. Then the signed constraint operators satisfy the hypotheses of the monotone-block and translation-equivariant criteria of Appendix~\ref{app-sec:non-expansiveness}. Consequently, the full sweep map $\Psi=\Psi_1\circ\Psi_2$ is non-expansive for the variation quotient norm on the $v$ block.
+Let $V$ be a finite nonempty vertex set and let
+$\Psi_1,\Psi_2:\RR^V\to\RR^V$ be topical maps, i.e. monotone and
+translation--equivariant in the sense of Proposition~\ref{app-prop:topical-nonexpansive}.
+Then the full sweep map $\Psi=\Psi_1\circ\Psi_2$ is non-expansive for the
+variation quotient norm on the vertex block:
+\[
+  \normVar{\Psi(v)-\Psi(w)}
+  \le
+  \normVar{v-w}
+  \qquad\text{for all }v,w\in\RR^V .
+\]
+In the graph-flow split, the required topicality certificates are obtained by taking
+the diagonal signature $\Sigma=\operatorname{diag}(+I_{\Edge},-I_{\Edge})$ on
+the two flow blocks and the translation parameter $\tau=+1$.
 \end{proposition}
 
 \begin{proof}
-With the sign convention detailed below, multiplying the $g$ block by $-1$ turns each column of the two block moment maps into a nonnegative incidence contribution: the $v_i+U_{i,j}$ and $-v_j-U_{i,j}$ terms become monotone in the signed coordinates. Thus $A_s\Sigma$ is entrywise nonnegative for the two block updates. Moreover the two signed incidence contributions cancel after adding a constant to the vertex potential and the same constant to the edge multiplier, giving the paired-balance identity of Proposition~\ref{app-prop:translation-equivariance} with $\tau=+1$. Proposition~\ref{app-prop:block-monotone} gives monotonicity of each block map and Proposition~\ref{app-prop:translation-equivariance} gives translation equivariance of the sweep. Applying Proposition~\ref{app-prop:topical-nonexpansive} yields non-expansiveness in the variation quotient norm.
+The first sentence is the theorem certified in Lean: each topical map is
+non-expansive for $\normVar{\cdot}$ by Proposition~\ref{app-prop:topical-nonexpansive},
+and the composition of two maps non-expansive for the same seminorm is again
+non-expansive.
+
+It remains to recall why the graph-flow split supplies the topicality certificates
+used above. With the sign convention detailed below, multiplying the $g$ block by
+$-1$ turns each column of the two block moment maps into a nonnegative incidence
+contribution: the $v_i+U_{i,j}$ and $-v_j-U_{i,j}$ terms become monotone in the
+signed coordinates. Thus $A_s\Sigma$ is entrywise nonnegative for the two block
+updates. Moreover the two signed incidence contributions cancel after adding a
+constant to the vertex potential and the same constant to the edge multiplier,
+giving the paired-balance identity of Proposition~\ref{app-prop:translation-equivariance}
+with $\tau=+1$. Proposition~\ref{app-prop:block-monotone} gives monotonicity of
+the block maps and Proposition~\ref{app-prop:translation-equivariance} gives
+translation equivariance of the sweep. These are precisely the graph-flow
+topicality certificates invoked in the proposition.
 \end{proof}
 
 \begin{proposition}[Closed form and non-expansiveness of $\Psi_2$]\label{prop:graphw1-psi2-closed-nonexp}
-One has
+Let $V$ be a finite nonempty vertex set, let $E$ be a finite nonempty directed edge set,
+and let $s,t:E\to V$ be its source and target endpoint maps.  Define the closed-form second-block map
+$\Psi_2:\RR^V\to\RR^E$ by
+\[
+  \Psi_2(v)_e=\frac12\bigl(v_{t(e)}-v_{s(e)}\bigr).
+\]
+Then, for every $v\in\RR^V$,
 \begin{equation}\label{eq:Psi2_closed_symmetric}
-\Psi_2(v)_{i,j}=\frac12\,(v_j-v_i),
-\quad\text{and}\quad
-\|\Psi_2(v)\|_{V_2}\le \|v\|_{V_1}\qquad\text{for all }v\in\RR^n.
+  \Psi_2(v)_e=\frac12\bigl(v_{t(e)}-v_{s(e)}\bigr)
+  \quad\text{for all }e\in E,
+  \qquad
+  \normVar{\Psi_2(v)}\le \normVar{v}.
 \end{equation}
+Through Proposition~\ref{prop:graphw1-v1v2-closed-form}, this is the quotient-norm
+bound $\|\Psi_2(v)\|_{V_2}\le \|v\|_{V_1}$ used in the graph-$W_1$ analysis.
 \end{proposition}
 
 \paragraph{Proof of Proposition~\ref{prop:graphw1-v1v2-closed-form}.}
 The kernel relation $(\delta v,\delta U)\in\ker(A^\top)$ is equivalent to $\delta v_i+\delta U_{i,j}=0$ and $-\delta v_j-\delta U_{i,j}=0$ for every $(i,j)\in\Edge$. Since the graph is connected, this implies $\delta v=c\ones_n$ and $\delta U=-c\ones_\Edge$. Therefore Definition~\ref{def:block-seminorm} gives $\|v\|_{V_1}=\inf_c\|v+c\ones_n\|_\infty=\|v\|_{\mathrm{Var}}$ and $\|U\|_{V_2}=\inf_c\|U-c\ones_\Edge\|_\infty=\|U\|_{\mathrm{Var}}$.
 
 \paragraph{Proof of Proposition~\ref{prop:graphw1-psi2-closed-nonexp}.}
-Maximizing $F_\gamma(v,U)$ with respect to $U_{i,j}$ at fixed $v$ gives $\Psi_2(v)_{i,j}=(v_j-v_i)/2$. Thus $\|\Psi_2(v)\|_{V_2}=\|\Psi_2(v)\|_{\mathrm{Var}}\le \|\Psi_2(v)\|_\infty\le \frac12(\max_i v_i-\min_i v_i)=\|v\|_{V_1}$.
-
-\begin{proposition}[$H_\gamma$ for flow Sinkhorn]\label{app-prop:hgamma-graphw1}
-Assume $0<\length_{\min}\coloneqq\min_{(i,j)\in\Edge}\length_{i,j}$ and let $\length_{\max}\coloneqq\max_{(i,j)\in\Edge}\length_{i,j}$. Fix any feasible $\bar f\ge0$ with $\bar f\ones-\bar f^\top\ones=b_1-b_2$. One can take
+Maximizing $F_\gamma(v,U)$ with respect to $U_e$ at fixed $v$ gives the displayed
+closed-form map.  For this map,
 \[
-H_\gamma=\log X_\gamma^\star+\frac{2\length_{\max}}{\gamma}+3\|\log z\|_\infty,
-\qquad
-X_\gamma^\star\coloneqq\frac{\langle \length,\bar f\rangle+\gamma\KLdiv{\bar f}{z}}{\length_{\min}} .
+  |\Psi_2(v)_e|
+  =\frac12 |v_{t(e)}-v_{s(e)}|
+  \le \frac12(\max_i v_i-\min_i v_i)
+  =\normVar{v}.
 \]
+The definition of $\normVar{\cdot}$ as an infimum over constant shifts therefore gives
+$\normVar{\Psi_2(v)}\le\normVar{v}$.  Proposition~\ref{prop:graphw1-v1v2-closed-form}
+translates this variation-seminorm estimate into the quotient-norm estimate.
+
+\begin{proposition}[Graph-$W_1$ log-ratio $H_\gamma$ certificate]\label{app-prop:hgamma-graphw1}
+Let $E$ be a finite nonempty edge set, let $e\mapsto\bar e$ be an
+opposite-orientation map on $E$, let $f,z:E\to\RR_{++}$, and let
+$\length:E\to\RR$.  Let
+$X_\star,\length_{\max},\gamma,L_z\in\RR$ satisfy $\gamma>0$ and
+$\length_{\max}\ge0$.  Assume that, for every $e\in E$,
+\[
+  f_e\le X_\star,\qquad
+  |\log z_e|\le L_z,\qquad
+  \length_e+\length_{\bar e}\le 2\length_{\max},
+\]
+and assume the opposite-orientation log identity
+\begin{equation}\label{eq:graphw1-hgamma-opposite-log}
+  \log f_e+\log f_{\bar e}
+  =
+  \log z_e+\log z_{\bar e}
+  -\frac{\length_e+\length_{\bar e}}{\gamma}.
+\end{equation}
+Then, with
+\[
+  H_\gamma=\log X_\star+\frac{2\length_{\max}}{\gamma}+3L_z,
+\]
+one has $H_\gamma\ge0$ and
+\[
+  |\log f_e-\log z_e|\le H_\gamma
+  \qquad\forall e\in E .
+\]
+In the graph-flow application, $f=f_\gamma$, $z$ is the positive reference
+flow, $L_z=\|\log z\|_\infty$, and
+\[
+  X_\star=X_\gamma^\star\coloneqq
+  \frac{\langle \length,\bar f\rangle+\gamma\KLdiv{\bar f}{z}}{\length_{\min}},
+\]
+where $\bar f\ge0$ is any feasible comparison flow and
+$0<\length_{\min}\coloneqq\min_{e\in E}\length_e$.
 \end{proposition}
 
 \begin{proof}
-The positive-cost bound of Lemma~\ref{app-lem:l1-bound-from-feasible} gives $\|f_\gamma\|_\infty\le\|f_\gamma\|_1\le X_\gamma^\star$, hence $\log(f_\gamma)_{i,j}-\log z_{i,j}\le\log X_\gamma^\star+\|\log z\|_\infty$. At optimality, the opposite orientations satisfy $(f_\gamma)_{i,j}(f_\gamma)_{j,i}=z_{i,j}z_{j,i}\exp[-(\length_{i,j}+\length_{j,i})/\gamma]$. Combining this identity with the same upper bound on $(f_\gamma)_{j,i}$ yields a lower bound on $(f_\gamma)_{i,j}$, and hence the displayed value of $H_\gamma$.
+This is the finite theorem certified in Lean.  Set
+$r_e=\log f_e-\log z_e$.  Since $f:E\to\RR_{++}$ and $f_e\le X_\star$, monotonicity
+of the logarithm gives $\log f_e\le\log X_\star$; together with
+$|\log z_e|\le L_z$, this yields
+\[
+  r_e\le\log X_\star+L_z .
+\]
+For the lower bound, rearrange the opposite-orientation identity
+\eqref{eq:graphw1-hgamma-opposite-log} as
+\[
+  r_e=\log z_{\bar e}-\log f_{\bar e}
+      -\frac{\length_e+\length_{\bar e}}{\gamma}.
+\]
+Using $|\log z_{\bar e}|\le L_z$, $0<f_{\bar e}\le X_\star$, and
+$\length_e+\length_{\bar e}\le2\length_{\max}$ gives
+\[
+  -\Bigl(\log X_\star+\frac{2\length_{\max}}{\gamma}+L_z\Bigr)
+  \le r_e .
+\]
+Combining the upper and lower estimates gives
+\[
+  -H_\gamma\le r_e\le H_\gamma,
+  \qquad
+  H_\gamma=\log X_\star+\frac{2\length_{\max}}{\gamma}+3L_z,
+\]
+because $L_z\ge0$, which follows from nonemptiness of $E$ and
+$0\le|\log z_e|\le L_z$ for any edge $e$.  Hence
+$|\log f_e-\log z_e|\le H_\gamma$ for every edge.
+Since $E$ is nonempty, applying this bound to one edge and using
+$|\log f_e-\log z_e|\ge0$ also gives $H_\gamma\ge0$.  In the graph-flow
+specialization, Lemma~\ref{app-lem:l1-bound-from-feasible} supplies the mass
+envelope $f_e\le X_\gamma^\star$, while the optimality condition of the
+two-orientation graph block gives \eqref{eq:graphw1-hgamma-opposite-log}.
 \end{proof}
 
-\begin{lemma}[Primal $\ell^1$ bound under positive costs]\label{app-lem:l1-bound-from-feasible}
-Assume $C_i\ge C_{\min}>0$ for all coordinates. If $x_\gamma^\star$ solves \eqref{eq:entropic-penalized}, then for every feasible $\bar x\ge0$ with $A\bar x=b$,
+\begin{lemma}[Finite primal $\ell^1$ bound under positive costs]\label{app-lem:l1-bound-from-feasible}
+Let $I$ be a finite nonempty coordinate set.  Let $\mathcal A$ be any additional
+constraint predicate on $\RR^I$, define the feasible set
 \[
-\|x_\gamma^\star\|_1\le X_\gamma^\star\coloneqq\frac{\langle C,\bar x\rangle+\gamma\KLdiv{\bar x}{z}}{C_{\min}}.
+  \mathcal F\coloneqq
+  \{x\in\RR^I:\ x_i\ge0\ \forall i\in I,\ \mathcal A(x)\},
 \]
+and let $\ell_i:\RR^I\to\RR$, $i\in I$, be finite KL coordinate terms.  Set
+\[
+  \KL(x)\coloneqq \sum_{i\in I}\ell_i(x).
+\]
+Fix $C,x_\gamma^\star,\bar x\in\RR^I$ and $\gamma>0$.  Assume the costs are
+strictly positive, $C_i>0$ for all $i\in I$, and define
+\[
+  C_{\min}\coloneqq \min_{i\in I} C_i .
+\]
+Assume that the finite KL terms are nonnegative on the feasible set:
+\[
+  \ell_i(x)\ge0
+  \qquad\forall x\in\mathcal F,\ \forall i\in I .
+\]
+Assume $x_\gamma^\star\in\mathcal F$
+minimizes
+\[
+  x\longmapsto \sum_{i\in I} C_i x_i+\gamma\KL(x)
+\]
+over $\mathcal F$, and assume $\bar x\in\mathcal F$.  Then
+\[
+  \sum_{i\in I}(x_\gamma^\star)_i
+  \le
+  \frac{\sum_{i\in I} C_i\bar x_i+\gamma\KL(\bar x)}{C_{\min}}.
+\]
+In the graph-$W_1$ application, $\mathcal F$ is the affine nonnegative feasible set,
+$\KL=\KLdiv{\cdot}{z}$ is the finite sum of scalar KL terms, and $\bar x$ is any
+feasible comparison flow.
 \end{lemma}
 
 \begin{proof}
-By optimality of $x_\gamma^\star$ and nonnegativity of KL, $C_{\min}\|x_\gamma^\star\|_1\le\langle C,x_\gamma^\star\rangle\le\langle C,x_\gamma^\star\rangle+\gamma\KLdiv{x_\gamma^\star}{z}\le\langle C,\bar x\rangle+\gamma\KLdiv{\bar x}{z}$.
+Since $I$ is finite nonempty and $C_i>0$ for every coordinate, the finite
+minimum satisfies $C_{\min}>0$ and $C_{\min}\le C_i$ for every $i\in I$; this
+finite-minimum step is part of the Lean proof.
+Since $x_\gamma^\star\in\mathcal F$, its coordinatewise nonnegativity follows
+directly from the definition of $\mathcal F$.  By coordinatewise positivity,
+\[
+  C_{\min}\sum_i(x_\gamma^\star)_i
+  \le
+  \sum_i C_i(x_\gamma^\star)_i .
+\]
+Since $x_\gamma^\star\in\mathcal F$, the coordinatewise KL-term nonnegativity gives
+\[
+  \KL(x_\gamma^\star)
+  =\sum_i\ell_i(x_\gamma^\star)\ge0 .
+\]
+Together with $\gamma\ge0$, this implies
+\[
+  \sum_i C_i(x_\gamma^\star)_i
+  \le
+  \sum_i C_i(x_\gamma^\star)_i+\gamma\KL(x_\gamma^\star).
+\]
+The minimizing property of $x_\gamma^\star$ over $\mathcal F$, applied to
+$\bar x\in\mathcal F$, bounds the last quantity by
+$\sum_i C_i\bar x_i+\gamma\KL(\bar x)$.  Dividing by $C_{\min}>0$ gives the claim.
 \end{proof}
 
-\begin{proposition}[Graph-$W_1$ decomposition and iterate bounds]\label{app-prop:kappa-graph-diameter}\label{app-cor:graphw1-xgamma-ugamma}
-Let $\mathrm{diameter}(\Edge)$ be the maximum shortest-path distance between two vertices. Then $\kappa\le2\,\mathrm{diameter}(\Edge)$. If $u^{(0)}=0$, one may take
+\begin{proposition}[Graph-$W_1$ rooted path $\kappa$ certificate]\label{app-prop:kappa-graph-diameter}
+Let $I$ be a finite nonempty vertex index set.
+Let $\kappa,B\in\RR$ with $0\le B\le1$, let $D\in\mathbb{N}$, let
+$y^{f},y^{g}:I\times I\to\RR$, and let $(P_i)_{i\in I}$ be a rooted
+path family, where each $P_i$ is a finite list of oriented pairs in
+$I\times I$.  Assume
 \[
-U_\gamma=4\,\mathrm{diameter}(\Edge)(\length_{\max}+\gamma H_\gamma),
-\qquad
-X_\gamma=\frac{\|b\|_1U_\gamma}{\gamma}+p e^{-\length_{\min}/\gamma}.
+  |y^{f}_{p}|\le B,\qquad |y^{g}_{p}|\le B\quad\forall p\in I\times I,
+  \qquad
+  |P_i|\le D\quad\forall i\in I,
+\]
+and that one rooted path controls the quotient constant:
+\[
+  \exists i\in I,\qquad
+  \kappa\le
+  \left|\sum_{p\in P_i}\bigl(y^{f}_{p}+y^{g}_{p}\bigr)\right|.
+\]
+Then
+\[
+  \kappa\le 2D .
 \]
 \end{proposition}
 
 \begin{proof}
-For $y=A^\top(v,U)$, write $y^{(f)}_{i,j}=v_i+U_{i,j}$ and $y^{(g)}_{i,j}=-v_j-U_{i,j}$. The edge field $g_{i,j}=y^{(f)}_{i,j}+y^{(g)}_{i,j}=v_i-v_j$ satisfies $\|g\|_\infty\le2\|y\|_\infty$. Fixing a root and integrating this gradient along shortest paths gives a representative $\tilde v$ with $\|\tilde v\|_\infty\le2\,\mathrm{diameter}(\Edge)\|y\|_\infty$; defining $\tilde U_{i,j}=y^{(f)}_{i,j}-\tilde v_i$ gives $y=A^\top(\tilde v,\tilde U)$. This proves the bound on $\kappa$. Proposition~\ref{prop:graphw1-signed-structure} gives the non-expansiveness hypothesis required by Proposition~\ref{prop:uniform-iter-final}; combining it with the bound on $\kappa$ and Proposition~\ref{app-prop:hgamma-graphw1} gives the stated $U_\gamma$. Finally Proposition~\ref{prop:mass-bound-block} gives the displayed $X_\gamma$.
+This is the rooted-path certificate formalized in Lean.  Along any
+path element,
+\[
+  |y^f_p+y^g_p|\le |y^f_p|+|y^g_p|\le 2B\le2 .
+\]
+Thus a path with at most $D$ elements has summed edge-gradient magnitude at
+most $2D$, and the assumed quotient-control inequality gives
+$\kappa\le2D$.
+
+For $y=A^\top(v,U)$ in the graph-$W_1$ specialization, write
+$y^{(f)}_{i,j}=v_i+U_{i,j}$ and
+$y^{(g)}_{i,j}=-v_j-U_{i,j}$.  The edge field
+$g_{i,j}=y^{(f)}_{i,j}+y^{(g)}_{i,j}=v_i-v_j$ satisfies
+$\|g\|_\infty\le2\|y\|_\infty$.  Fixing a root and integrating this gradient
+along shortest paths supplies the rooted path family with
+$D=\mathrm{diameter}(\Edge)$; this is the graph-theoretic specialization.
+\end{proof}
+
+\begin{corollary}[Graph-$W_1$ zero-start iterate constants]\label{app-cor:graphw1-xgamma-ugamma}
+Let $I$ be a finite nonempty vertex index set and let $J$ be an
+auxiliary block index set.  Let
+\[
+  \Psi_1:\RR^J\to\RR^I,\qquad
+  \Psi_2:\RR^I\to\RR^J
+\]
+be the two graph-$W_1$ block maps.  Assume that $\Psi_1$ and $\Psi_2$
+are monotone and satisfy the signed block translation-equivariance
+laws of Proposition~\ref{app-prop:translation-equivariance} for some
+paired sign $\tau$.  Set $\Psi=\Psi_1\circ\Psi_2$ and let
+$v^\star$ be a fixed point of this full sweep.  Let
+$\gamma>0$, $b_{\rm mass}\ge0$, $0\le B\le1$, and assume
+$\ell_{\max}+\gamma H_\gamma\ge0$.  Let
+$y^f,y^g:I\times I\to\RR$ satisfy
+\[
+  |y^f_q|\le B,\qquad |y^g_q|\le B\qquad\forall q\in I\times I .
+\]
+Suppose also that
+\[
+  \normVar{v^\star}\le \kappa(\ell_{\max}+\gamma H_\gamma).
+\]
+If a finite list of edge-gradient increments $(s_a)_a$ satisfies
+\[
+  \#\{a\}\le D,\qquad
+  s_a=y^f_{p_a}+y^g_{p_a}\ \text{for some }p_a\in I\times I,\qquad
+  \kappa\le\left|\sum_a s_a\right|,
+\]
+and if the primal mass proxy satisfies, for all $k\ge0$,
+\[
+  X(k)\le
+  \frac{b_{\rm mass}\,\normVar{\Psi^k(0)}}{\gamma}
+  +p\,e^{-\length_{\min}/\gamma},
+\]
+then there exist constants
+\[
+  U_\gamma=4D(\ell_{\max}+\gamma H_\gamma),
+  \qquad
+  X_\gamma=\frac{b_{\rm mass}U_\gamma}{\gamma}
+    +p e^{-\length_{\min}/\gamma}
+\]
+such that, for all $k\ge0$,
+\[
+  \normVar{\Psi^k(0)}\le U_\gamma,
+  \qquad
+  X(k)\le X_\gamma .
+\]
+
+In the graph-$W_1$ specialization, $D=\mathrm{diameter}(\Edge)$,
+$\ell_{\max}=\length_{\max}$, and $b_{\rm mass}=\|b\|_1$.
+\end{corollary}
+
+\begin{proof}
+The Lean statement for this corollary uses named certificate records for the
+two block maps and their monotonicity/translation laws, the fixed point and its
+\(H_\gamma\)-\(\kappa\) budget, the bounded edge fields \(y^f,y^g\), the
+finite two-step path list, and the pointwise mass proxy.  These records are
+only organizational: their fields are exactly the hypotheses displayed above.
+Topicality gives non-expansiveness in the
+variation seminorm, hence Proposition~\ref{prop:uniform-iter-final}, applied
+from the zero initialization, gives
+\[
+  \normVar{\Psi^k(0)}\le2\normVar{v^\star}.
+\]
+The fixed-point budget and the path certificate yield
+\[
+  \normVar{\Psi^k(0)}
+  \le2\,\kappa(\ell_{\max}+\gamma H_\gamma)
+  \le4D(\ell_{\max}+\gamma H_\gamma)=U_\gamma .
+\]
+Substituting this bound into the displayed mass proxy gives the stated
+$X_\gamma$.  In the graph-$W_1$ application,
+Proposition~\ref{prop:graphw1-signed-structure} supplies topicality,
+Proposition~\ref{app-prop:hgamma-graphw1} supplies the $H_\gamma$ budget, and
+Proposition~\ref{prop:mass-bound-block} supplies the mass proxy.
 \end{proof}
 
 \paragraph{Proof of Theorem~\ref{thm:graphw1-complexity}.}
@@ -1766,18 +2398,33 @@ Using $\Sigma$ and~\eqref{app-eq:bipartite}, define a partial order $\preceq_\Si
   \end{cases}
 \end{equation}
 
-\begin{proposition}[Monotonicity of block updates]\label{app-prop:block-monotone}
-Assume~\eqref{app-eq:bipartite}. Then 
-\begin{enumerate}[label=\textnormal{(\roman*)},itemsep=0.5em]
-\item (\textit{Anti-monotonicity of $\Psi_1$}) If $u_2 \preceq_\Sigma v_2$, then
-$\Psi_1(v_2)\le\Psi_1(u_2)$.
-\item (\textit{Anti-monotonicity of $\Psi_2$}) If $u_1 \le v_1$, then
-$\Psi_2(v_1)\preceq_\Sigma\Psi_2(u_1)$. 
-\item (\textit{Monotonicity of $\Psi$}) If $u_1 \le v_1$ then $\Psi(u_1) \le \Psi(v_1)$. 
-\end{enumerate}
+\begin{proposition}[Composition of anti-monotone block updates]\label{app-prop:block-monotone}
+Let $R_2$ be a relation on the second block and let $\Psi=\Psi_1\circ\Psi_2$.
+Assume the two block anti-monotonicity laws
+\begin{align}
+&R_2(u_2,v_2)\quad\Longrightarrow\quad \Psi_1(v_2)\le\Psi_1(u_2),
+\label{app-eq:block-antitone-1}\\
+&u_1\le v_1\quad\Longrightarrow\quad R_2(\Psi_2(v_1),\Psi_2(u_1)).
+\label{app-eq:block-antitone-2}
+\end{align}
+Then the two displayed laws hold, and the full sweep is monotone:
+\[
+  u_1\le v_1\quad\Longrightarrow\quad
+  \Psi(u_1)=\Psi_1(\Psi_2(u_1))
+  \le \Psi_1(\Psi_2(v_1))=\Psi(v_1).
+\]
+In the signed KL setting of~\eqref{app-eq:bipartite}, this proposition is applied with
+$R_2=\preceq_\Sigma$.
 \end{proposition}
 
 \begin{proof}
+The abstract composition step is immediate. If $u_1\le v_1$, then
+\eqref{app-eq:block-antitone-2} gives
+$R_2(\Psi_2(v_1),\Psi_2(u_1))$, and \eqref{app-eq:block-antitone-1} gives
+$\Psi_1(\Psi_2(u_1))\le\Psi_1(\Psi_2(v_1))$.
+This is the order-theoretic theorem certified in Lean. We now recall why, in the signed KL
+setting, the relation $R_2=\preceq_\Sigma$ satisfies the two anti-monotonicity laws.
+
 For $u \in \RR^m$, the primal-dual relation reads 
 $
   x_i(u)= \zC_i \exp( (A^\top u)_i ).
@@ -1835,25 +2482,49 @@ This contradicts $M_2(u_1,v_2)\le b_2$. Hence $v_2\preceq_\Sigma u_2$, i.e. $\Ps
 \noindent\textit{(iii) Monotonicity of $\Psi$.}
 Assume $u_1\le v_1$. By (ii),
 $\Psi_2(v_1) \preceq_\Sigma \Psi_2(u_1)$.
-Apply (i) with $u_2=\Psi_2(v_1)$ and $v_2=\Psi_2(u_1)$ to obtain
+Apply (i), equivalently \eqref{app-eq:block-antitone-1} with $R_2=\preceq_\Sigma$,
+with $u_2=\Psi_2(v_1)$ and $v_2=\Psi_2(u_1)$ to obtain
 $\Psi_1(\Psi_2(u_1)) \le \Psi_1(\Psi_2(v_1))$,
 i.e. $\Psi(u_1)\le \Psi(v_1)$.
 \end{proof}
 
 
-\begin{lemma}[Monotonicity of moment maps]\label{app-lem:moment-monotone}
-Assume~\eqref{app-eq:bipartite}. Then:
-\begin{enumerate}[label=\textnormal{(\arabic*)},itemsep=0.4em]
-\item For any fixed $u_2$, the maps $M_1(\cdot,u_2)$ and $M_2(\cdot,u_2)$ are componentwise nondecreasing.
-\item For any fixed $u_1$, the maps $M_1(u_1,\cdot)$ and $M_2(u_1,\cdot)$ are nondecreasing with respect to $\preceq_\Sigma$.
-\end{enumerate}
+\begin{lemma}[Monotonicity of finite nonnegative moment maps]\label{app-lem:moment-monotone}
+Let $S,I,J$ be finite index sets.  Let $A:S\times I\to\RR$ and
+$B:I\times J\to\RR$ satisfy $A_{r,i}\ge0$ and $B_{i,j}\ge0$ for all
+$r,i,j$.  If $x,y\in\RR^S$ satisfy $x_r\le y_r$ for every $r\in S$, then
+the two-layer moment map
+\[
+  \mathcal M(x)_j
+  =
+  \sum_{i\in I} B_{i,j}\left(\sum_{r\in S}A_{r,i}x_r\right)
+\]
+is componentwise monotone:
+\[
+  \mathcal M(x)_j\le \mathcal M(y)_j
+  \qquad\text{for every }j\in J.
+\]
+In the signed KL setting of~\eqref{app-eq:bipartite}, applying this finite
+nonnegative-layer statement to the signed source coordinates gives the
+monotonicity of $M_s$ in the first block and the monotonicity of $M_s$ with
+respect to $\preceq_\Sigma$ in the second block.
 \end{lemma}
 
 
 \begin{proof}
-\noindent\textit{(1) monotonicity in $u_1$.}
-Fix $u_2$. If $u_1\le v_1$ componentwise, then $B_1^\top u_1\le B_1^\top v_1$ componentwise because $B_1\ge 0$.
-Hence for each $i$:
+\noindent\textit{Finite nonnegative-layer step.}
+For each $i\in I$, nonnegativity of $A_{r,i}$ gives
+\[
+  \sum_{r\in S}A_{r,i}x_r\le \sum_{r\in S}A_{r,i}y_r .
+\]
+Multiplying by $B_{i,j}\ge0$ and summing over $i$ gives
+$\mathcal M(x)_j\le\mathcal M(y)_j$ for every $j\in J$.
+
+\noindent\textit{Signed KL application.}
+We now recover the moment-map monotonicity used in the proof of
+Proposition~\ref{app-prop:block-monotone}. Fix $u_2$. If $u_1\le v_1$
+componentwise, then $B_1^\top u_1\le B_1^\top v_1$ componentwise because
+$B_1\ge 0$. Hence for each $i$:
 \begin{itemize}[leftmargin=2em,itemsep=0.2em]
 \item if $\sigma_i=+1$, then the exponent in~\eqref{app-eq:x_signed} increases, so $x_i(u_1,u_2)\le x_i(v_1,u_2)$ and
 $\sigma_i x_i(\cdot) B_{s,i}$ increases (since $B_{s,i}\ge 0$);
@@ -1861,7 +2532,9 @@ $\sigma_i x_i(\cdot) B_{s,i}$ increases (since $B_{s,i}\ge 0$);
 reverses the inequality: $\sigma_i x_i(u_1,u_2)\le \sigma_i x_i(v_1,u_2)$, hence again
 $\sigma_i x_i(\cdot) B_{s,i}$ increases componentwise.
 \end{itemize}
-Summing over $i$ yields $M_s(u_1,u_2)\le M_s(v_1,u_2)$ componentwise for $s\in\{1,2\}$, proving (1) and (2).
+This is exactly the finite nonnegative-layer argument above, with the signed
+atomwise contributions as the ordered intermediate layer. Summing over $i$
+yields $M_s(u_1,u_2)\le M_s(v_1,u_2)$ componentwise for $s\in\{1,2\}$.
 
 \noindent\textit{(2) monotonicity in $u_2$ for the signed order.}
 Fix $u_1$. If $u_2\preceq_\Sigma v_2$, then by definition~\eqref{app-eq:signed-order},
@@ -1878,11 +2551,12 @@ Therefore the exponent in~\eqref{app-eq:x_signed} increases for every $i$, which
 Now consider the contributions $\sigma_i x_i(\cdot)\,B_{s,i}$:
 \begin{itemize}[leftmargin=2em,itemsep=0.2em]
 \item if $\sigma_i=+1$, increasing $x_i$ increases the nonnegative vector $x_i B_{s,i}$;
-\item if $\sigma_i=-1$, increasing $x_i$ decreases the nonpositive vector $-x_i B_{s,i}$, i.e.increases it componentwise.
+\item if $\sigma_i=-1$, increasing $x_i$ decreases the nonpositive vector $-x_i B_{s,i}$, i.e. increases it componentwise.
 \end{itemize}
-Summing over $i$ yields $M_s(u_1,u_2)\le M_s(u_1,v_2)$ componentwise for $s\in\{1,2\}$, which is precisely
-nondecreasingness with respect to $\preceq_\Sigma$.
-This proves (3) and (4).
+Again applying the finite nonnegative-layer argument to the resulting signed
+intermediate layer and summing over $i$ yields
+$M_s(u_1,u_2)\le M_s(u_1,v_2)$ componentwise for $s\in\{1,2\}$, which is
+precisely nondecreasingness with respect to $\preceq_\Sigma$.
 \end{proof}
 
 %%% %%% Translation invariances %%% %%% %%%
@@ -1896,19 +2570,33 @@ A_1^\top \ones_{m_1} + \tau\,A_2^\top \ones_{m_2} = 0  \in \RR^d.
 \end{equation}
 One has $\tau=-1$ for classical OT and $\tau=+1$ for the lifted $\mathrm{W}_1$ flow formulation on graphs.
 
-\begin{proposition}[Translation equivariance under signed paired--balance]\label{app-prop:translation-equivariance}
-Assume the signed paired--balance condition~\eqref{app-eq:paired-balance-tau}. Then for every $c\in\RR$,
+\begin{proposition}[Translation equivariance from paired--balance block laws]\label{app-prop:translation-equivariance}
+Fix $\tau\in\{+1,-1\}$ and let $\mathcal P$ be a paired--balance certificate.  Assume
+that $\mathcal P$ holds and that it implies the two signed block-translation laws
 \begin{equation}\label{app-eq:trans_Psi12}
-\Psi_2(u_1+c\,\ones_{m_1})=\Psi_2(u_1)+\tau\,c\,\ones_{m_2}, \quad
-\Psi_1(u_2+c\,\ones_{m_2})=\Psi_1(u_2)+\tau\,c\,\ones_{m_1}.
+\Psi_2(u_1+c\,\ones_{m_1})=\Psi_2(u_1)+\tau\,c\,\ones_{m_2},
+\qquad
+\Psi_1(u_2+c\,\ones_{m_2})=\Psi_1(u_2)+\tau\,c\,\ones_{m_1}
 \end{equation}
-Consequently, the full sweep $\Psi=\Psi_1\circ\Psi_2:\RR^{m_1}\to\RR^{m_1}$ is translation--equivariant:
+for all admissible $u_1,u_2,c$. Then the two displayed block laws hold, and the
+full sweep $\Psi=\Psi_1\circ\Psi_2:\RR^{m_1}\to\RR^{m_1}$ is translation--equivariant:
 \begin{equation}\label{app-eq:trans_Psi}
-\Psi(u_1+c\,\ones_{m_1})=\Psi(u_1)+c\,\ones_{m_1}.
+\Psi(u_1+c\,\ones_{m_1})=\Psi(u_1)+c\,\ones_{m_1}
+\qquad\text{for all }u_1,c.
 \end{equation}
+In the concrete KL setting, the certificate $\mathcal P$ is the signed paired--balance
+identity~\eqref{app-eq:paired-balance-tau}.
 \end{proposition}
 
-\begin{proof}Condition~\eqref{app-eq:paired-balance-tau} implies 
+\begin{proof}
+The abstract implication is the theorem certified in Lean. Since $\mathcal P$ holds, the
+two certified derivations give the two block laws in~\eqref{app-eq:trans_Psi12}. Applying
+the second law to $u_1+c\ones_{m_1}$ gives a shift by $\tau c$ in the second block. Applying
+the first law with shift $\tau c$ then gives a first-block shift by $\tau(\tau c)=c$.
+Therefore $\Psi(u_1+c\ones_{m_1})=\Psi(u_1)+c\ones_{m_1}$.
+
+It remains only to recall why the concrete paired--balance identity~\eqref{app-eq:paired-balance-tau}
+provides the block-law derivations used above. Condition~\eqref{app-eq:paired-balance-tau} implies
 \begin{equation}\label{app-eq:argmax_equivariance}
 F_\gamma(u_1+c\ones_{m_1},w)=F_\gamma(u_1,w-\tau c\ones_{m_2})+\dotp{b_1}{c\ones_{m_1}}+\dotp{b_2}{\tau c\ones_{m_2}},
 \end{equation}
@@ -1929,7 +2617,7 @@ which is the desired result for $\Psi_2$, the proof for $\Psi_1$ being similar.
 \section{Lean Formalization Guide}
 \label{app-sec:lean-formalization}
 
-The Lean development is intended as an audit trail for the mathematical structure of the paper.  Each theorem, proposition, lemma, and corollary appearing in the manuscript is assigned a stable Lean alias, and the aliases are checked against the compiled Lean theorem constants.  The formalization covers the main convergence chain, the regularized approximation theorem, the OT and graph-$W_1$ instantiations, and the auxiliary ingredients used in the appendices, including KL bias bounds, quotient-seminorm estimates, non-expansiveness interfaces, and the non-normalised Pinsker reduction of Appendix~\ref{app-lem:pinsker-nonnormalized}.  These auxiliary components are deliberately stated in reusable finite-dimensional forms, so that they can be inspected independently of the particular flow-Sinkhorn application.
+The Lean development is intended as an audit trail for the mathematical structure of the paper.  Each theorem, proposition, lemma, and corollary appearing in the manuscript is assigned a stable Lean alias, and the aliases are checked against compiled Lean theorem constants.  The current paper-facing map covers all 27 manuscript statements, including the main convergence chain, the regularized approximation theorem, the OT and graph-$W_1$ instantiations, and the auxiliary ingredients used in the appendices.  These include KL bias bounds, quotient-seminorm estimates, non-expansiveness interfaces, the per-step ascent estimate of Lemma~\ref{app-lem:per-step-ascent}, the quotient residual estimate of Lemma~\ref{app-lem:gap-vs-res-quotient}, and the non-normalised Pinsker reduction of Lemma~\ref{app-lem:pinsker-nonnormalized}.  Several auxiliary components are deliberately stated in reusable finite-dimensional forms, so that they can be inspected independently of the particular flow-Sinkhorn application.
 
 \paragraph{How to navigate the Lean code.}
 The current umbrella entry point is \texttt{lean/\allowbreak FlowSinkhorn/\allowbreak KLProjection.lean}, with project root \texttt{lean/\allowbreak FlowSinkhorn.lean}.  For paper-oriented reading, the facade \texttt{lean/\allowbreak FlowSinkhorn/\allowbreak Paper.lean} imports section and appendix modules following the manuscript structure.  The canonical synchronization layer is \texttt{lean/\allowbreak FlowSinkhorn/\allowbreak KLProjection/\allowbreak StatementMap.lean}; it is re-exported by \texttt{lean/\allowbreak FlowSinkhorn/\allowbreak Paper/\allowbreak StatementMap.lean}.  In this map, each paper-facing name, such as \texttt{thm\_3\_1}, \texttt{lem\_A\_1}, or \texttt{prop\_F\_5}, is an alias for one canonical Lean theorem constant, and each alias carries an implementation-file comment indicating where the proof is defined.  The map itself is intentionally proof-free: it is a stable index from manuscript statements to proof-producing Lean modules.
@@ -1937,7 +2625,10 @@ The current umbrella entry point is \texttt{lean/\allowbreak FlowSinkhorn/\allow
 The implementation modules are organized by mathematical role rather than by LaTeX order.  The main groups are duality and primal--dual identities, dual convergence and rate estimates, primal/dual uniform bounds, finite-dimensional variation geometry, and the OT and graph-$W_1$ application layers.  This organization keeps reusable proof infrastructure separate from the paper-facing alias layer while still allowing a reader to start from a statement label and jump directly to the corresponding proof file.
 
 \paragraph{Certification scope.}
-The certified development currently contains 26{,}596 non-comment, non-blank lines of Lean code in the KL-projection namespace, with 1{,}511 theorem/lemma declarations and 36 direct definition/structure declarations under the repository audit counter.  The paper-facing map is checked by scripts that verify alias completeness, compiled endpoint existence, statement numbering, and implementation-file locations.  The build is green for \texttt{cd lean \&\& lake build FlowSinkhorn.KLProjection.StatementMap}, and the KL-projection development contains no \texttt{sorry}, \texttt{admit}, or local \texttt{axiom} declarations.
+The certified KL-projection backend currently contains 30{,}435 non-comment, non-blank lines of Lean code, with 1{,}633 theorem/lemma declarations and 63 direct definition/structure/class/abbrev/inductive declarations under the repository audit counter.  The paper-facing map is checked by scripts that verify alias completeness, compiled endpoint existence, statement numbering, and implementation-file locations.  The build is green for \texttt{cd lean \&\& lake build FlowSinkhorn.KLProjection.StatementMap}, and the proof-producing KL-projection development contains no \texttt{sorry}, \texttt{admit}, or local \texttt{axiom} declarations.
+
+\paragraph{Comparator challenge and solution.}
+The repository also contains a Comparator-ready statement-checking layer.  The trusted challenge file \texttt{lean/\allowbreak FlowSinkhorn/\allowbreak Comparator/\allowbreak Challenge.lean} imports only \texttt{Mathlib} and proof-free \texttt{FlowSinkhorn.Comparator.Vocabulary.*} modules, and it contains exactly the 27 reviewed statement-only declarations.  The untrusted solution file \texttt{lean/\allowbreak FlowSinkhorn/\allowbreak Comparator/\allowbreak Solution.lean} imports only \texttt{FlowSinkhorn.KLProjection.StatementMap} and proves the same 27 theorem statements by the corresponding paper-facing aliases.  The generated manifest, review dossier, and challenge lock record the paper labels, theorem names, implementation-file locations, statement hashes, and audit verdicts.  Local checks verify that the challenge and solution statements match, that the challenge does not expose implementation theorem endpoints, and that the independent paper-to-challenge audit has 27 faithful entries and no qualified entries.  A local fake-\texttt{landrun} Comparator smoke test accepts the solution; the remaining external step for a fully hardened Comparator certificate is to run the frozen configuration on Linux with real \texttt{landrun}.
 
 A few examples illustrate what is certified.  The formalized Pinsker appendix constructs the finite sign selector, relates it to the $\ell^1$ distance, builds the two-point Bernoulli measure used for the sign test, invokes mathlib's measure-theoretic Hoeffding lemma, normalizes the common-mass variational inequality, performs the scalar quadratic optimization, and scales the result back to the non-normalised form used in Appendix~\ref{app-lem:pinsker-nonnormalized}.  The per-step ascent formalization combines this Pinsker layer with KL-gain certificates for the two block updates and then composes the two half-steps into the full sweep inequality of Lemma~\ref{app-lem:per-step-ascent}.  The quotient-residual formalization proves the finite Holder step, the shifted-representative and gauge-orthogonality manipulations, and the conversion from quotient-seminorm radii to the gap estimate used in Lemma~\ref{app-lem:gap-vs-res-quotient}.
 
