@@ -13,7 +13,8 @@ The algorithm is introduced and analyzed in the paper:
 
 > **Robust Sublinear Convergence Rates for Iterative Bregman Projections**
 > Gabriel Peyré
-> *Preprint, 2026*
+> *arXiv:2602.01372 [math.OC], 2026*  
+> https://arxiv.org/abs/2602.01372
 
 Flow Sinkhorn can be seen as a flow-based interpretation and implementation of Sinkhorn-type iterations, with strong robustness and convergence guarantees derived from the theory of iterative Bregman projections.
 
@@ -344,15 +345,18 @@ Areas especially useful for contribution include performance improvements, addit
 
 ## Citation
 
-Please cite the paper once the public bibliographic entry is available. For now,
-refer to:
+If you use this code or the Lean formalization, please cite the preprint:
 
 ```bibtex
-@misc{peyre2026flowsinkhorn,
+@misc{peyre2026robust,
   title={Robust Sublinear Convergence Rates for Iterative Bregman Projections},
   author={Peyr{\'e}, Gabriel},
   year={2026},
-  note={Preprint}
+  eprint={2602.01372},
+  archivePrefix={arXiv},
+  primaryClass={math.OC},
+  doi={10.48550/arXiv.2602.01372},
+  url={https://arxiv.org/abs/2602.01372}
 }
 ```
 
