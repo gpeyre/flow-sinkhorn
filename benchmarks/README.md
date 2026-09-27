@@ -12,7 +12,7 @@ The unified runner `benchmarks/run_benchmark.py` supports three settings:
 
 Each run writes:
 
-- paper-panel files to `neurips/figures/benchmark-<setup-tag>-<bench>-graph.pdf` and `neurips/figures/benchmark-<setup-tag>-<bench>-convergence.pdf`;
+- paper-panel files to `paper/figures/benchmark-<setup-tag>-<bench>-graph.pdf` and `paper/figures/benchmark-<setup-tag>-<bench>-convergence.pdf`;
 - detailed diagnostic figures to `benchmarks/results/figures/`;
 - CSV/LaTeX summary tables to `benchmarks/results/tables/`;
 - an optional local PDF report to `benchmarks/results/report-<bench>.pdf` when `pdflatex` is available.

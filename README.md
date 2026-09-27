@@ -7,7 +7,7 @@
 This repository contains:
 - the reference implementation of **Flow Sinkhorn** for approximate Wasserstein-1 on graphs,
 - benchmark and example code for reproducing the numerical experiments,
-- and a Lean formalization of the main convergence/complexity blueprint.
+- and a partially formalized Lean companion to the convergence/complexity blueprint.
 
 The algorithm is introduced and analyzed in the paper:
 
@@ -100,7 +100,8 @@ flow-sinkhorn/
 ├── data/                  # Local datasets (ignored by git)
 ├── examples/              # Example notebooks
 ├── flowsinkhorn/          # Main Python package
-├── lean/                  # Lean formalization
+├── lean/                  # Partially formalized Lean companion
+├── paper/                 # Neutral-style article, PDF, proofs, and bibliography audit
 ├── setup.py               # Installation script
 └── README.md              # This file
 ```
@@ -109,10 +110,12 @@ flow-sinkhorn/
 
 ## Formal Verification (Lean)
 
-The machine-checked formalization is in `lean/`.
+The Lean companion library is in `lean/`. It is **not an end-to-end certificate
+for the revised article**: some historical endpoints are conditional certificates
+that assume substantial ingredients. See [`lean/PAPER_COVERAGE.md`](lean/PAPER_COVERAGE.md).
 
 - Canonical umbrella import: `FlowSinkhorn.KLProjection`
-- Full certification-chain import: `FlowSinkhorn.KLProjection.Certification`
+- Historical conditional-certificate import: `FlowSinkhorn.KLProjection.Certification`
 - Status and audit map: [`lean/README.md`](lean/README.md)
 
 Quick verification:
@@ -125,11 +128,19 @@ rg '^\s*(def|structure)\b' FlowSinkhorn/KLProjection | wc -l
 rg '^\s*(sorry|admit|axiom)\b' FlowSinkhorn/KLProjection
 ```
 
-The paper appendix explains the paper-label to Lean-constant map and the
-certification workflow. The paper source itself is not required to run the code
+The paper appendix explains the scope of the historical paper-label map and the
+remaining formalization work. The paper source itself is not required to run the code
 or verify the Lean project.
 
 ---
+
+## Article
+
+The current de-anonymized article is [`paper/paper.pdf`](paper/paper.pdf).
+Build it with `make -C paper`; prepare a source-only arXiv archive with
+`make -C paper arxiv`. This does not upload or submit anything.
+See [`modifications.md`](modifications.md) for the reviewer-response change log
+and [`paper/audit/bibliography.md`](paper/audit/bibliography.md) for the reference audit.
 
 ## Documentation
 

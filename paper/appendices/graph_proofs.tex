@@ -1,0 +1,70 @@
+\section{Proofs for Graph Flow-Sinkhorn}\label{app-app:w1-proofs}
+This appendix proves the graph-specific inputs used in Section~\ref{sec:applications}, retaining its orientation, half-cost normalization, and reference $z$. It does not introduce a different flow problem.
+
+\paragraph{Operators and gauges.}
+The lifted constraints in~\eqref{eq-W1-flow-lifted} are $A_1(f,g)=-f\mathbf1+g^\top\mathbf1$ and $A_2(f,g)=f-g$, with right-hand side $(q,0)$. Their combined adjoint is
+\begin{equation}\label{app-app-eq:At_action}
+ A^\top(v,U)=(y^f,y^g),\qquad
+ y^f_{ij}=-v_i+U_{ij},\qquad y^g_{ij}=v_j-U_{ij}.
+\end{equation}
+Each column of the stacked matrix has two entries of magnitude one, hence $\|A\|_{1\to1}=2$ (whereas $\|A_1\|_{1\to1}=1$). Connectedness implies $\ker A^\top=\{(c\mathbf1_V,c\mathbf1_E):c\in\mathbb R\}$. Thus both block quotient seminorms are variation seminorms, on different spaces, and the paired translation parameter in Proposition~\ref{app-prop:translation-equivariance} is $\tau=+1$. The independent block quotients still need not admit simultaneous centering.
+
+\paragraph{Proof of Proposition~\ref{prop:graphw1-projection-closed-form}.}
+For a $\mathcal C_1$ multiplier $\lambda_i$, stationarity of the KL projection gives $f'_{ij}=e^{\lambda_i}f_{ij}$ and $g'_{ij}=e^{-\lambda_j}g_{ij}$. Write $s_i=e^{\lambda_i}>0$. The constraint is $-r_is_i+c_i/s_i=q_i$, whose unique positive solution is the displayed quadratic root. On $\mathcal C_2$ the scalar objective $\KL(h_{ij}|f'_{ij})+\KL(h_{ij}|g'_{ij})$ has derivative $\log(h_{ij}/f'_{ij})+\log(h_{ij}/g'_{ij})$; its zero is $\sqrt{f'_{ij}g'_{ij}}$. This proves the projection and the full sweep~\eqref{eq:proj-sinkh-flow}.
+
+\paragraph{Proof of Proposition~\ref{prop:graphw1-flow-sinkhorn-update}.}
+Multiplication by $\sqrt{s_i/s_j}$ sends $v$ to $v-\frac\gamma2\log s$. For a full iterate, $r_i=e^{-v_i/\gamma}e^{\alpha_i^+/\gamma}$ and $c_i=e^{v_i/\gamma}e^{\alpha_i^-/\gamma}$. The quadratic root satisfies
+$\log s_i=\tfrac12(\log c_i-\log r_i)-\arsinh(q_i/(2\sqrt{r_ic_i}))$.
+Substituting in the potential update gives~\eqref{eq:v-update-stable}. To evaluate its last term, set $\ell_i=\log(|q_i|/2)-(\alpha_i^++\alpha_i^-)/(2\gamma)$ when $q_i\ne0$. For $\ell\geq0$, use $\arsinh(e^\ell)=\ell+\log(1+\sqrt{1+e^{-2\ell}})$; for $\ell<0$, $\arsinh(e^\ell)$ has a bounded argument. Multiply by $\sign q_i$, and return zero if $q_i=0$. This avoids forming a possibly overflowing exponential of $\ell_i>0$.
+
+\begin{proposition}[Graph block maps and non-expansiveness]\label{prop:graphw1-psi2-closed-nonexp}
+With the normalized adjoint~\eqref{app-app-eq:At_action}, $\Psi_2(v)_{ij}=(v_i+v_j)/2$. The first block $\Psi_1(U)_i$ is the unique root $t$ of
+\begin{equation}\label{eq:graph-moment}
+ \sum_j z_{ji}e^{(t-U_{ji}-W_{ji}/2)/\theta}
+ -\sum_j z_{ij}e^{(-t+U_{ij}-W_{ij}/2)/\theta}=q_i,
+ \qquad\theta=\gamma/2.
+\end{equation}
+Both blocks are order preserving and commute with constant translations. Consequently their composition is non-expansive in $\|\cdot\|_{\rm Var}$.
+\end{proposition}
+\begin{proof}
+Second-block optimality says $f_{ij}=g_{ij}$. Their common reference and cost cancel in the log ratio, giving $-v_i+U_{ij}=v_j-U_{ij}$ and the average formula. Substituting it gives the physical recovery $f_{ij}=z_{ij}e^{(v_j-v_i-W_{ij})/\gamma}$. First-block optimality is exactly~\eqref{eq:graph-moment}. Its left-hand side is continuous, strictly increasing in $t$, and tends to $-\infty,+\infty$ at the two ends; every vertex has an incident edge. Each incident $U$ coordinate enters with a negative derivative, including those in the subtracted sum. Proposition~\ref{app-prop:block-monotone} therefore makes its root order preserving. Adding $c$ to all edge coordinates and to $t$ leaves the equation unchanged. The average formula has the same translation law and is order preserving. Apply Proposition~\ref{app-prop:topical-nonexpansive} to the composition. This direct scalar proof avoids assuming an order-preserving inverse for an arbitrary coupled moment map.
+\end{proof}
+
+\begin{lemma}[Positive costs bound optimal primal mass]\label{app-lem:l1-bound-from-feasible}
+For a feasible problem with coordinate costs at least $c_{\min}>0$, a positive reference, and any feasible comparison $\bar x\geq0$, its regularized optimizer satisfies
+$\|x_\gamma^\star\|_1\leq(\langle C,\bar x\rangle+\gamma\KL(\bar x|z))/c_{\min}$.
+\end{lemma}
+\begin{proof}
+Nonnegativity of KL and of $x_\gamma^\star$ gives
+$c_{\min}\|x_\gamma^\star\|_1\leq\langle C,x_\gamma^\star\rangle\leq F_\gamma^\star\leq\langle C,\bar x\rangle+\gamma\KL(\bar x|z)$.
+\end{proof}
+This elementary lemma is of independent interest beyond graph transport; its coordinatewise lower-cost hypothesis is specific to the positive-orthant/$\ell^1$ geometry.
+
+\begin{proposition}[Graph log-ratio bound]\label{app-prop:hgamma-graphw1}
+For the physical regularized optimum, $\|\log(f_\gamma^\star/z)\|_\infty\leq H_\gamma$, with $M_\gamma,H_\gamma$ from~\eqref{eq:graph-constants}. The same bound applies to the duplicated lifted optimum.
+\end{proposition}
+\begin{proof}
+The preceding lemma bounds each coordinate of $f_\gamma^\star$ by $M_\gamma$. If $r_{ij}=\log(f_{ij}^\star/z_{ij})$, then $r_{ij}\leq\log M_\gamma+L_z$. The recovery formula in Proposition~\ref{prop:graphw1-psi2-closed-nonexp} gives
+$r_{ij}+r_{ji}=-2W_{ij}/\gamma$.
+Applying the upper bound to $r_{ji}$ yields $r_{ij}\geq-2W_{\max}/\gamma-\log M_\gamma-L_z$. Replacing $\log M_\gamma$ by $|\log M_\gamma|$ gives the claimed safe two-sided bound. Positivity of $M_\gamma$ follows because a zero numerator would require simultaneously zero transport cost and zero KL, impossible for $W>0,z>0$.
+\end{proof}
+
+\begin{proposition}[Graph geometry and orbit bounds]\label{app-prop:kappa-graph-diameter}
+For the normalized lift, $\kappa_1\leq\Dhop$. The zero-start vertex potentials, their first-block half-steps, and an optimal vertex potential have variation radius at most $U_\gamma$ in~\eqref{eq:graph-constants}. Every full and half-step lifted primal vector has mass at most $X_\gamma$ there.
+\end{proposition}
+\begin{proof}
+If $\|A^\top(v,U)\|_\infty\leq1$, then $v_j-v_i=y^f_{ij}+y^g_{ij}$ has magnitude at most two on each edge. A minimum-hop path gives $\max v-\min v\leq2\Dhop$, hence $\|v\|_{\rm Var}\leq\Dhop$. Applying Proposition~\ref{prop:uniform-iter-final} with $\theta=\gamma/2$ and $\|\bar C\|_\infty=W_{\max}/2$ proves the stated $U_\gamma$. Half-step first blocks equal the next full first blocks. Since $\sum_iq_i=0$, the pairing obeys $\langle q,v\rangle\leq\|q\|_1\|v\|_{\rm Var}$. Proposition~\ref{prop:mass-bound-block} with the lifted reference sum $2Z$ and cost lower bound $W_{\min}/2$ proves $X_\gamma$. In particular the coefficient $2/\gamma$ comes from the lifted regularization, not from a new normalization of $q$.
+\end{proof}
+
+\paragraph{Constructing the comparison and the bias envelope.}
+A feasible $\bar f$ can be constructed on any spanning tree: for each edge, remove it, sum $q$ on either component, and send that signed excess toward the other component using the corresponding orientation. At each vertex the net outgoing flow is $q_i$. Equivalently, couple positive and negative parts of $q$ and route that coupling along tree paths. Its total path mass is at most $(n-1)\|q\|_1/2$. This constructs the finite comparison constants without solving the transport problem; the maximum tree path length should not be identified with $\Dhop$. Alternatively, route along minimum-hop graph paths if a hop-diameter comparison is desired.
+
+For the bias envelope one needs an \emph{optimal} flow, not merely this tree comparison. Couple $q_+$ to $q_-$, whose common mass is $\|q\|_1/2$, using the weighted geodesic cost and an optimal coupling. Such a coupling exists in a finite-dimensional transport polytope. Route it along weighted shortest paths, chosen simple because all edge costs are positive. The resulting optimal flow has mass at most $M_0=(n-1)\|q\|_1/2$. The equivalence with~\eqref{eq-W1-flow} follows by discarding cycles in any feasible flow and using shortest-path lower bounds for each remaining path. Lemma~\ref{app-lem:kl-bias} now supplies the stated $B_0$, without requiring this optimizer to be computed by the algorithm.
+
+\paragraph{Proof of Theorem~\ref{thm:graphw1-complexity}.}
+The preceding propositions verify Theorem~\ref{thm:kl-dual-rate} on the normalized lift with $a=2$, parameter $\theta=\gamma/2$, and lifted mass $X_\gamma$. Thus the physical gap obeys $\Delta_k\leq64X_\gamma U_\gamma^2/(\gamma k)$. The physical bias is at most $\gamma B_0$; equivalently, the lifted bias is bounded by $\theta(2B_0)$. With $\gamma=\varepsilon/(2B_0)$, making the gap at most $\varepsilon/2$ requires $K\geq256B_0X_\gamma U_\gamma^2/\varepsilon^2$. Evaluation of the sparse dual and a full sweep both take $O(p)$ operations. Graph construction, the chosen comparison flow, and any optional reference solver are preprocessing and are not counted as sweeps. Arithmetic counts do not include a bit-complexity or finite-precision analysis.
+
+For fixed data, $\gamma H_\gamma=2W_{\max}+\gamma L_z+\gamma|\log M_\gamma|$ remains bounded as $\gamma\downarrow0$: $M_\gamma$ is a positive affine function of $\gamma$, possibly proportional to $\gamma$ when the comparison flow is zero. Hence $U_\gamma=O(1)$ and $X_\gamma=O(1/\gamma)$. Substitution gives $K=O(\varepsilon^{-3})$. No exponential term has been dropped in the nonasymptotic bound, and no impossible condition such as $p=o(1/\log(1/\varepsilon))$ is needed. Dependence on graph size, costs, reference, and geometry is entirely retained in~\eqref{eq:graph-constants} and $B_0$.
+
+\paragraph{Residual correction.}
+For a nonnegative iterate $f$, let $r=q-Bf$. Since $\sum_i r_i=0$, pair its positive and negative parts, of mass $\|r\|_1/2$, and route along shortest paths to obtain $g\geq0$ with $Bg=r$ and $\langle W,g\rangle\leq\Dweight\|r\|_1/2$. Then $f+g$ is feasible. This proves the correction statement in the main text, not an additional iteration bound for achieving a prescribed residual. A complementary unregularized dual lower bound is obtained from a potential $v$ by dividing it by $\max\{1,\max_E|v_j-v_i|/W_{ij}\}$; the resulting potential satisfies all graph Lipschitz constraints. Such a feasible primal/dual pair gives a computable stopping certificate distinct from the regularized-dual value estimator.

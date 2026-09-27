@@ -1,0 +1,54 @@
+\section{Extension to General Bregman Divergences}\label{app-app:general-bregman}
+\paragraph{Domains and duality.}
+Let $\phi$ be a Legendre convex function on a finite-dimensional primal space with norm $\|\cdot\|$, and choose $z$ in its differentiability domain. Define $D_\phi(x|z)=\phi(x)-\phi(z)-\langle\nabla\phi(z),x-z\rangle$. Consider minimizing $\langle C,x\rangle+\gamma D_\phi(x|z)$ subject to $Ax=b$. Assume strong duality with attained primal and dual optima, each exact block maximization is attained, and the points
+$w(u)=\nabla\phi(z)+(A^\top u-C)/\gamma$
+encountered below, including at an optimum, lie in the interior differentiability domain of $\phi^*$. These domain assumptions replace any assertion that arbitrary Bregman functions automatically admit all updates. The correct dual and recovery are
+\begin{equation}\label{eq:bregman-dual}
+ F_\gamma(u)=\langle b,u\rangle-\gamma\phi^*(w(u))
+ +\gamma\phi^*(\nabla\phi(z)),\qquad x(u)=\nabla\phi^*(w(u)).
+\end{equation}
+The constant is retained for absolute-value comparisons.
+
+\paragraph{Curvature and rate.}
+Equip the constraint space with the block-sum norm $\|(r_1,r_2)\|_Y=\|r_1\|_{Y_1}+\|r_2\|_{Y_2}$ and its maximum dual norm. Form $\|\cdot\|_{V_1}$ by quotienting $\|\cdot\|_{Y_1^*}$ by $N_1$. Initialize with a second-block solve, and suppose the first-block orbit and an optimum have quotient radius $U_\gamma$. Assume
+$D_\phi(x^{(k+1/2)}|x^{(k)})\geq\eta_\gamma\|x^{(k+1/2)}-x^{(k)}\|^2$
+for $\eta_\gamma>0$. Set $a=\|A\|_{\|\cdot\|\to Y}>0$. Then
+\begin{equation}\label{eq:bregman-rate}
+ \Delta_k\leq\frac{4U_\gamma^2a^2}{\gamma\eta_\gamma k},\qquad k\geq1.
+\end{equation}
+Indeed, Legendre duality and the block first-order condition give the exact identity $F_\gamma(u^+)-F_\gamma(u)=\gamma D_\phi(x(u^+)|x(u))$. The quotient residual argument is unchanged, using the stated dual norms. Thus progress is at least $\gamma\eta_\gamma r_k^2/a^2$, while $\Delta_k\leq2U_\gamma r_k$, and the reciprocal recurrence proves~\eqref{eq:bregman-rate}. For KL on a bounded-mass set, $\eta_\gamma=1/(2X_\gamma)$ recovers the factor eight in Theorem~\ref{thm:kl-dual-rate}. Nonnegativity and evaluation at an unregularized optimizer similarly give $0\leq F_\gamma^\star-F_0^\star\leq\gamma D_\phi(x_0^\star|z)$. The mass helper of Proposition~\ref{prop:mass-bound-block}, however, relies on KL's exponential conjugate and is not a general Bregman identity.
+
+\subsection{Quantum Optimal Transport as a Noncommutative Bregman Projection}\label{app-app:quantum-ot}
+\paragraph{Variational problem and literature.}
+Let $\rho\succ0$ and $\sigma\succ0$ be density matrices on finite-dimensional spaces of dimensions $d_1,d_2$, with trace one. For a Hermitian cost $C$ and reference $Z\succ0$ on the tensor product, consider
+\begin{equation}\label{eq:qot-problem}
+ \min_{P\succeq0}\ \tr(CP)+\gamma\KL(P|Z),\qquad
+ \tr_2P=\rho,\quad \tr_1P=\sigma,
+ \qquad
+ \KL(P|Q)=\tr\big(P(\log P-\log Q)-P+Q\big).
+\end{equation}
+The entropy is the Umegaki relative entropy with its generalized linear terms, not an entrywise KL. With singular marginals one must first restrict to their supports. Quantum transport encompasses several distinct constructions: matrix-valued transport~\citep{ning2014matrix,peyre2019quantum}, quantum couplings~\citep{golse2016mean,caglioti2019quantum}, and learning applications~\citep{chakrabarti2019quantum}. For the partial-trace entropic formulation closest to~\eqref{eq:qot-problem}, Feliciangeli, Gerolin, and Portinale~\citep{feliciangeli2021noncommutative} already prove noncommutative Sinkhorn convergence and a priori dual estimates. Convex-regularized extensions are studied in~\citep{caputo2024quantum}. We do not claim that convergence or all forms of dual control are open in quantum information theory.
+
+\paragraph{Dual maps.}
+For Hermitian multipliers $F,G$ the dual is
+\begin{equation}\label{eq:qot-dual}
+ \tr(\rho F)+\tr(\sigma G)+\gamma\tr Z
+ -\gamma\tr\exp\!\left(\log Z+
+ \frac{F\otimes I+I\otimes G-C}{\gamma}\right).
+\end{equation}
+Its primal recovery is the matrix exponential appearing here. The maps $\Psi_1(G),\Psi_2(F)$ are exact variational block maximizers, characterized respectively by $\tr_2P=\rho$ and $\tr_1P=\sigma$. In the noncommuting setting these equations need not reduce to an explicit matrix log-sum-exp update; replacing their solution by an entrywise or multiplicative surrogate would change the method. The feasible set contains $\rho\otimes\sigma\succ0$ and is compact, giving a unique positive entropic optimizer. The finite-dimensional equality-constraint argument then gives a dual multiplier; the same argument proves existence of each block solution. This establishes well-posedness of the variational updates, not a closed form or uniform iteration rate.
+
+\paragraph{Quantum Pinsker and the correct geometry.}
+For trace-one positive matrices the quantum Pinsker inequality reads
+\begin{equation}\label{eq:quantum-pinsker}
+ \KL(P|Q)\geq\tfrac12\nucnorm{P-Q}^2,\qquad
+ \nucnorm{X}=\tr\sqrt{X^*X},\qquad
+ (\|\cdot\|_*)^*=\|\cdot\|_{\rm op}.
+\end{equation}
+One proof applies monotonicity of quantum relative entropy under the two-outcome measurement onto the positive spectral subspace of $P-Q$~\citep{hiai1981sufficiency,watrous2018theory}; the measured $\ell^1$ difference is exactly $\nucnorm{P-Q}$, and Proposition~\ref{app-prop:pinsker-normalized} applies. With equal trace $m>0$, the coefficient is $1/(2m)$ by scaling. Partial-trace projection fixes the total trace, so the coefficient $1/2$ applies at every full and half-step after the initial projection.
+
+The adjoint kernel consists of $(cI,-cI)$. Thus each \emph{block} quotient is
+$\inf_{c\in\mathbb R}\opnorm{F+cI}=\tfrac12(\lambda_{\max}(F)-\lambda_{\min}(F))$, a spectral variation seminorm. The joint quotient $\inf_c\max\{\opnorm{F+cI},\opnorm{G-cI}\}$ is a different quantity. On Hermitian matrices, each partial trace is trace-norm contractive, so the combined constraint map into the sum trace norm has operator norm at most two. Also $\kappa_1\leq1$: if $\opnorm{F\otimes I+I\otimes G}\leq L$, comparison of two eigenvalues of $F$ with a fixed eigenvalue of $G$ gives spectral variation at most $L$. These finite-dimensional geometric inputs are therefore explicit, with no hidden entrywise interpretation.
+
+\paragraph{Remaining quantitative step.}
+The Bregman theorem applies conditionally once an explicit uniform spectral-quotient radius for the exact dual orbit is established. Quantum Pinsker and the norm of the partial-trace map do not establish this radius. In particular, the matrix exponential is not operator monotone on the full Hermitian order, so the elementary scalar order proof of Proposition~\ref{app-prop:topical-nonexpansive} cannot simply be copied. This observation is not, by itself, a proof that the composite quantum block map is expansive. We do not assert non-expansiveness of that map here. Relating available quantum dual estimates~\citep{feliciangeli2021noncommutative} to explicit small-$\gamma$, marginal-spectrum, and dimension dependence sufficient for our particular complexity bound remains outside the results proved in this article. The quantum discussion consequently provides a promising additional setting and verified geometric ingredients, not a completed second complexity theorem. A cost-based trace-mass bound would require a spectral lower bound $C\succeq cI$, not entrywise positivity; here the trace constraints already fix the primal mass exactly.

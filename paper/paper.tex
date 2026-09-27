@@ -1,0 +1,133 @@
+\documentclass{article}
+\usepackage[a4paper,margin=28mm]{geometry}
+\usepackage{lmodern}
+\usepackage[numbers,sort&compress]{natbib}
+% BEGIN inlined from preamble
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc,backgrounds,positioning}
+\usepackage{mathtools}
+\usepackage{xr-hyper}
+\usepackage{hyperref}
+\hypersetup{hidelinks}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\definecolor{helperorange}{RGB}{255,229,204}
+\definecolor{helperdarkorange}{RGB}{190,95,0}
+
+\usepackage{enumitem}
+\usepackage{longtable}
+\usepackage{bm}
+\usepackage{dsfont}
+\newcommand{\argmin}{\mathop{\mathrm{arg\,min}}}
+\newcommand{\argmax}{\mathop{\mathrm{arg\,max}}}
+\newcommand{\dotp}[2]{\langle #1,#2 \rangle}
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}{Lemma}[section]
+\newtheorem{proposition}{Proposition}[section]
+\newtheorem{corollary}{Corollary}[section]
+\newtheorem{definition}{Definition}[section]
+\newtheorem{remark}{Remark}[section]
+\newcommand{\mc}[1]{\mathcal{#1}}
+\newcommand{\tn}[1]{\textnormal{#1}}
+\newcommand{\ones}{\mathds{1}}
+\newcommand{\entropy}{H}
+\newcommand{\Vertex}{V}
+\newcommand{\Edge}{E}
+\newcommand{\EdgeIndicator}{1_{\Edge}}
+\newcommand{\length}{W}
+\newcommand{\lengthSet}{\mc{W}}
+\newcommand{\prob}{\tn{Prob}}
+\newcommand{\WD}{{\tn{W}}}
+\newcommand{\flows}{\mc{F}}
+\newcommand{\flowsCol}{C}
+\newcommand{\softmin}{\tn{smin}}
+\newcommand{\hinge}{h}
+\newcommand{\veps}{\varepsilon}
+\newcommand{\transp}[1]{ {#1}^{\top} }
+\newcommand{\enscond}[2]{ \left\{ #1 \;:\; #2 \right\} }
+\newcommand{\eqdef}{\coloneqq}
+\newcommand{\eq}[1]{\begin{equation*}#1\end{equation*}}
+\newcommand{\eql}[1]{\begin{equation}#1\end{equation}}
+\DeclareMathOperator{\diverg}{div}
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\ZZ}{\mathbb{Z}}
+\newcommand{\Ll}{\mathcal{L}}
+\newcommand{\RRPInf}{{\overline{\RR}}}
+\newcommand{\Cc}{\mathcal{C}}
+\newcommand{\pa}[1]{\left( #1 \right)}
+\DeclareMathOperator{\Proj}{Proj}
+\newcommand{\qandq}{ \quad \text{and} \quad }
+\DeclareMathOperator{\diag}{diag}
+\newcommand{\al}{\alpha}
+\newcommand{\be}{\beta}
+\renewcommand{\epsilon}{\varepsilon}
+\DeclareMathOperator{\sign}{sign}
+\renewcommand{\it}[1]{#1^{(k)}}
+\newcommand{\itt}[1]{#1^{(k+1)}}
+\newcommand{\range}{\operatorname{range}}
+\newcommand{\norm}[1]{\|#1\|}
+\newcommand{\Umax}{U_\gamma}
+\newcommand{\Xmax}{X_\gamma}
+\newcommand{\XmaxZero}{X_0^\star}
+\newcommand{\XmaxGamma}{X_\gamma^\star}
+\newcommand{\Vnorm}[1]{\norm{#1}_V}
+\newcommand{\norminf}[1]{\norm{#1}_\infty}
+\DeclareMathOperator{\arsinh}{arsinh}
+\newcommand{\normVar}[1]{\norm{#1}_{\mathrm{Var}}}
+\newcommand{\z}{z}
+\newcommand{\zC}{\z^C}
+\newcommand{\KL}{\mathrm{KL}}
+\newcommand{\KLdiv}[2]{\mathrm{KL}(#1|#2)}
+\newcommand{\Xx}{\mathcal{X}}
+% END inlined from preamble
+
+\DeclareMathOperator{\tr}{tr}
+\newcommand{\opnorm}[1]{\lVert #1\rVert_{\mathrm{op}}}
+\newcommand{\nucnorm}[1]{\lVert #1\rVert_*}
+\newcommand{\Dhop}{D_{\mathrm{hop}}}
+\newcommand{\Dweight}{D_W}
+\setlength{\emergencystretch}{2em}
+\title{Robust Sublinear Convergence Rates\\for Iterative Bregman Projections}
+\author{Gabriel Peyr\'e\\CNRS and \`Ecole normale sup\'erieure, PSL University\\
+\texttt{gabriel.peyre@ens.fr}}
+\date{}
+\begin{document}
+\maketitle
+\begin{abstract}
+Entropic regularization provides a simple way to approximate linear programs whose constraints split into tractable blocks. The resulting objectives admit alternating Kullback--Leibler (KL) projections, including Sinkhorn scaling for optimal transport. We give a convergence blueprint separating three ingredients: bounded primal masses, bounded dual potentials in a quotient seminorm, and a residual-to-gap estimate. The dual gap is at most $8X_\gamma U_\gamma^2\lVert A\rVert_{1\to1}^2/(\gamma k)$; the dependence of the bounds $X_\gamma,U_\gamma$ on the regularization $\gamma$ is part of the guarantee, not suppressed in it. We establish the required bounded-mass Pinsker inequality without assuming that successive projections have equal mass. For graph Wasserstein--1 transport, a lifted splitting yields sparse flow-Sinkhorn updates costing $O(p)$ per sweep, where $p$ counts directed edges. Explicit constants imply an $O(p\varepsilon^{-3})$ arithmetic bound for estimating the unregularized optimal value on a fixed graph, rather than a guarantee on a feasible flow at each iterate. Experiments illustrate the regularization--runtime tradeoff on synthetic and single-cell graphs. We also discuss balanced transport, general Bregman divergences, quantum transport, and the precise scope of an accompanying, partially formalized Lean development.
+\end{abstract}
+\input{sections/introduction}
+\input{sections/kl_projections}
+\input{sections/convergence}
+\input{sections/bounds}
+\input{sections/graph_transport}
+\section*{Conclusion}
+A useful projection analysis must control the constants as well as the iteration count. Our blueprint isolates bounded-mass curvature, quotient geometry, and exact block ascent; the graph splitting verifies these inputs with edge-local updates. Its guarantees concern regularized dual gaps and unregularized optimal values, not a uniform rate for feasible flows or the empirical potential error. Finding stable, efficiently solvable splits for general LPs, obtaining sharper graph-dependent constants, and extending the non-expansive route to noncommutative transport remain worthwhile directions.
+\section*{Acknowledgement}
+This work was supported by the European Research Council (ERC project WOLF) and the French government under the management of Agence Nationale de la Recherche as part of the ``France 2030'' program, reference ANR-23-IACL-0008 (PRAIRIE-PSAI).
+\paragraph{Use of language models.}
+Language models assisted with mathematical consistency checks, exposition, and drafting and checking the Lean development. A compiling Lean theorem certifies its stated hypotheses and conclusion; it does not, by itself, certify that these coincide with a mathematical statement in the article. Appendix~\ref{app-sec:lean-formalization} describes this distinction and the remaining formalization work.
+\bibliographystyle{plainnat}
+\bibliography{references}
+\clearpage
+\appendix
+\input{appendices/dual_rate}
+\input{appendices/bias}
+\input{appendices/bregman_quantum}
+\input{appendices/bound_helpers}
+\input{appendices/balanced_ot}
+\input{appendices/graph_proofs}
+\input{appendices/nonexpansiveness}
+\input{appendices/lean_scope}
+\input{notation_section}
+\end{document}

@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Tuple
 
 REPO = Path(__file__).resolve().parents[2]
-AUX = REPO / "neurips" / "paper.aux"
+AUX = REPO / "paper" / "paper.aux"
 STATEMENT_MAP = REPO / "lean" / "FlowSinkhorn" / "KLProjection" / "StatementMap.lean"
 LEAN_ROOT = REPO / "lean" / "FlowSinkhorn" / "KLProjection"
 GAP_LEDGER = REPO / "lean" / "audit" / "internalization-gaps.md"
@@ -335,6 +335,8 @@ def print_summary(audits: List[EndpointAudit], errors: List[str], warnings: List
 
 
 def main() -> int:
+    print("NOTICE: revised paper coverage is partial; see lean/PAPER_COVERAGE.md.\n"
+          "This is a structural audit, not a proof of semantic correspondence.", file=sys.stderr)
     missing = [path for path in (AUX, STATEMENT_MAP) if not path.exists()]
     if missing:
         print("ERROR: missing required files:", file=sys.stderr)
@@ -342,8 +344,8 @@ def main() -> int:
             print(f"- {path}", file=sys.stderr)
         if AUX in missing:
             print(
-                "Hint: regenerate neurips/paper.aux with "
-                "`cd neurips && pdflatex -interaction=nonstopmode -halt-on-error paper.tex`.",
+                "Hint: regenerate paper/paper.aux with "
+                "`cd paper && pdflatex -interaction=nonstopmode -halt-on-error paper.tex`.",
                 file=sys.stderr,
             )
         return 2

@@ -1,0 +1,11 @@
+\section{Proofs of the Bound Helpers}\label{app-app:primaldual-proofs}
+\paragraph{Proof of Proposition~\ref{prop:uniform-iter-final}.}
+The kernel of $u\mapsto A^\top u$ is contained in the kernel of $u\mapsto[u_1]\in\mathbb R^{m_1}/N_1$. Thus the latter map factors through the finite-dimensional subspace $\range A^\top$, proving finiteness of~\eqref{eq:kappa} and the inequality $\|u_1\|_{V_1}\leq\kappa_1\|A^\top u\|_\infty$. Stationarity proves the optimum bound. An optimal pair is block optimal. Any representatives selected by the exact maps differ from the corresponding optimum by block kernels, so $\Psi(u_1^\star)=u_1^\star$ in the quotient. Repeated non-expansiveness gives
+$\|u_1^{(k)}-u_1^\star\|_{V_1}\leq\|u_1^{(0)}-u_1^\star\|_{V_1}$. Two applications of the triangle inequality prove the claimed orbit estimate. A representative with small ordinary infinity norm exists for each first block separately; this does not assert that both blocks can be made small by one joint gauge.
+
+\paragraph{Proof of Proposition~\ref{prop:mass-bound-block}.}
+By~\eqref{eq:dual-regul},
+$\gamma\|x(u)\|_1=\langle b,u\rangle+\gamma Z-F_\gamma(u)$.
+At zero, $F_\gamma(0)=\gamma Z-\gamma\sum_i z_i e^{-C_i/\gamma}$. Subtracting these expressions and using the two hypotheses proves the mass estimate. This applies to both full and half-steps, since all of them follow the preliminary block solve by ascent.
+
+For a joint kernel shift $h$, $\langle b,h\rangle=0$ because $b\in\range A$. Therefore a simultaneous quotient radius $Q_\gamma$ bounds the pairing by $\|b\|_1Q_\gamma$. For $b_2=0$, $\langle b_1,h_1\rangle=0$ for every $h_1\in N_1$, proving the stated graph specialization. In contrast, for $A_1=A_2=[1]$ and $b_1=b_2=1$, one has $N_1=N_2=\mathbb R$, so both block seminorms vanish identically, whereas $u_1+u_2$ can be arbitrarily large. This simple example rules out deriving a general pairing bound from the maximum of the independent block seminorms.

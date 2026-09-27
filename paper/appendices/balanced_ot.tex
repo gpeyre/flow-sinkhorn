@@ -1,0 +1,31 @@
+\section{Balanced Optimal Transport Specialization}\label{app-app:sinkhorn-ot}\label{app-subsec:sinkh-analysis}
+Let $a\in\mathbb R_{++}^{n_1}$ and $b\in\mathbb R_{++}^{n_2}$ be probability vectors, and let $0\leq C_{ij}\leq C_{\max}$ with $C_{\max}>0$. Zero-mass rows or columns may be removed first. Consider $P\geq0$ with $P\mathbf1=a$, $P^\top\mathbf1=b$, and reference $z=a\otimes b$. The full entropy is $\KL(P|a\otimes b)$, including its linear and reference terms as in the main text. The adjoint is $A^\top(u,v)_{ij}=u_i+v_j$, with kernel $(c\mathbf1,-c\mathbf1)$; the block seminorms are variation seminorms and $\|A\|_{1\to1}=2$.
+
+The block maps are the negative soft transforms
+\begin{equation}\label{app-eq:soft-c-transform}
+ \Psi_1(v)_i=-\gamma\log\sum_j b_j e^{(v_j-C_{ij})/\gamma},\qquad
+ \Psi_2(u)_j=-\gamma\log\sum_i a_i e^{(u_i-C_{ij})/\gamma}.
+\end{equation}
+Each is order reversing and sends a constant shift to its negative. Thus the composition is order preserving and translation equivariant, implying variation non-expansiveness by Proposition~\ref{app-prop:topical-nonexpansive}. This is a direct classical proof; a strict contraction coefficient is not needed. Every completed block enforces one probability marginal, so all full and half-step primal masses equal one after the initial block solve.
+
+\begin{proposition}[Balanced-OT log-ratio bound]\label{app-prop:hgamma-ot}
+The regularized optimum satisfies $\|\log(P_\gamma^\star/(a\otimes b))\|_\infty\leq2C_{\max}/\gamma$.
+\end{proposition}
+\begin{proof}
+Write $P_{ij}^\star=a_i b_j s_i t_j K_{ij}$ with $K_{ij}=e^{-C_{ij}/\gamma}\in[\rho,1]$, where $\rho=e^{-C_{\max}/\gamma}$. Set $S=\sum_i a_i s_i$ and $T=\sum_j b_j t_j$. Unit total mass gives $1\leq ST\leq1/\rho$. The marginal constraints imply $s_i=1/\sum_j b_jt_jK_{ij}$ and $t_j=1/\sum_i a_is_iK_{ij}$, so their product denominator lies in $[\rho^2ST,ST]$. Consequently $\rho^2\leq s_it_jK_{ij}\leq\rho^{-2}$. Taking logarithms gives the claim. The estimate does not assume a lower bound on individual optimal entries independent of $\gamma$.
+\end{proof}
+
+\begin{proposition}[Balanced-OT quotient geometry]\label{app-prop:kappa-ot}
+For this split, $\kappa_1\leq1$. In addition, every output of $\Psi_1$ has variation at most $C_{\max}/2$.
+\end{proposition}
+\begin{proof}
+If $|u_i+v_j|\leq L$ for all $i,j$, comparing two rows using the same column gives $|u_i-u_{i'}|\leq2L$. Thus $\|u\|_{\rm Var}\leq L$. For the second assertion, the summands defining $\Psi_1(v)_i$ and $\Psi_1(v)_{i'}$ differ by factors between $e^{-C_{\max}/\gamma}$ and $e^{C_{\max}/\gamma}$. The two logarithmic sums therefore differ by at most $C_{\max}$, proving the variation bound. The same holds at an optimum.
+\end{proof}
+
+\begin{corollary}[Balanced-OT constants]\label{app-cor:ot-xgamma-ugamma}
+With the main initialization, one may take $X_\gamma=1$, $U_\gamma=C_{\max}/2$, and $a=2$ in Theorem~\ref{thm:kl-dual-rate}, giving $\Delta_k\leq8C_{\max}^2/(\gamma k)$. A bias envelope is $B_0=\min\{H(a),H(b)\}$ if this is positive, where $H(a)=-\sum_i a_i\log a_i$; any positive enlargement may otherwise be used.
+\end{corollary}
+\begin{proof}
+The mass and variation statements just proved cover all required iterates and the optimum, including the zero first block. For a feasible coupling the linear KL terms cancel, leaving $\KL(P|a\otimes b)=H(a)+H(b)-H(P)$. Conditional entropy of a finite discrete distribution is nonnegative, so $H(P)\geq\max\{H(a),H(b)\}$. This proves the bias envelope, and direct substitution proves the rate. Degenerate zero-cost or single-point problems may be solved directly instead of using positive denominators.
+\end{proof}
+Unlike the graph-flow specialization, this application has a $\gamma$-independent mass bound. One dense sweep costs $O(n_1n_2)$ operations. The value guarantee and feasible-coupling rounding guarantees in the transport literature are related but distinct statements.

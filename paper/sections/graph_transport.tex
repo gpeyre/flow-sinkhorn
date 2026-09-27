@@ -1,0 +1,60 @@
+\section{Flow-Sinkhorn for Graph Wasserstein--1}\label{sec:applications}
+The same abstract rate applies to dense balanced transport (Appendix~\ref{app-app:sinkhorn-ot}) and to the sparse graph formulation developed here. Their entropy penalties act on different variables, so identical $\gamma$ values do not define identical regularized problems. Our numerical comparisons should be read with this distinction in mind.
+
+\paragraph{Graph and flow conventions.}\label{subsec-w1-graphs}
+Let $G=(V,E)$ be a connected undirected graph represented by both orientations of each edge, with no self-loops. Put $n=|V|\geq2$, $p=|E|$, and $0<W_{\min}\leq W_{ij}=W_{ji}\leq W_{\max}$ on $E$. Let $b_1,b_2$ be probability vectors and $q=b_1-b_2$. The entry $f_{ij}$ transports mass from $j$ to $i$, so $(Bf)_i=(f^\top\mathbf1-f\mathbf1)_i$ is outgoing minus incoming flow. If $D_{ij}$ denotes the weighted shortest-path distance, then the transport cost with ground matrix $D$ equals
+\begin{equation}\label{eq-W1-flow}
+ W_1(b_1,b_2)=\min\{\langle W,f\rangle:f\in\mathbb R_+^E,\ Bf=q\}.
+\end{equation}
+Routing a coupling along shortest paths and decomposing a feasible flow into paths and cycles prove this equivalence. Positive edge costs allow cycles to be discarded at an optimum. Let $\Dhop$ be the maximum minimum \emph{number} of edges in a path and $\Dweight=\max_{ij}D_{ij}$ the weighted diameter; these are different quantities.
+
+\paragraph{A normalized lifted split.}\label{subsec-splitting-constr}
+Fix a positive reference $z\in\mathbb R_{++}^E$ and $Z=\sum_Ez_{ij}$. We regularize~\eqref{eq-W1-flow} by $\gamma\KL(f|z)$. Duplicating the flow gives the exactly equivalent problem
+\begin{equation}\label{eq-W1-flow-lifted}
+ \min_{(f,g)\in\mathcal C_1\cap\mathcal C_2}
+ \frac{\langle W,f\rangle+\langle W,g\rangle}{2}
+ +\frac{\gamma}{2}\{\KL(f|z)+\KL(g|z)\},\quad
+ \mathcal C_1=\{-f\mathbf1+g^\top\mathbf1=q\},\quad
+ \mathcal C_2=\{f=g\}.
+\end{equation}
+Nonnegativity of both flows is implicit. The generic parameters are $\bar C=(W/2,W/2)$, $\bar z=(z,z)$, and $\theta=\gamma/2$. Thus $\bar C/\theta=(W/\gamma,W/\gamma)$, and the Gibbs initialization is $(K,K)$ with $K=z e^{-W/\gamma}$. The factor $1/2$ changes values, not the projection sequence. A strictly positive feasible flow exists: add a positive symmetric circulation on every edge to any feasible flow. The lifted operators, their adjoint, and all gauge conventions are given in Appendix~\ref{app-app:w1-proofs}.
+
+\begin{proposition}[Closed-form projections]\label{prop:graphw1-projection-closed-form}
+For strictly positive $f,g$ on $E$, let $r_i=\sum_j f_{ij}$ and $c_i=\sum_j g_{ji}$. The $\mathcal C_1$ projection is $(f',g')=(\diag(s)f,g\diag(s)^{-1})$, where $s_i>0$ solves $r_is_i-c_i/s_i=-q_i$, namely $s_i=(\sqrt{q_i^2+4r_ic_i}-q_i)/(2r_i)$. The $\mathcal C_2$ projection of $(f',g')$ is $(h,h)$ with $h_{ij}=\sqrt{f'_{ij}g'_{ij}}$.
+\end{proposition}
+Consequently a full sweep starting at $(h,h)$ is
+\begin{equation}\label{eq:proj-sinkh-flow}
+ h^{+}_{ij}=h_{ij}\sqrt{s_i/s_j},\qquad h^{(0)}=K.
+\end{equation}
+The row/column sums and edgewise updates take $O(p)$ operations and storage. Appendix~\ref{app-app:w1-proofs} derives the projections, including the sign convention.
+
+\begin{proposition}[Potential implementation]\label{prop:graphw1-flow-sinkhorn-update}
+At each full step there is a potential $v\in\mathbb R^V$ such that $h_{ij}=K_{ij}e^{(v_j-v_i)/\gamma}$, initialized by $v=0$. Define $\alpha_i^+=\gamma\log\sum_jK_{ij}e^{v_j/\gamma}$ and $\alpha_i^-=\gamma\log\sum_jK_{ji}e^{-v_j/\gamma}$. Then~\eqref{eq:proj-sinkh-flow} is equivalent to
+\begin{equation}\label{eq:v-update-stable}
+ v_i^+=\frac{v_i}{2}+\frac{\alpha_i^+-\alpha_i^-}{4}
+ +\frac\gamma2\arsinh\left(\frac{q_i}{2}
+ e^{-(\alpha_i^++\alpha_i^-)/(2\gamma)}\right).
+\end{equation}
+\end{proposition}
+Log-sum-exp evaluation of the $\alpha_i^\pm$ avoids direct kernel underflow. The inverse-hyperbolic-sine term also needs a log-domain evaluation at extreme arguments; Appendix~\ref{app-app:w1-proofs} supplies one. These algebraic rewritings reduce overflow risk, but do not constitute a finite-precision error theorem. The generic dual is used with $\theta=\gamma/2$, not $\gamma$, when reporting physical transport values. At a full step this is the directly evaluable scalar $F_\gamma^{\rm flow}(v)=\langle q,v\rangle+\gamma Z-\gamma\sum_{ij\in E}K_{ij}e^{(v_j-v_i)/\gamma}$.
+
+\paragraph{Convergence analysis.}\label{sec:conv-analysis-flow}
+\begin{theorem}[Explicit graph optimal-value complexity]\label{thm:graphw1-complexity}
+Under the graph assumptions above, let $L_z=\|\log z\|_\infty$, $z_{\min}=\min_Ez$, and choose any nonnegative feasible comparison flow $\bar f$. Define
+\begin{align}\label{eq:graph-constants}
+ M_\gamma&=\frac{\langle W,\bar f\rangle+\gamma\KL(\bar f|z)}{W_{\min}},&
+ H_\gamma&=|\log M_\gamma|+L_z+\frac{2W_{\max}}\gamma,\notag\\
+ U_\gamma&=\Dhop(W_{\max}+\gamma H_\gamma),&
+ X_\gamma&=\frac{2\|q\|_1U_\gamma}{\gamma}+2Ze^{-W_{\min}/\gamma}.
+\end{align}
+Here $M_\gamma>0$, and $X_\gamma$ bounds the \emph{lifted} mass $\|f\|_1+\|g\|_1$, including half-steps. Set $M_0=(n-1)\|q\|_1/2$ and $B_0=Z+M_0\log\max\{1,M_0/z_{\min}\}$, interpreting the second term as zero when $M_0=0$. For $\gamma=\varepsilon/(2B_0)$ and
+$K\geq\max\{1,\lceil256 B_0X_\gamma U_\gamma^2/\varepsilon^2\rceil\}$,
+the physical lifted dual value at step $K$ differs from $W_1(b_1,b_2)$ by at most $\varepsilon$. The iteration cost is $O(pK)$. For fixed graph, reference, and measures this is $O(p\varepsilon^{-3})$ as $\varepsilon\downarrow0$, with no condition relating $p$ and $\varepsilon$.
+\end{theorem}
+\paragraph{Proof sketch.}
+The graph block maps are order preserving and commute with constant translations. Hence their composition is non-expansive in the variation seminorm $\|v\|_{\rm Var}=(\max v-\min v)/2$. A path argument gives $\kappa_1\leq\Dhop$. Positive costs bound the optimal flow mass by $M_\gamma$; the identity $f^\star_{ij}f^\star_{ji}=z_{ij}z_{ji}e^{-2W_{ij}/\gamma}$ then gives $H_\gamma$. The dual helper with cost $W/2$ and parameter $\theta=\gamma/2$ gives $U_\gamma$. Since the second right-hand side is zero, $\langle(q,0),(v,U)\rangle\leq\|q\|_1U_\gamma$, and the primal helper gives~\eqref{eq:graph-constants}. Finally, $\|A\|_{1\to1}=2$, the lifted bias envelope is $2B_0$, and Theorem~\ref{thm:approx-linprog} yields the stated count. Appendix~\ref{app-app:w1-proofs} proves every graph-specific input and explains how to construct $\bar f$.
+
+\paragraph{What the guarantee does and does not measure.}
+An iterate satisfying $f=g$ need not yet satisfy $Bf=q$. Routing a residual of total positive mass $\|q-Bf\|_1/2$ along shortest paths gives a feasible correction of cost at most $\Dweight\|q-Bf\|_1/2$. This is useful for a posteriori certification, but is not included in the theorem's optimal-value bound. Opposite directed flows can be cancelled without changing divergence, decreasing linear cost; they are not zero in the entropic optimum. The plots below use neither this cancellation nor potential debiasing. Comparisons with exact network-flow solvers would require a different accuracy protocol. Such solvers are particularly relevant at high accuracy; the present experiments do not establish a speed advantage over them.
+
+\input{sections/experiments}

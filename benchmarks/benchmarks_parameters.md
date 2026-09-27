@@ -46,7 +46,13 @@ This file records the benchmark parameters currently used for the paper-style fi
 
 ## Figure files
 
-The paper panel PDFs are available in `neurips/figures/` with a consistent naming:
+These are generation filenames, not a list of panels currently included in the article.
+The current article keeps the six small CPU panels and three GPU line panels in
+`paper/figures/`; large CPU panels can be regenerated separately. Historical
+figure selections (especially the restored small line plot) can differ from the
+newer screening defaults listed above.
+
+The benchmark driver uses the following naming:
 
 - `benchmark-small-line-graph.pdf`
 - `benchmark-small-line-convergence.pdf`

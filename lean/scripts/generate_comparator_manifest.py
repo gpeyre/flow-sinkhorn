@@ -8,11 +8,13 @@ import re
 import sys
 from pathlib import Path
 
+from paper_source import read_paper_source, paper_source_location
+
 REPO = Path(__file__).resolve().parents[2]
 LEAN_DIR = REPO / "lean"
 AUDIT_DIR = LEAN_DIR / "audit"
-AUX = REPO / "neurips" / "paper.aux"
-PAPER = REPO / "neurips" / "paper.tex"
+AUX = REPO / "paper" / "paper.aux"
+PAPER = REPO / "paper" / "paper.tex"
 STATEMENT_MAP = LEAN_DIR / "FlowSinkhorn" / "KLProjection" / "StatementMap.lean"
 LEAN_ROOT = LEAN_DIR / "FlowSinkhorn" / "KLProjection"
 
@@ -64,13 +66,13 @@ def parse_paper_statement_labels(paper_text: str) -> list[dict[str, str]]:
         ]
         if not labels:
             raise SystemExit(
-                f"paper theorem-like environment at neurips/paper.tex:{line} has no paper label"
+                f"paper theorem-like environment at paper/paper.tex:{line} has no paper label"
             )
         for label in labels:
             out.append(
                 {
                     "label": label,
-                    "paper_source": f"neurips/paper.tex:{line}",
+                    "paper_source": paper_source_location(line),
                     "paper_env_kind": env_kind,
                     "paper_title": title,
                 }
@@ -86,7 +88,7 @@ def check_aux_matches_paper(aux_labels: list[dict[str, str]], paper_labels: list
 
     missing_from_aux = [label for label in paper_order if label not in aux_order]
     missing_from_paper = [label for label in aux_order if label not in paper_order]
-    details = ["paper.aux theorem labels are not synchronized with neurips/paper.tex"]
+    details = ["paper.aux theorem labels are not synchronized with paper/paper.tex"]
     if missing_from_aux:
         details.append("missing from paper.aux: " + ", ".join(missing_from_aux))
     if missing_from_paper:
@@ -119,12 +121,12 @@ def main() -> int:
         print(f"ERROR: missing {AUX}", file=sys.stderr)
         print(
             "Hint: regenerate it with "
-            "`cd neurips && pdflatex -interaction=nonstopmode -halt-on-error paper.tex`.",
+            "`cd paper && pdflatex -interaction=nonstopmode -halt-on-error paper.tex`.",
             file=sys.stderr,
         )
         return 2
     labels = parse_aux_labels(AUX.read_text(encoding="utf-8"))
-    paper_labels = parse_paper_statement_labels(PAPER.read_text(encoding="utf-8"))
+    paper_labels = parse_paper_statement_labels(read_paper_source(PAPER))
     check_aux_matches_paper(labels, paper_labels)
     aliases = parse_statement_map(STATEMENT_MAP.read_text(encoding="utf-8"))
 
@@ -137,7 +139,7 @@ def main() -> int:
 
     manifest = {
         "generated_from": (
-            "neurips/paper.tex + neurips/paper.aux + "
+            "paper/paper.tex + paper/paper.aux + "
             "lean/FlowSinkhorn/KLProjection/StatementMap.lean"
         ),
         "paper_tex_label_count": len(paper_labels),

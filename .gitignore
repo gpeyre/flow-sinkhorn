@@ -126,3 +126,6 @@ benchmarks/report/report-*.pdf
 # Local paper/submission workspaces
 arxiv/
 supplementary/
+
+# Generated source distribution
+paper/paper-arxiv-source.tar.gz

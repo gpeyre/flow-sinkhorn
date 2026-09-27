@@ -1,0 +1,31 @@
+\section{Dual Convergence}\label{sec:dual-conv}
+This section proves the two results in the red part of Figure~\ref{fig:blueprint}: a regularized dual-gap estimate and its conversion into an unregularized optimal-value estimate.
+\begin{definition}[Block quotient seminorms]\label{def:block-seminorm}
+Let $N_s=\{h_s:\exists h_{3-s},\ (h_1,h_2)\in\ker A^\top\}$. Define $\|v_s\|_{V_s}=\inf_{h_s\in N_s}\|v_s+h_s\|_\infty$ and $\|u\|_V=\max_s\|u_s\|_{V_s}$. The two infima are independent: $\|u\|_V$ is not in general the simultaneous quotient $\inf_{h\in\ker A^\top}\|u+h\|_\infty$.
+\end{definition}
+Only the first-block seminorm is needed for the rate, since the second constraint is satisfied at each full iterate.
+
+\begin{theorem}[Sublinear dual rate]\label{thm:kl-dual-rate}
+Under the setting and initialization of Section~\ref{sec:general-KL-new}, suppose $X_\gamma,U_\gamma>0$ satisfy $\|x^{(k)}\|_1,\|x^{(k+1/2)}\|_1\leq X_\gamma$ for all $k\geq0$, and $\|u_1^{(k)}\|_{V_1},\|u_1^\star\|_{V_1}\leq U_\gamma$ for some optimum $u^\star$ and all $k$. Set $a=\|A\|_{1\to1}>0$. Then, for every integer $k\geq1$,
+\begin{equation}\label{eq:dual-rate-new}
+0\leq\Delta_k:=F_\gamma^\star-F_\gamma(u^{(k)})
+\leq\frac{8X_\gamma U_\gamma^2a^2}{\gamma k}.
+\end{equation}
+The result assumes neither equal primal masses nor non-expansiveness. The latter is one way to obtain the required dual bound.
+\end{theorem}
+\paragraph{Proof sketch.}
+At a full iterate the residual is $(b_1-A_1x^{(k)},0)$. Concavity and quotient duality give $\Delta_k\leq2U_\gamma\|b_1-A_1x^{(k)}\|_1$. The first block removes this residual, so its norm is at most $a\|x^{(k+1/2)}-x^{(k)}\|_1$. Exact dual ascent equals $\gamma\KL(x^{(k+1/2)}|x^{(k)})$. The bounded-mass Pinsker inequality gives an ascent of at least $\gamma\|b_1-A_1x^{(k)}\|_1^2/(2X_\gamma a^2)$. The second block can only increase the objective. Consequently $\Delta_k-\Delta_{k+1}\geq\gamma\Delta_k^2/(8X_\gamma U_\gamma^2a^2)$; summing the reciprocal recurrence proves the claim. Appendix~\ref{app-app:dual-rate-proofs} includes the two auxiliary lemmas and the Pinsker proof.
+
+\paragraph{Numerical complexity of approximating the linear program.}
+The theorem does not make $X_\gamma,U_\gamma$ independent of $\gamma$. To quantify the bias, choose an unregularized optimizer $x_0^\star$ and a known positive envelope $B_0\geq\KL(x_0^\star|z)$. A bound on $\|x_0^\star\|_1$ alone must be converted into such an envelope; an expression like $\|x_0^\star\|_1\log d$ is not valid for arbitrary reference $z$ and mass.
+\begin{theorem}[Optimal-value accuracy from primal and dual bounds]\label{thm:approx-linprog}
+Assume Theorem~\ref{thm:kl-dual-rate} and $B_0>0$ as above. Given $\varepsilon>0$, set $\gamma=\varepsilon/(2B_0)$ and choose
+$K\geq\max\{1,\lceil32X_\gamma U_\gamma^2a^2 B_0/\varepsilon^2\rceil\}$.
+Then $|F_\gamma(u^{(K)})-F_0^\star|\leq\varepsilon$.
+If one exact sweep costs $T_{\rm sweep}$ arithmetic operations, the iteration cost is $O(KT_{\rm sweep})$, in addition to initialization and preprocessing.
+\end{theorem}
+\paragraph{Proof sketch.}
+Nonnegativity of KL and evaluation at $x_0^\star$ give $0\leq F_\gamma^\star-F_0^\star\leq\gamma B_0=\varepsilon/2$. The chosen iteration count makes $F_\gamma^\star-F_\gamma(u^{(K)})\leq\varepsilon/2$ by~\eqref{eq:dual-rate-new}. Combining these two bounds controls the scalar estimate even though it can lie on either side of $F_0^\star$. This does not turn the current primal iterate into a feasible unregularized solution, nor prove an $\ell^2$ error bound. Appendix~\ref{app-app:kl-bias-runtime} proves the bias estimate and gives a reference-dependent envelope.
+
+\paragraph{Beyond KL.}
+Appendix~\ref{app-app:general-bregman} identifies the corresponding curvature and domain assumptions for a general Bregman divergence and discusses quantum optimal transport. These extensions require their own bounds; they are not unconditional consequences of the KL theorem.

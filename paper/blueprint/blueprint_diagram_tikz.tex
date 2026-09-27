@@ -1,0 +1,47 @@
+\begin{tikzpicture}[x=1mm,y=-1mm,font=\scriptsize,
+ hypothesis/.style={draw=blue!45!black,fill=blue!7,rounded corners=1mm,align=center,inner sep=2mm,text width=35mm},
+ result/.style={draw=red!50!black,fill=red!9,rounded corners=1mm,align=center,inner sep=2mm,text width=35mm},
+ helper/.style={draw=black!45,fill=yellow!16,rounded corners=1mm,align=center,inner sep=2mm,text width=35mm},
+ graph/.style={draw=green!40!black,fill=green!10,rounded corners=1mm,align=center,inner sep=2mm,text width=35mm},
+ barr/.style={-{Stealth[length=1.8mm]},blue!65!black,line width=.65pt},
+ rarr/.style={-{Stealth[length=1.8mm]},red!65!black,line width=.65pt}]
+\node[font=\bfseries] at (20,0) {Graph inputs};
+\node[font=\bfseries] at (67,0) {Helper results};
+\node[font=\bfseries] at (114,0) {Blueprint hypotheses};
+\node[font=\bfseries] at (161,0) {Conclusions};
+\node[graph] (order) at (20,19) {Scalar graph block maps\\Prop.~\ref{prop:graphw1-psi2-closed-nonexp}\\order + constant shifts};
+\node[helper,fill=orange!14] (topical) at (67,19) {Prop.~\ref{app-prop:topical-nonexpansive}\\order + shifts $\Rightarrow$\\variation non-expansiveness};
+\node[hypothesis] (ne) at (114,19) {$\Psi$ non-expansive\\in the first block quotient};
+\node[graph] (h) at (20,48) {Positive cost + reverse edges\\Prop.~\ref{app-prop:hgamma-graphw1}\\$H_\gamma$ explicit};
+\node[hypothesis] (hk) at (67,48) {$\|\log(x^\star/z)\|_\infty\leq H_\gamma$\\$\kappa_1$ finite, def.~\eqref{eq:kappa}};
+\node[helper,fill=cyan!14] (dual) at (114,48) {Dual helper\\Prop.~\ref{prop:uniform-iter-final}\\$U_\gamma=2\kappa_1(\|C\|_\infty+\gamma H_\gamma)$};
+\node[hypothesis] (radius) at (161,48) {First-block orbit and optimum\\quotient radius $\leq U_\gamma$};
+\node[graph] (geo) at (20,77) {Paths: $\kappa_1\leq\Dhop$\\Prop.~\ref{app-prop:kappa-graph-diameter}\\$b_2=0$, $\|A\|_{1\to1}=2$};
+\node[hypothesis] (pairing) at (67,77) {Pairing bound $\langle b,u\rangle\leq P_\gamma$\\not independent gauges\\graph: $P_\gamma=\|q\|_1U_\gamma$};
+\node[helper] (mass) at (114,77) {Primal helper\\Prop.~\ref{prop:mass-bound-block}\\$X_\gamma=P_\gamma/\gamma+\sum_i z_i e^{-C_i/\gamma}$};
+\node[hypothesis] (x) at (161,77) {Full and half-step\\masses $\leq X_\gamma$};
+\node[graph] (scale) at (20,109) {Normalized graph lift\\cost $(W/2,W/2)$\\parameter $\theta=\gamma/2$};
+\node[helper,fill=green!10] (pinsker) at (67,109) {Lemma~\ref{app-lem:pinsker-nonnormalized}\\bounded-mass Pinsker\\$\eta_\gamma=1/(2X_\gamma)$};
+\node[result] (rate) at (161,109) {Thm.~\ref{thm:kl-dual-rate}\\$\Delta_k\leq8X_\gamma U_\gamma^2a^2/(\gamma k)$\\$a=\|A\|_{1\to1}$};
+\node[hypothesis] (bias) at (114,137) {Bias envelope $B_0$\\Lemma~\ref{app-lem:kl-bias}\\$0\leq F_\gamma^\star-F_0^\star\leq\gamma B_0$};
+\node[result] (accuracy) at (161,137) {Thm.~\ref{thm:approx-linprog}\\$\gamma=\varepsilon/(2B_0)$\\$K\geq32X_\gamma U_\gamma^2a^2 B_0/\varepsilon^2$};
+\node[graph] (final) at (67,137) {Graph value estimate\\Thm.~\ref{thm:graphw1-complexity}\\fixed data: $O(p\varepsilon^{-3})$};
+\draw[barr] (order.east)--(topical.west);
+\draw[rarr] (topical.east)--(ne.west);
+\draw[barr] (ne.south)--(dual.north);
+\draw[rarr] (h.east)--(hk.west);
+\draw[rarr] (geo.north east)--(hk.south west);
+\draw[barr] (hk.east)--(dual.west);
+\draw[rarr] (dual.east)--(radius.west);
+\draw[barr] (pairing.east)--(mass.west);
+\draw[rarr] (mass.east)--(x.west);
+\draw[barr] (x.south)--(rate.north);
+\draw[barr] (radius.east)--++(4,0)|-(rate.east);
+\draw[barr] (x.south west)--++(-3,7)-|(pinsker.north);
+\draw[rarr] (pinsker.east)--(rate.west);
+\draw[barr] (geo.south)--(scale.north);
+\draw[barr] (rate.south)--(accuracy.north);
+\draw[barr] (bias.east)--(accuracy.west);
+\draw[rarr] (accuracy.south)--++(0,8)-|(final.south);
+\draw[barr] (scale.south)|-(final.west);
+\end{tikzpicture}

@@ -9,36 +9,17 @@ live under `audit/`.
 
 ## Current Status
 
-Status date: 2026-06-01.
+The September 2026 paper revision is **not fully formalized**. See
+[`PAPER_COVERAGE.md`](PAPER_COVERAGE.md) for the distinction between reusable
+proved lemmas, conditional certificates, historical aliases, and missing bridges.
+The previous `27/27` structural counts did not establish semantic equivalence to
+the paper: several endpoints assumed the mathematical estimates they were meant
+to certify. Those counts and the generated Comparator “faithful” classifications
+must not be interpreted as a complete correctness certificate.
 
-Paper-facing coverage:
-
-- The paper contains `27` theorem/proposition/lemma/corollary statements.
-- All `27/27` paper statements have stable Lean aliases.
-- All `27/27` aliases resolve to concrete compiled Lean theorem constants.
-- The structural certification audit reports `27/27` endpoint coverage, `27/27` endpoint shape
-  checks, and `0` structural internalization gap flags.
-- No paper-facing target is an `_of_assumption` endpoint.
-
-Lean proof hygiene:
-
-- `FlowSinkhorn/KLProjection` has `30,435` non-comment, non-blank Lean lines.
-- `FlowSinkhorn/KLProjection` has `1,633` theorem/lemma declarations.
-- `FlowSinkhorn/KLProjection` has `63` direct `def`/`structure`/`class`/`abbrev`/`inductive`
-  declarations under the current simple repository counter.
-- `FlowSinkhorn/KLProjection` contains no `sorry`, no `admit`, and no local `axiom`.
-- `FlowSinkhorn.Comparator.Challenge` intentionally uses `sorry` placeholders because it is the
-  trusted statement-only Comparator challenge, not a proof-producing module.
-
-Comparator status:
-
-- `FlowSinkhorn.Comparator.Challenge` contains the trusted statement-only challenge.
-- `FlowSinkhorn.Comparator.Solution` contains the untrusted solution theorem names.
-- Challenge/Solution statement matching passes for `27/27` entries.
-- The independent paper-to-Challenge audit records `27` faithful entries and `0` qualified entries.
-- Import-boundary checks show that Challenge exposes `0/27` implementation theorem endpoints.
-- Local fake-landrun Comparator smoke test passes, but the final hardened Linux `landrun` run is not
-  complete on this macOS workstation.
+The historical `audit/` ledgers and Comparator artifacts are retained for
+traceability, not as current certification claims. Challenge modules intentionally
+contain statement-only `sorry` declarations and are not proof-producing modules.
 
 ## Fast Verification
 
@@ -47,20 +28,22 @@ Run these commands from `lean/`:
 ```bash
 lake build FlowSinkhorn.KLProjection.StatementMap
 lake build FlowSinkhorn.Comparator.Challenge FlowSinkhorn.Comparator.Solution FlowSinkhorn.Paper
-python3 scripts/check_statementmap_sync.py
-python3 scripts/audit_paper_certification.py
 python3 scripts/check_comparator_scaffold.py
 python3 scripts/check_comparator_challenge_lock.py
 python3 scripts/check_comparator_trust_boundary.py
 ```
 
-The synchronization scripts read `neurips/paper.aux` to recover compiled statement numbering.  If
+The optional synchronization scripts read `paper/paper.aux` to recover compiled statement numbering.  If
 that file is absent after a clean checkout, regenerate it from the repository root with:
 
 ```bash
-cd neurips
+cd paper
 pdflatex -interaction=nonstopmode -halt-on-error paper.tex
 ```
+
+The optional label and structural audits currently report unresolved synchronization
+and certification gaps; this is expected until the revised statements are formalized.
+A successful build or challenge/solution shape match does not close those gaps.
 
 Useful hygiene scans:
 
@@ -75,8 +58,9 @@ The Comparator smoke test is available for local wiring only:
 COMPARATOR_ALLOW_FAKE_LANDRUN=1 scripts/run_comparator_bootstrap.sh
 ```
 
-This smoke test is not a final certificate.  A final Comparator certificate requires a clean Linux
-run with real `landrun`.
+This smoke test is not a final certificate.  A meaningful paper certificate additionally requires independent statement
+alignment, all mathematical bridges, and a clean hardened comparison run; a Linux
+run with real `landrun` alone would still not prove that alignment.
 
 ## Directory Map
 
@@ -149,8 +133,9 @@ Rules:
 - Each alias must point to one canonical Lean theorem constant.
 - Each alias should carry an implementation-file comment.
 - Paper facade aliases in `FlowSinkhorn/Paper/*.lean` must stay synchronized with `StatementMap`.
-- If a paper statement changes, regenerate and re-check the manifest, Challenge, Solution, review,
-  and lock artifacts.
+- If a paper statement changes, first independently validate the hypotheses and mathematical
+  proof obligations. Only then synchronize the manifest, Challenge, Solution, review, and lock.
+  Regeneration from the implementation is not an independent paper-faithfulness check.
 
 Synchronization command:
 

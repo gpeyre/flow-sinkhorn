@@ -14,7 +14,7 @@ The target is to reproduce the same benchmark logic and generate the correspondi
 - Produce panel PDFs similar to the existing paper panels (graph + convergence).
 - Use a distinct setup tag (recommended: `gpu`) so files do not overwrite existing `small` / `large` outputs.
 
-Recommended expected figure names in `neurips/figures/`:
+Recommended expected figure names in `paper/figures/`:
 
 - `benchmark-gpu-line-graph.pdf`
 - `benchmark-gpu-line-convergence.pdf`
@@ -126,8 +126,8 @@ python3 benchmarks/run_benchmark.py \
 ## 7) Deliverables for merge
 
 1. Generated figure files:
-   - `neurips/figures/benchmark-gpu-line-graph.pdf`
-   - `neurips/figures/benchmark-gpu-line-convergence.pdf`
+   - `paper/figures/benchmark-gpu-line-graph.pdf`
+   - `paper/figures/benchmark-gpu-line-convergence.pdf`
 2. A short run log (or markdown note) that includes:
    - GPU model + CUDA/PyTorch version
    - closed-form vs LP reference check numbers

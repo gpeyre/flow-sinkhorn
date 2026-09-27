@@ -2,7 +2,7 @@
 """Unified benchmark runner for line, single-cell, and Delaunay graphs.
 
 Outputs:
-- neurips/figures/benchmark-<setup>-<bench>-{graph,convergence}.pdf
+- paper/figures/benchmark-<setup>-<bench>-{graph,convergence}.pdf
 - benchmarks/results/tables/report-<bench>-*.csv|tex
 - benchmarks/results/report-<bench>.pdf
 - benchmarks/results/figures/report-<bench>-*.pdf (detailed diagnostics)
@@ -59,7 +59,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--flow-max-iters", type=int, default=7000)
     p.add_argument("--vanilla-base-iters", type=int, default=1200)
     p.add_argument("--vanilla-max-iters", type=int, default=12000)
-    p.add_argument("--out-root", type=Path, default=Path("neurips"))
+    p.add_argument("--out-root", type=Path, default=Path("paper"))
     p.add_argument("--setup-tag", type=str, default="small", help="Tag for paper panel naming, e.g. small/large.")
     p.add_argument("--data-root", type=Path, default=Path("data/wot"))
     p.add_argument("--full", action="store_true", help="Use a broader gamma sweep and longer runtimes.")

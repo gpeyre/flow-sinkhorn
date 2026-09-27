@@ -1,0 +1,27 @@
+\section{Primal and Dual Bound Helpers}\label{sec:dual-primal-dual}
+This section supplies sufficient conditions for the constants in Theorem~\ref{thm:kl-dual-rate}. The distinction between block quotients and a common gauge matters for the primal helper.
+\paragraph{Dual iterates from non-expansiveness.}
+Let $H_\gamma\geq\|\log(x_\gamma^\star/z)\|_\infty$. Define the finite-dimensional operator constant
+\begin{equation}\label{eq:kappa}
+\kappa_1=\sup\{\|u_1\|_{V_1}:\|A^\top u\|_\infty\leq1\}.
+\end{equation}
+It is finite: $u\mapsto[u_1]\in\mathbb R^{m_1}/N_1$ factors through $A^\top u$, and all linear maps on finite-dimensional normed spaces are bounded.
+\begin{proposition}[Uniform quotient bound]\label{prop:uniform-iter-final}
+Suppose the exact first-block sweep has the non-expansiveness property $\|\Psi(v)-\Psi(w)\|_{V_1}\leq\|v-w\|_{V_1}$. Then
+$\|u_1^\star\|_{V_1}\leq\kappa_1(\|C\|_\infty+\gamma H_\gamma)$ and
+$\|u_1^{(k)}\|_{V_1}\leq\|u_1^{(0)}\|_{V_1}+2\kappa_1(\|C\|_\infty+\gamma H_\gamma)$.
+For the zero first-block initialization, the latter expression with $u_1^{(0)}=0$ gives $U_\gamma$.
+\end{proposition}
+\paragraph{Proof sketch.}
+Stationarity gives $A^\top u^\star=C+\gamma\log(x_\gamma^\star/z)$, which~\eqref{eq:kappa} converts into an optimum quotient bound. The optimum is a fixed point of the sweep modulo the block kernel. Non-expansiveness keeps its distance from the orbit bounded by the initial distance; the triangle inequality then gives the factor two. This controls a quotient norm, not the magnitude of an arbitrary chosen representative. See Appendix~\ref{app-app:primaldual-proofs}.
+
+\paragraph{Primal mass from a dual pairing bound.}
+\begin{proposition}[Primal bound from a dual bound]\label{prop:mass-bound-block}
+Suppose the full and intermediate dual iterates obey $F_\gamma(u)\geq F_\gamma(0)$ and $\langle b,u\rangle\leq P_\gamma$. Then all their primal recoveries satisfy
+$\|x(u)\|_1\leq X_\gamma:=P_\gamma/\gamma+\sum_i z_i e^{-C_i/\gamma}$.
+If $C_i\geq C_{\min}$, the last term is at most $Z e^{-C_{\min}/\gamma}$.
+\end{proposition}
+A simultaneous quotient bound $\inf_{h\in\ker A^\top}\|u+h\|_\infty\leq Q_\gamma$ implies $P_\gamma=\|b\|_1Q_\gamma$. Independent block bounds need not give this conclusion. A useful special case is $b_2=0$: feasibility implies $b_1\perp N_1$, so $\langle b,u\rangle\leq\|b_1\|_1\|u_1\|_{V_1}$. This is precisely the graph-flow situation. The preliminary block solve and subsequent exact ascent ensure the required objective lower bound. Appendix~\ref{app-app:primaldual-proofs} proves these assertions.
+
+\paragraph{Scope and stability.}
+A useful split must make the block solves inexpensive, numerically stable, and analyzable; no generic construction is asserted. A signed incidence pattern alone does not prove that a coupled moment map has an order-preserving inverse. Appendix~\ref{app-sec:non-expansiveness} states sufficient scalar-inverse hypotheses, and Appendix~\ref{app-app:w1-proofs} verifies them directly for the graph split. For a general entropic LP we do not know when a comparably effective log-sum-exp reformulation exists. Order structure can guide such a search, but monotonicity by itself is not a proved criterion for numerical stability. Approximate block solvers require additional error terms and are not covered by our exact-solve complexity theorem.

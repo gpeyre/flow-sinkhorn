@@ -1,0 +1,59 @@
+\section{Proof of the Sublinear Dual Rate}\label{app-app:dual-rate-proofs}
+\paragraph{Existence and positivity in Proposition~\ref{prop:dual-gamma-correct}.}
+The function $\langle C,x\rangle+\gamma\KL(x|z)$ is continuous on $\mathbb R_+^d$, strictly convex, and coercive: each scalar entropy grows faster than linearly. Its restriction to the nonempty closed feasible set has a unique minimizer. If a coordinate of that minimizer vanished, moving a distance $t>0$ toward a strictly positive feasible point would contribute a negative $t|\log t|$ leading term in the vanishing coordinates, whereas changes at positive coordinates and in the linear cost are $O(t)$. This contradicts optimality. At an interior minimizer, the gradient annihilates $\ker A$, hence belongs to $\range A^\top$. Therefore $C+\gamma\log(x_\gamma^\star/z)=A^\top u^\star$ for some finite multiplier. Substitution into the Lagrangian gives equality of primal and dual values. The same argument applies to each individual affine block with any positive reference, proving existence and positivity of each projection and existence of a block multiplier. Strict convexity makes the primal block solution unique; a dual block multiplier is unique modulo $\ker A_s^\top$.
+
+\begin{lemma}[Exact block ascent]\label{app-lem:per-step-ascent}
+If $u^+$ is obtained from $u$ by exactly maximizing block $s$, then
+$F_\gamma(u^+)-F_\gamma(u)=\gamma\KL(x(u^+)|x(u))$.
+\end{lemma}
+\begin{proof}
+Write $x^+=x(u^+)$ and $x=x(u)$. The logarithmic ratio is $\gamma\log(x^+/x)=A_s^\top(u_s^+-u_s)$, and $A_sx^+=b_s$. Consequently
+\[
+\gamma\KL(x^+|x)=\langle b_s,u_s^+-u_s\rangle
+-\gamma\sum_i x_i^++\gamma\sum_i x_i
+=F_\gamma(u^+)-F_\gamma(u).
+\]
+No equal-mass assumption is used. The order of the arguments of KL is important.
+\end{proof}
+
+\begin{lemma}[Gap versus residual in the quotient]\label{app-lem:gap-vs-res-quotient}
+At any $u$ with $A_2x(u)=b_2$, put $r_1=b_1-A_1x(u)$. Then $r_1\perp N_1$ and
+$F_\gamma^\star-F_\gamma(u)\leq(\|u_1^\star\|_{V_1}+\|u_1\|_{V_1})\|r_1\|_1$.
+\end{lemma}
+\begin{proof}
+For $h\in\ker A^\top$, feasibility gives $\langle h,b\rangle=0$, and $\langle h,Ax(u)\rangle=0$. Because the second residual is zero, $\langle h_1,r_1\rangle=0$ for every $h_1\in N_1$. Concavity yields $F_\gamma^\star-F_\gamma(u)\leq\langle u_1^\star-u_1,r_1\rangle$. Shift $u_1^\star$ and $u_1$ independently by elements of $N_1$, apply $\ell^1$--$\ell^\infty$ duality, and take the two infima. A common gauge is not required because the second residual vanishes.
+\end{proof}
+
+\begin{proposition}[Normalized Pinsker inequality]\label{app-prop:pinsker-normalized}
+For probability vectors $p,q$, $\KL(p|q)\geq\tfrac12\|p-q\|_1^2$.
+\end{proposition}
+\begin{proof}
+This is the case $X=1$ of the following lemma. The convention $p_i>0,q_i=0\Rightarrow\KL(p|q)=+\infty$ includes boundary distributions.
+\end{proof}
+
+\begin{lemma}[Non-normalised Pinsker inequality]\label{app-lem:pinsker-nonnormalized}
+If $p,q\geq0$ and $\max(\|p\|_1,\|q\|_1)\leq X$ for $X>0$, then
+\begin{equation}\label{eq:bounded-pinsker}
+\KL(p|q)\geq\frac{\|p-q\|_1^2}{2X}.
+\end{equation}
+The masses of $p$ and $q$ may differ.
+\end{lemma}
+\begin{proof}
+For positive vectors set $q_t=q+t(p-q)$. The integral Taylor remainder of $\sum_i x_i(\log x_i-1)$ gives
+\[
+\KL(p|q)=\int_0^1(1-t)\sum_i\frac{(p_i-q_i)^2}{(q_t)_i}\,dt
+\geq\int_0^1(1-t)\frac{\|p-q\|_1^2}{\|q_t\|_1}\,dt
+\geq\frac{\|p-q\|_1^2}{2X},
+\]
+where the first inequality is weighted Cauchy--Schwarz. For boundary points of finite divergence, replace $p,q$ by $p+\delta\mathbf1,q+\delta\mathbf1$, use the bound $X+d\delta$, and let $\delta\downarrow0$. Each scalar KL term converges to its extended-value limit, including $p_i=0$; if $p_i>0=q_i$, the original claim is immediate from infinite divergence. Thus the limiting argument does not rely on a reversed lower-semicontinuity inequality.
+\end{proof}
+
+\paragraph{Proof of Theorem~\ref{thm:kl-dual-rate}.}
+Write $r_k=\|b_1-A_1x^{(k)}\|_1$. Lemma~\ref{app-lem:gap-vs-res-quotient} gives $\Delta_k\leq2U_\gamma r_k$. Since $A_1x^{(k+1/2)}=b_1$,
+$r_k\leq a\|x^{(k+1/2)}-x^{(k)}\|_1$. Both vectors obey the mass bound, so Lemmas~\ref{app-lem:per-step-ascent} and~\ref{app-lem:pinsker-nonnormalized}, together with ascent of the second block, imply
+\[
+\Delta_k-\Delta_{k+1}\geq\frac{\gamma r_k^2}{2X_\gamma a^2}
+\geq c\Delta_k^2,\qquad c=\frac\gamma{8X_\gamma U_\gamma^2a^2}.
+\]
+If a gap vanishes all later gaps vanish. Otherwise
+$1/\Delta_{k+1}-1/\Delta_k=(\Delta_k-\Delta_{k+1})/(\Delta_k\Delta_{k+1})\geq c$, since $\Delta_{k+1}\leq\Delta_k$. Summation gives $\Delta_k\leq(\Delta_0^{-1}+ck)^{-1}\leq1/(ck)$. If the problem has no effective constraint ($a=0$), the Gibbs vector solves it and the gap is zero; the theorem excludes this uninteresting denominator case.

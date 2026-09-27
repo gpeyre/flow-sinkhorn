@@ -14,10 +14,12 @@ import re
 import hashlib
 from pathlib import Path
 
+from paper_source import read_paper_source, paper_source_location
+
 REPO = Path(__file__).resolve().parents[2]
 LEAN_DIR = REPO / "lean"
 AUDIT_DIR = LEAN_DIR / "audit"
-PAPER = REPO / "neurips" / "paper.tex"
+PAPER = REPO / "paper" / "paper.tex"
 MANIFEST = AUDIT_DIR / "comparator-paper-manifest.json"
 CHALLENGE = LEAN_DIR / "FlowSinkhorn" / "Comparator" / "Challenge.lean"
 SOLUTION = LEAN_DIR / "FlowSinkhorn" / "Comparator" / "Solution.lean"
@@ -107,7 +109,7 @@ def load_independent_audit() -> tuple[dict[str, dict[str, object]], dict[str, in
 
 def main() -> int:
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    paper_envs = extract_paper_environments(PAPER.read_text(encoding="utf-8"))
+    paper_envs = extract_paper_environments(read_paper_source(PAPER))
     challenge_text = CHALLENGE.read_text(encoding="utf-8")
     solution_text = SOLUTION.read_text(encoding="utf-8")
     challenge = extract_challenge_statements(challenge_text)
@@ -146,7 +148,7 @@ def main() -> int:
             "kind": item["kind"],
             "paper_env_kind": paper_info["kind"],
             "title": paper_info["title"],
-            "paper_source": f"neurips/paper.tex:{paper_info['line']}",
+            "paper_source": paper_source_location(paper_info['line']),
             "paper_statement_compact": paper_statement_compact,
             "paper_statement_sha256": sha256_text(paper_statement_compact),
             "challenge_alias": alias,
@@ -177,7 +179,7 @@ def main() -> int:
         json.dumps(
             {
                 "generated_from": [
-                    "neurips/paper.tex",
+                    "paper/paper.tex",
                     "lean/audit/comparator-paper-manifest.json",
                     "lean/FlowSinkhorn/Comparator/Challenge.lean",
                     "lean/FlowSinkhorn/Comparator/Solution.lean",

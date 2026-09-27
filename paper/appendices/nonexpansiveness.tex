@@ -1,0 +1,31 @@
+\section{Non-expansiveness in the Variation Seminorm}\label{app-sec:non-expansiveness}
+For $v\in\mathbb R^m$, define
+\begin{equation}\label{app-eq:variation-seminorm}
+\|v\|_{\rm Var}:=\inf_{c\in\mathbb R}\|v+c\mathbf1\|_\infty
+=\tfrac12(\max_i v_i-\min_i v_i).
+\end{equation}
+The minimum is achieved by centering the largest and smallest coordinates. This is the quotient by constants, not generally the block quotient for an arbitrary split.
+
+\begin{proposition}[Order and translations imply non-expansiveness]\label{app-prop:topical-nonexpansive}
+If $T:\mathbb R^m\to\mathbb R^\ell$ is order preserving and $T(v+c\mathbf1)=T(v)+c\mathbf1$ for every real $c$, then $\|T(v)-T(w)\|_{\rm Var}\leq\|v-w\|_{\rm Var}$.
+\end{proposition}
+\begin{proof}
+Let $a=\min_i(v_i-w_i)$ and $b=\max_i(v_i-w_i)$. Applying the two hypotheses to $w+a\mathbf1\leq v\leq w+b\mathbf1$ gives $T(w)+a\mathbf1\leq T(v)\leq T(w)+b\mathbf1$. The output oscillation is at most $b-a$. Division by two proves the result. This elementary argument is related to the general order/non-expansiveness principle in~\citep{candrall1980some}.
+\end{proof}
+
+\begin{proposition}[Scalar inverse criterion for block monotonicity]\label{app-prop:block-monotone}
+Suppose each coordinate of a block optimizer is the unique scalar solution $t=T_i(w)$ of $M_i(t,w)=b_i$, where $M_i$ is strictly increasing in $t$ and continuous, with limits $-\infty,+\infty$ as $t\to-\infty,+\infty$. If $M_i(t,w)$ is order reversing in $w$, then $T_i$ is order preserving in $w$; if it is order preserving in $w$, then $T_i$ is order reversing. Consequently the composition of two order-preserving blocks, or of two order-reversing blocks, is order preserving.
+\end{proposition}
+\begin{proof}
+In the order-reversing case, $w\leq w'$ gives $M_i(T_i(w),w')\leq b_i=M_i(T_i(w'),w')$. Strict increase in the scalar variable implies $T_i(w)\leq T_i(w')$. Reversing the inequality gives the other case. Composing two inequalities proves the final assertion. The separable scalar hypothesis is essential: positive coefficients in a coupled vector moment map do not, by themselves, make its inverse order preserving.
+\end{proof}
+
+\begin{proposition}[Translation equivariance from a paired kernel]\label{app-prop:translation-equivariance}
+Assume $A_1^\top\mathbf1+\tau A_2^\top\mathbf1=0$ with $\tau\in\{-1,1\}$, and that exact block optimizers are unique (or represented consistently modulo their block kernels). Then
+$\Psi_2(v+c\mathbf1)=\Psi_2(v)+\tau c\mathbf1$ and
+$\Psi_1(w+\tau c\mathbf1)=\Psi_1(w)+c\mathbf1$,
+with quotient equalities when necessary. In particular the full first-block sweep commutes with constant translations.
+\end{proposition}
+\begin{proof}
+Feasibility gives $\langle b_1,\mathbf1\rangle+\tau\langle b_2,\mathbf1\rangle=0$. The paired shift $(c\mathbf1,\tau c\mathbf1)$ is in $\ker A^\top$, so it preserves the full dual objective. Changing variables by the matching shift in each block optimization identifies its argmax set with the translate of the original argmax set. Uniqueness, or the stated quotient convention, yields the formulas. No choice of arbitrary representatives is silently assumed equivariant.
+\end{proof}

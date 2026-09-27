@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Check sync between neurips paper labels/numbering and Lean StatementMap aliases.
+"""Check structural sync between current paper labels/numbering and Lean StatementMap aliases.
 
 Checks:
-1. Every theorem/proposition/lemma/corollary label in neurips/paper.aux has a label-key alias
+1. Every theorem/proposition/lemma/corollary label in paper/paper.aux has a label-key alias
    in StatementMap.lean.
 2. Every such label has a numbered alias consistent with the compiled numbering (e.g. 4.2 -> prop_4_2).
 3. The label-key alias and numbered alias point to the same Lean target constant.
@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 REPO = Path(__file__).resolve().parents[2]
-AUX = REPO / "neurips" / "paper.aux"
+AUX = REPO / "paper" / "paper.aux"
 STATEMENT_MAP = REPO / "lean" / "FlowSinkhorn" / "KLProjection" / "StatementMap.lean"
 LEAN_ROOT = REPO / "lean" / "FlowSinkhorn" / "KLProjection"
 PAPER_ROOT = REPO / "lean" / "FlowSinkhorn" / "Paper"
@@ -93,11 +93,13 @@ def resolve_target_file(target: str) -> str:
 
 
 def main() -> int:
+    print("NOTICE: revised paper coverage is partial; see lean/PAPER_COVERAGE.md.\n"
+          "This is a structural audit, not a proof of semantic correspondence.", file=sys.stderr)
     if not AUX.exists():
         print(f"ERROR: missing {AUX}", file=sys.stderr)
         print(
             "Hint: regenerate it with "
-            "`cd neurips && pdflatex -interaction=nonstopmode -halt-on-error paper.tex`.",
+            "`cd paper && pdflatex -interaction=nonstopmode -halt-on-error paper.tex`.",
             file=sys.stderr,
         )
         return 2

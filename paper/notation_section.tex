@@ -1,0 +1,46 @@
+\section{Notation}\label{app:notation}
+\begingroup
+\renewcommand{\arraystretch}{1.1}
+\begin{longtable}{@{}p{.27\textwidth}p{.68\textwidth}@{}}
+\toprule\textbf{Notation}&\textbf{Meaning}\\\midrule\endfirsthead
+\toprule\textbf{Notation}&\textbf{Meaning}\\\midrule\endhead
+$d$, $A=(A_1;A_2)$ & Primal dimension and stacked affine constraint operator.\\
+$b=(b_1;b_2)$, $C$ & Generic right-hand side and linear cost.\\
+$z>0$, $Z=\sum_i z_i$ & Generic positive KL reference and its total mass.\\
+$\gamma$, $\varepsilon$ & Physical regularization strength and target optimal-value accuracy.\\
+$\mathcal C_s$ & Closed nonnegative affine constraint block $A_sx=b_s$.\\
+$\KL(x|z)$ & Generalized KL, $\sum_i[x_i\log(x_i/z_i)-x_i+z_i]$.\\
+$z^C$ & Gibbs reference $z\exp(-C/\gamma)$.\\
+$F_0^\star$, $F_\gamma^\star$ & Unregularized and regularized primal optimal values.\\
+$F_\gamma(u)$, $x(u)$ & Dual objective (including its constant) and primal recovery.\\
+$u^{(k+1/2)}$, $u^{(k+1)}$ & First-block half-step and subsequent full iterate.\\
+$\Psi_s$, $\Psi$ & Exact block maximizers and first-block sweep $\Psi_1\circ\Psi_2$.\\
+$N_s$, $\|\cdot\|_{V_s}$ & Projection of $\ker A^\top$ onto block $s$, and quotient infinity seminorm.\\
+$\|u\|_V$, $Q_\gamma$ & Maximum of independent block seminorms; separately, a simultaneous quotient-radius bound.\\
+$\Delta_k$ & Regularized dual gap $F_\gamma^\star-F_\gamma(u^{(k)})$.\\
+$a=\|A\|_{1\to1}$ & Constraint operator norm in the KL analysis.\\
+$X_\gamma$ & Mass bound for both full and half-step primal iterates.\\
+$U_\gamma$ & First-block quotient-radius bound for the orbit and an optimum.\\
+$P_\gamma$ & Upper bound for the dual pairing $\langle b,u\rangle$.\\
+$H_\gamma$, $\kappa_1$ & Optimum log-ratio bound and adjoint-to-first-block quotient constant.\\
+$B_0$ & Positive upper bound for the regularization divergence of an unregularized optimizer.\\
+$V,E,n,p$ & Graph vertices, directed edge entries, and their respective counts.\\
+$W_{ij}$, $W_{\min},W_{\max}$ & Positive symmetric graph-edge costs and their bounds.\\
+$D_{ij}$, $\Dweight$, $\Dhop$ & Weighted geodesic distance, weighted diameter, and unweighted hop diameter.\\
+$q=b_1-b_2$ & Graph source-minus-target vector; distinct from the positive entropy reference $z$.\\
+$f_{ij}$, $Bf$ & Flow from $j$ to $i$; outgoing-minus-incoming divergence.\\
+$(f,g)$, $\bar C$, $\theta$ & Lifted flows, half-cost $(W/2,W/2)$, and lifted parameter $\gamma/2$.\\
+$K=z e^{-W/\gamma}$ & Positive edge Gibbs kernel.\\
+$v,U$ & Graph vertex and edge dual variables; $U$ is not the bound $U_\gamma$.\\
+$\|v\|_{\rm Var}$ & Half oscillation $(\max v-\min v)/2$.\\
+$\bar f$, $M_\gamma$, $M_0$ & Feasible comparison flow, regularized optimum mass bound, and unregularized optimal mass envelope.\\
+$m$ (experiments) & Number of vertices supporting each endpoint measure, not the number of edges.\\
+$e(t)$, $\widetilde v$ & Best-so-far relative dual-potential diagnostic and mean-centered potential.\\
+$D_\phi$, $\eta_\gamma$ & General Bregman divergence and quadratic lower-bound constant.\\
+$\rho,\sigma,P,Z$ & Quantum marginals, coupling, and positive matrix reference (uppercase $Z$ is local to the quantum subsection).\\
+$\tr_1,\tr_2$ & Partial traces on the tensor-product matrix space.\\
+$\|\cdot\|_*,\|\cdot\|_{\rm op}$ & Nuclear (trace) norm and its dual operator norm.\\
+$F,G$ (quantum) & Hermitian dual multipliers, with gauge $(cI,-cI)$.\\
+\bottomrule
+\end{longtable}
+\endgroup

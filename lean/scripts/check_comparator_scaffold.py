@@ -12,6 +12,8 @@ import re
 import sys
 from pathlib import Path
 
+from paper_source import read_paper_source, paper_source_location
+
 REPO = Path(__file__).resolve().parents[2]
 LEAN_DIR = REPO / "lean"
 AUDIT_DIR = LEAN_DIR / "audit"
@@ -24,7 +26,7 @@ AUDIT_MD = AUDIT_DIR / "comparator-challenge-audit.md"
 COMPARATOR_DOC = AUDIT_DIR / "comparator.md"
 REVIEW_GENERATOR = LEAN_DIR / "scripts" / "generate_comparator_review.py"
 CHALLENGE_LOCK = AUDIT_DIR / "comparator-challenge-lock.json"
-PAPER = REPO / "neurips" / "paper.tex"
+PAPER = REPO / "paper" / "paper.tex"
 CHALLENGE = LEAN_DIR / "FlowSinkhorn" / "Comparator" / "Challenge.lean"
 SOLUTION = LEAN_DIR / "FlowSinkhorn" / "Comparator" / "Solution.lean"
 
@@ -358,7 +360,7 @@ def paper_statement_labels(text: str) -> tuple[list[str], list[str]]:
             if label.startswith(LABEL_PREFIXES)
         ]
         if not labels:
-            errors.append(f"paper theorem-like environment at neurips/paper.tex:{line} has no label")
+            errors.append(f"paper theorem-like environment at paper/paper.tex:{line} has no label")
             continue
         for label in labels:
             labels_out.append(label)
@@ -407,11 +409,11 @@ def main() -> int:
     expected = config["theorem_names"]
     expected_labels = [item["label"] for item in manifest["paper_statements"]]
     manifest_entries = manifest["paper_statements"]
-    paper_labels, paper_errors = paper_statement_labels(PAPER.read_text(encoding="utf-8"))
+    paper_labels, paper_errors = paper_statement_labels(read_paper_source(PAPER))
     if paper_errors:
         return fail("Paper label coverage errors: " + "; ".join(paper_errors))
     if paper_labels != expected_labels:
-        return fail("Manifest paper labels do not match direct neurips/paper.tex statement labels")
+        return fail("Manifest paper labels do not match direct paper/paper.tex statement labels")
 
     unresolved_manifest = [
         str(item.get("label", "<unknown>"))

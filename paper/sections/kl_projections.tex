@@ -1,0 +1,27 @@
+\section{Iterative KL Projections}\label{sec:general-KL-new}
+\paragraph{Setting.}
+We consider a feasible linear program $F_0^\star=\min\{\langle C,x\rangle:x\geq0,\ Ax=b\}$, where $A=(A_1;A_2)$ and $b=(b_1;b_2)$. Assume throughout that it has a finite, attained optimum and a strictly positive feasible point. The closed feasible sets are $\mathcal C_s=\{x\in\mathbb R_+^d:A_sx=b_s\}$; boundary points are allowed for the unregularized optimum. Fix a reference $z\in\mathbb R_{++}^d$ and write $Z=\sum_i z_i$. All logarithms are natural, and vector products, quotients, and exponentials are coordinatewise. The generalized divergence is $\KL(x|z)=\sum_i[x_i\log(x_i/z_i)-x_i+z_i]$, with $0\log0=0$. For $\gamma>0$ let
+\begin{equation}\label{eq:entropic-penalized}
+F_\gamma^\star=\min_{x\in\mathcal C_1\cap\mathcal C_2}
+\{\langle C,x\rangle+\gamma\KL(x|z)\}.
+\end{equation}
+Unlike a log barrier, this penalty is finite at the boundary. Its derivative, not its value, becomes singular there. Coercivity and strict convexity give a unique minimizer $x_\gamma^\star$, and the strictly feasible comparison point makes it positive.
+
+\paragraph{Dual problem.}\label{subsec:primal-dual}
+\begin{proposition}[Primal--dual relation]\label{prop:dual-gamma-correct}
+The dual optimum is attained and equals~\eqref{eq:entropic-penalized}. For $u=(u_1,u_2)$ its objective and primal recovery are
+\begin{equation}\label{eq:dual-regul}
+F_\gamma(u)=\langle b,u\rangle+\gamma Z-\gamma\sum_i x_i(u),
+\qquad x(u)=z\exp\big((A^\top u-C)/\gamma\big).
+\end{equation}
+An optimum $u^\star$ satisfies $Ax(u^\star)=b$ and $x(u^\star)=x_\gamma^\star$. Moreover $\nabla F_\gamma(u)=b-Ax(u)$, and $F_\gamma$ is invariant under adding $\ker A^\top$.
+\end{proposition}
+Indeed, minimizing the Lagrangian $\langle C,x\rangle+\gamma\KL(x|z)+\langle u,b-Ax\rangle$ coordinatewise gives~\eqref{eq:dual-regul}. Positivity of the minimizer and the equality-constraint first-order condition give a multiplier $u^\star$ even if $A$ has redundant rows. Appendix~\ref{app-app:dual-rate-proofs} records the full existence argument. The constant $\gamma Z$ is necessary when comparing absolute objective values, although it cancels in dual gaps.
+
+\paragraph{Exact alternating projections.}\label{subsec:cyclic}
+The block maps maximize the dual with the other block fixed: $\Psi_1(u_2)\in\argmax_{v_1}F_\gamma(v_1,u_2)$ and $\Psi_2(u_1)\in\argmax_{v_2}F_\gamma(u_1,v_2)$. Choose representatives if a block has a kernel; the recovered primal vector is unique. Start from $u_1^{(0)}=0$ and $u_2^{(0)}=\Psi_2(0)$. This initial block solve ensures $A_2x^{(0)}=b_2$. A sweep consists of $u^{(k+1/2)}=(\Psi_1(u_2^{(k)}),u_2^{(k)})$ followed by $u^{(k+1)}=(u_1^{(k+1/2)},\Psi_2(u_1^{(k+1/2)}))$. Then $x^{(t)}=x(u^{(t)})$, and
+\begin{equation}\label{eq:KL-primal}
+ x^{(k+1/2)}=\argmin_{x\in\mathcal C_1}\KL(x|x^{(k)}),\qquad
+ x^{(k+1)}=\argmin_{x\in\mathcal C_2}\KL(x|x^{(k+1/2)}).
+\end{equation}
+The initial vector is the $\mathcal C_2$ projection of $z^C=z\exp(-C/\gamma)$. The first-block sweep map is $\Psi=\Psi_1\circ\Psi_2$. These are exact variational block solves; no generic closed-form solution or accuracy-independent cost for them is assumed.

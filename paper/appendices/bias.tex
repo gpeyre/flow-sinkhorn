@@ -1,0 +1,9 @@
+\section{Regularization Bias and Optimal-Value Accuracy}\label{app-app:kl-bias-runtime}
+\begin{lemma}[KL bias]\label{app-lem:kl-bias}
+For any unregularized optimizer $x_0^\star$, $0\leq F_\gamma^\star-F_0^\star\leq\gamma\KL(x_0^\star|z)$. If $\|x_0^\star\|_1\leq M$ and $z_{\min}=\min_i z_i>0$, then the positive quantity $B_0=Z+M\log\max\{1,M/z_{\min}\}$ is an admissible envelope, with the product term defined as zero for $M=0$.
+\end{lemma}
+\begin{proof}
+KL is nonnegative, so minimizing the regularized objective cannot give a value below $F_0^\star$. Evaluating it at $x_0^\star$ proves the upper bound. For the envelope, each positive coordinate obeys $x_i\leq M$ and hence $\log(x_i/z_i)\leq\log\max\{1,M/z_{\min}\}$. Sum, use $\sum_i x_i\leq M$, and discard the nonpositive term $-\sum_i x_i$. When $M=0$, the divergence is exactly $Z$. This general bound need not be sharp, but keeps all mass and reference constants explicit.
+\end{proof}
+\paragraph{Proof of Theorem~\ref{thm:approx-linprog}.}
+The chosen $\gamma$ makes the bias at most $\varepsilon/2$. Substitution into Theorem~\ref{thm:kl-dual-rate} gives $\Delta_K\leq16X_\gamma U_\gamma^2a^2B_0/(\varepsilon K)\leq\varepsilon/2$. Since $F_\gamma(u^{(K)})=F_0^\star+(F_\gamma^\star-F_0^\star)-\Delta_K$, the absolute error is in fact at most $\varepsilon/2$ under these conservative allocations, and in particular at most $\varepsilon$. Stating the looser $\varepsilon$ guarantee permits the usual separate bias/optimization error interpretation. A primal feasible certificate requires an additional construction and is not a consequence of this algebra alone.
